@@ -10,7 +10,7 @@ $paginaAtual = 'relatorios';
 
 // Conectar ao banco
 try {
-    require_once __DIR__ . '/../../../../config/database.php';
+    require_once __DIR__ . '/../../../config/database.php';
     $pdo = getDatabase();
 } catch (Exception $e) {
     die("Erro na conexão: " . $e->getMessage());
