@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Redirecionar /public/gestor para /gestor
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^gestor$ gestor/ [R=301,L]
+    
+    # Permitir acesso direto aos arquivos existentes
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+    
+    # Redirecionar tudo mais para public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
