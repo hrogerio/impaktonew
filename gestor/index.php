@@ -54,7 +54,7 @@ $paginaAtual = $_GET['page'] ?? 'dashboard';
             <a href="/impaktonew/gestor/index.php" class="nav-link active">Dashboard</a>
             <a href="/impaktonew/app/Views/gestor/listar_ponto.php" class="nav-link">Pontos</a>
             <a href="/impaktonew/app/Views/gestor/relatorios/pre_selecao.php" class="nav-link">Pré-Seleção</a>
-            <a href="/impaktonew/app/Views/gestor/relatorios/pre_selecao.php" class="nav-link">Relatórios</a>
+            <a href="/impaktonew/app/Views/gestor/relatorios/relatorios.php" class="nav-link">Relatório</a>
             <a href="#" class="nav-link disabled" title="Em desenvolvimento">Google Maps</a>
         </nav>
         
@@ -95,9 +95,10 @@ $paginaAtual = $_GET['page'] ?? 'dashboard';
             </a>
         </div>
         
-        <div class="menu-card disabled" title="Em desenvolvimento">
+        <div class="menu-card" title="Em desenvolvimento">
+            <a href="/impaktonew/app/Views/gestor/relatorios/relatorios.php">
             <div class="icon"></div>
-            <h3>Relatórios</h3>
+            <h3>Relatório</h3>
         </div>
         
         <div class="menu-card disabled" title="Em desenvolvimento">

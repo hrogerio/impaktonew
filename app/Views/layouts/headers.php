@@ -22,6 +22,7 @@
                 <a href="/gestor">Dashboard</a>
                 <a href="/gestor/pontos">Pontos</a>
                 <a href="/gestor/pre-selecao">Pré-Seleção</a>
+                <a href="/gestor/relatorios">Relatórios</a>
             </nav>
 
             <div class="usuario-menu">
