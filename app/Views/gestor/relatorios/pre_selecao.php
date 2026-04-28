@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="/impaktonew/app/Views/gestor/relatorios/pre_selecao.php" class="nav-link <?= $paginaAtual === 'pre_selecao' ? 'active' : '' ?>">
                 Pré-Seleção
             </a>
-            <a href="/impaktonew/app/Views/gestor/relatorios/relatorios.php" class="nav-link <?= $paginaAtual === 'relatorios' ? 'active' : '' ?>">
+            <a href="/impaktonew/app/Views/gestor/relatorios.php" class="nav-link <?= $paginaAtual === 'relatorios' ? 'active' : '' ?>">
                 Relatórios
             </a>
             <a href="#" class="nav-link disabled" title="Em desenvolvimento">

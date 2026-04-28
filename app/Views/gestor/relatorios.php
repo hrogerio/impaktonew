@@ -583,7 +583,7 @@ function mesLabel($mesStr) {
             <a href="/impaktonew/gestor/index.php" class="nav-link">Dashboard</a>
             <a href="/impaktonew/app/Views/gestor/listar_ponto.php" class="nav-link">Pontos</a>
             <a href="/impaktonew/app/Views/gestor/relatorios/pre_selecao.php" class="nav-link">Pré-Seleção</a>
-            <a href="/impaktonew/app/Views/gestor/relatorios/relatorios.php" class="nav-link active">Relatórios</a>
+            <a href="/impaktonew/app/Views/gestor/relatorios.php" class="nav-link active">Relatórios</a>
         </nav>
         <div class="user-info">
             <a href="/impaktonew/gestor/index.php?logout=1" class="btn-logout"

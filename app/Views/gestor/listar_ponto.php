@@ -400,7 +400,7 @@ function traduzirMes($mes) {
             <a href="/impaktonew/gestor/index.php" class="nav-link">Dashboard</a>
             <a href="/impaktonew/app/Views/gestor/listar_ponto.php" class="nav-link active">Pontos</a>
             <a href="/impaktonew/app/Views/gestor/relatorios/pre_selecao.php" class="nav-link">Pré-Seleção</a>
-            <a href="/impaktonew/app/Views/gestor/relatorios/relatorios.php" class="nav-link">Relatórios</a>
+            <a href="/impaktonew/app/Views/gestor/relatorios.php" class="nav-link">Relatórios</a>
         </nav>
         
         <div class="user-info">
