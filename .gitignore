@@ -1,1 +1,40 @@
+# Credenciais e configuração sensível
+.env
+.env.local
+.env.*.local
+
+# Arquivos de debug e teste — NUNCA subir ao servidor
+debug_session.php
+teste_senha.php
+public/teste_db.php
+public/teste_senha.php
+test_*.php
+*_test.php
+
+# Uploads e fotos
 /fotos
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+
+# Logs — nunca versionar
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# Cache
+/storage/cache/*
+!/storage/cache/.gitkeep
+
+# Dependências
+/vendor/
+/node_modules/
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# PHP
+*.log
