@@ -36,6 +36,18 @@ if (!$ponto) {
     exit;
 }
 
+// Carregar fotos da tabela ponto_fotos (principal primeiro)
+$stmtF = $pdo->prepare("SELECT * FROM ponto_fotos WHERE ponto_id = ? ORDER BY principal DESC, ordem ASC, id ASC");
+$stmtF->execute([$id]);
+$fotos = $stmtF->fetchAll(PDO::FETCH_ASSOC);
+
+// Fallback para campo foto legado se ponto_fotos estiver vazio
+if (empty($fotos) && !empty($ponto['foto'])) {
+    $fotos = [['id' => 0, 'caminho' => $ponto['foto'], 'principal' => 1, 'ordem' => 0]];
+}
+
+$fotosJson = json_encode(array_column($fotos, 'caminho'), JSON_UNESCAPED_UNICODE);
+
 function formatarDataCompleta($data) {
     if (!$data || $data === '0000-00-00') return '-';
     try { return (new DateTime($data))->format('d/m/Y'); }
@@ -104,13 +116,15 @@ function badgeSituacao($situacao) {
                     <div class="info-label">Logradouro:</div>
                     <div class="info-value"><?= htmlspecialchars($ponto['logradouro'] ?? '-') ?></div>
                 </div>
+                <?php if (!empty($ponto['descricao'])): ?>
                 <div class="info-row">
                     <div class="info-label">Descrição:</div>
-                    <div class="info-value"><?= htmlspecialchars($ponto['descricao'] ?? '-') ?></div>
+                    <div class="info-value"><?= htmlspecialchars($ponto['descricao']) ?></div>
                 </div>
+                <?php endif; ?>
                 <div class="info-row">
-                    <div class="info-label">Sentido:</div>
-                    <div class="info-value"><?= htmlspecialchars($ponto['sentido'] ?? '-') ?></div>
+                    <div class="info-label">Bairro:</div>
+                    <div class="info-value"><?= htmlspecialchars($ponto['bairro'] ?? '-') ?></div>
                 </div>
                 <div class="info-row">
                     <div class="info-label">Cidade:</div>
@@ -120,6 +134,18 @@ function badgeSituacao($situacao) {
                     <div class="info-label">Região:</div>
                     <div class="info-value"><?= htmlspecialchars($ponto['regiao'] ?? '-') ?></div>
                 </div>
+                <?php if (!empty($ponto['sentido'])): ?>
+                <div class="info-row">
+                    <div class="info-label">Sentido:</div>
+                    <div class="info-value"><?= htmlspecialchars($ponto['sentido']) ?></div>
+                </div>
+                <?php endif; ?>
+                <?php if (!empty($ponto['corredor'])): ?>
+                <div class="info-row">
+                    <div class="info-label">Corredor:</div>
+                    <div class="info-value"><?= htmlspecialchars($ponto['corredor']) ?></div>
+                </div>
+                <?php endif; ?>
                 <div class="info-row">
                     <div class="info-label">Tipo:</div>
                     <div class="info-value"><?= htmlspecialchars($ponto['tipo'] ?? '-') ?></div>
@@ -169,18 +195,43 @@ function badgeSituacao($situacao) {
 
         <!-- Coluna Direita -->
         <div class="coluna-direita">
-            <!-- Foto -->
+            <!-- Galeria de fotos -->
             <div class="card media-card">
-                <h2 class="card-title">📷 Foto do Ponto</h2>
-                <div class="foto-container">
-                    <?php if (!empty($ponto['foto'])): ?>
-                        <img src="/<?= htmlspecialchars($ponto['foto']) ?>"
+                <h2 class="card-title">📷 Fotos do Ponto <span style="font-size:0.75rem;font-weight:600;color:var(--text-muted)">(<?= count($fotos) ?>)</span></h2>
+                <?php if (!empty($fotos)): ?>
+                <div class="galeria-container">
+                    <div class="galeria-main" id="galMain" onclick="abrirLb(galIdx)">
+                        <img id="galMainImg"
+                             src="/<?= htmlspecialchars($fotos[0]['caminho']) ?>"
                              alt="Foto do ponto <?= htmlspecialchars($ponto['numero']) ?>"
-                             onerror="this.parentElement.innerHTML='<div class=\'sem-foto\'>Foto não disponível</div>'">
-                    <?php else: ?>
-                        <div class="sem-foto">📸 Sem foto cadastrada</div>
+                             onerror="this.style.display='none'">
+                    </div>
+                    <?php if (count($fotos) > 1): ?>
+                    <div class="galeria-thumbs">
+                        <?php foreach ($fotos as $i => $f): ?>
+                        <div class="galeria-thumb <?= $i === 0 ? 'ativo' : '' ?>"
+                             onclick="trocarFoto(<?= $i ?>)">
+                            <img src="/<?= htmlspecialchars($f['caminho']) ?>"
+                                 alt="Foto <?= $i + 1 ?>"
+                                 onerror="this.parentElement.style.display='none'">
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                     <?php endif; ?>
                 </div>
+                <?php else: ?>
+                <div class="foto-container">
+                    <div class="sem-foto">📸 Sem foto cadastrada</div>
+                </div>
+                <?php endif; ?>
+                <?php if (!$modoPublico && !empty($ponto['id'])): ?>
+                <div style="margin-top:0.75rem;text-align:right;">
+                    <a href="/gestor/pontos/editar?id=<?= (int)$ponto['id'] ?>&aba=fotos"
+                       style="font-size:0.78rem;font-weight:700;color:var(--primary);text-decoration:none;">
+                        ✏️ Gerenciar fotos
+                    </a>
+                </div>
+                <?php endif; ?>
             </div>
 
             <!-- Mapa -->
@@ -205,6 +256,56 @@ function badgeSituacao($situacao) {
         </div>
     </div>
 </div>
+
+<!-- Lightbox -->
+<div class="lb-overlay" id="lbOverlay" onclick="fecharLb()">
+    <?php if (count($fotos) > 1): ?>
+    <button class="lb-nav lb-prev" onclick="event.stopPropagation();navLb(-1)">&#8249;</button>
+    <?php endif; ?>
+    <img class="lb-img" id="lbImg" src="" alt="">
+    <?php if (count($fotos) > 1): ?>
+    <button class="lb-nav lb-next" onclick="event.stopPropagation();navLb(1)">&#8250;</button>
+    <div class="lb-counter" id="lbCounter"></div>
+    <?php endif; ?>
+</div>
+
+<script>
+var galeriaFotos = <?= $fotosJson ?>;
+var galIdx = 0;
+
+function trocarFoto(idx) {
+    galIdx = idx;
+    document.getElementById('galMainImg').src = '/' + galeriaFotos[idx];
+    document.querySelectorAll('.galeria-thumb').forEach(function(t, i) {
+        t.classList.toggle('ativo', i === idx);
+    });
+}
+
+function abrirLb(idx) {
+    if (!galeriaFotos.length) return;
+    galIdx = idx;
+    document.getElementById('lbImg').src = '/' + galeriaFotos[idx];
+    var counter = document.getElementById('lbCounter');
+    if (counter) counter.textContent = (idx + 1) + ' / ' + galeriaFotos.length;
+    document.getElementById('lbOverlay').classList.add('aberto');
+}
+function fecharLb() {
+    document.getElementById('lbOverlay').classList.remove('aberto');
+    document.getElementById('lbImg').src = '';
+}
+function navLb(dir) {
+    galIdx = (galIdx + dir + galeriaFotos.length) % galeriaFotos.length;
+    document.getElementById('lbImg').src = '/' + galeriaFotos[galIdx];
+    var counter = document.getElementById('lbCounter');
+    if (counter) counter.textContent = (galIdx + 1) + ' / ' + galeriaFotos.length;
+}
+document.addEventListener('keydown', function(e) {
+    if (!document.getElementById('lbOverlay').classList.contains('aberto')) return;
+    if (e.key === 'Escape')      fecharLb();
+    if (e.key === 'ArrowLeft')   navLb(-1);
+    if (e.key === 'ArrowRight')  navLb(1);
+});
+</script>
 
 <?php if (!empty($ponto['latitude']) && !empty($ponto['longitude'])): ?>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
