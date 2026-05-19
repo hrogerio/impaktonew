@@ -88,7 +88,7 @@ if ($periodoMeses === '15d') {
 
 $sqlContratosVencendo = "
     SELECT
-        numero, logradouro, cidade, regiao, cliente, agencia, tipo, situacao,
+        numero, logradouro, cidade, regiao, cliente, agencia, contato, tipo, situacao,
         DATE(fim_contrato) AS fim_contrato,
         DATEDIFF(fim_contrato, CURDATE()) AS dias_restantes
     FROM pontos
@@ -105,7 +105,7 @@ $contratosVencendo = $pdo->query($sqlContratosVencendo)->fetchAll(PDO::FETCH_ASS
 // TODOS os contratos vencidos, sem LIMIT
 $sqlVencidos = "
     SELECT
-        numero, logradouro, cidade, regiao, cliente, agencia,
+        numero, logradouro, cidade, regiao, cliente, agencia, contato,
         DATE(fim_contrato) AS fim_contrato,
         DATEDIFF(CURDATE(), fim_contrato) AS dias_vencido
     FROM pontos
@@ -135,37 +135,70 @@ ksort($vencendoPorMes);
 $sqlClientes = "
     SELECT
         TRIM(cliente) AS cliente,
-        COALESCE(NULLIF(TRIM(agencia), ''), '') AS agencia,
+        CASE
+            WHEN agencia IS NULL OR TRIM(agencia) = '' OR TRIM(agencia) = '-'
+            THEN 'Cliente direto'
+            ELSE TRIM(agencia)
+        END AS agencia,
         COUNT(*) AS total_pontos,
         SUM(CASE WHEN LOWER(situacao) = 'ocupado' THEN 1 ELSE 0 END) AS ocupados,
         MIN(DATE(inicio_contrato)) AS inicio_mais_antigo,
         MAX(DATE(fim_contrato)) AS fim_mais_recente
     FROM pontos
     WHERE
-        cliente IS NOT NULL AND TRIM(cliente) != ''
-        AND agencia IS NOT NULL AND TRIM(agencia) != ''
+        cliente IS NOT NULL AND TRIM(cliente) != '' AND TRIM(cliente) != '-'
         AND (ativo = 1 OR ativo IS NULL)
-    GROUP BY cliente, agencia
+    GROUP BY TRIM(cliente),
+        CASE
+            WHEN agencia IS NULL OR TRIM(agencia) = '' OR TRIM(agencia) = '-'
+            THEN 'Cliente direto'
+            ELSE TRIM(agencia)
+        END
     ORDER BY cliente ASC, agencia ASC
 ";
 $clientesData = $pdo->query($sqlClientes)->fetchAll(PDO::FETCH_ASSOC);
 
-// Resumo por agência — sem Sem Agência, ordem alfabética
+// Resumo por agência (inclui "Cliente direto")
 $sqlAgencias = "
     SELECT
-        TRIM(agencia) AS agencia,
+        CASE
+            WHEN agencia IS NULL OR TRIM(agencia) = '' OR TRIM(agencia) = '-'
+            THEN 'Cliente direto'
+            ELSE TRIM(agencia)
+        END AS agencia,
         COUNT(DISTINCT NULLIF(TRIM(cliente),'')) AS total_clientes,
         COUNT(*) AS total_pontos
     FROM pontos
     WHERE
-        agencia IS NOT NULL AND TRIM(agencia) != ''
+        cliente IS NOT NULL AND TRIM(cliente) != '' AND TRIM(cliente) != '-'
         AND (ativo = 1 OR ativo IS NULL)
-    GROUP BY agencia
-    ORDER BY agencia ASC
+    GROUP BY
+        CASE
+            WHEN agencia IS NULL OR TRIM(agencia) = '' OR TRIM(agencia) = '-'
+            THEN 'Cliente direto'
+            ELSE TRIM(agencia)
+        END
+    ORDER BY total_pontos DESC
 ";
 $agenciasData = $pdo->query($sqlAgencias)->fetchAll(PDO::FETCH_ASSOC);
 
 $totalPontosComContrato = array_sum(array_column($clientesData, 'total_pontos'));
+
+// ============================================================
+// Qualidade de dados — alertas operacionais
+// ============================================================
+$semFoto = (int)$pdo->query("
+    SELECT COUNT(*) FROM pontos p
+    WHERE (p.ativo = 1 OR p.ativo IS NULL)
+      AND (p.foto IS NULL OR p.foto = '')
+      AND NOT EXISTS (SELECT 1 FROM ponto_fotos pf WHERE pf.ponto_id = p.id)
+")->fetchColumn();
+
+$semCoord = (int)$pdo->query("
+    SELECT COUNT(*) FROM pontos
+    WHERE (ativo = 1 OR ativo IS NULL)
+      AND (latitude IS NULL OR latitude = 0 OR longitude IS NULL OR longitude = 0)
+")->fetchColumn();
 
 // ============================================================
 // Helpers
@@ -390,6 +423,35 @@ function fmtData($data) {
             <?php endif; ?>
         </div>
 
+        <!-- Qualidade de dados -->
+        <?php if ($semFoto > 0 || $semCoord > 0): ?>
+        <div class="bloco-section" style="margin-top:1rem;">
+            <div class="bloco-label">⚠️ Qualidade dos Dados</div>
+            <div class="kpi-grid" style="margin-top:0.75rem;">
+                <?php if ($semFoto > 0): ?>
+                <div class="kpi-card" style="border-left:3px solid #f59e0b;">
+                    <div class="kpi-icon" style="background:#fef3c7;">📷</div>
+                    <div class="kpi-body">
+                        <div class="kpi-value" style="color:#92400e"><?= $semFoto ?></div>
+                        <div class="kpi-label">Pontos sem foto</div>
+                        <div class="kpi-sub"><a href="/gestor/pontos" style="color:#92400e;font-weight:700;">Ver lista →</a></div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <?php if ($semCoord > 0): ?>
+                <div class="kpi-card" style="border-left:3px solid #f59e0b;">
+                    <div class="kpi-icon" style="background:#fef3c7;">📍</div>
+                    <div class="kpi-body">
+                        <div class="kpi-value" style="color:#92400e"><?= $semCoord ?></div>
+                        <div class="kpi-label">Sem coordenadas</div>
+                        <div class="kpi-sub"><a href="/gestor/mapa" style="color:#92400e;font-weight:700;">Ver mapa →</a></div>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Tabela oculta para exportação CSV -->
         <table id="tbl-regiao-hidden" style="display:none">
             <thead><tr><th>Região</th><th>Total</th><th>Ocupados</th><th>Disponíveis</th><th>Reservados</th><th>Ctr. Vencidos</th><th>% Ocupação</th></tr></thead>
@@ -505,8 +567,9 @@ function fmtData($data) {
                             <th>Cidade</th>
                             <th>Cliente</th>
                             <th>Agência</th>
+                            <th>Contato</th>
                             <th>Vencimento</th>
-                            <th>Dias Restantes</th>
+                            <th>Dias</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -518,7 +581,8 @@ function fmtData($data) {
                             <td><?= htmlspecialchars($c['logradouro'] ?? '') ?></td>
                             <td><?= htmlspecialchars($c['cidade'] ?? '') ?></td>
                             <td><?= htmlspecialchars($c['cliente'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
+                            <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
+                            <td style="font-size:0.78rem"><?= htmlspecialchars($c['contato'] ?? '-') ?></td>
                             <td><?= fmtData($c['fim_contrato']) ?></td>
                             <td><strong><?= $c['dias_restantes'] ?></strong></td>
                             <td>
@@ -550,6 +614,7 @@ function fmtData($data) {
                         <th>Região</th>
                         <th>Cliente</th>
                         <th>Agência</th>
+                        <th>Contato</th>
                         <th>Venceu em</th>
                         <th>Dias Vencido</th>
                     </tr>
@@ -562,7 +627,8 @@ function fmtData($data) {
                         <td><?= htmlspecialchars($c['cidade'] ?? '') ?></td>
                         <td><?= htmlspecialchars($c['regiao'] ?? '') ?></td>
                         <td><?= htmlspecialchars($c['cliente'] ?? '-') ?></td>
-                        <td><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
+                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
+                        <td style="font-size:0.78rem"><?= htmlspecialchars($c['contato'] ?? '-') ?></td>
                         <td><?= fmtData($c['fim_contrato']) ?></td>
                         <td><span class="tag-vencido"><?= $c['dias_vencido'] ?> dias</span></td>
                     </tr>
