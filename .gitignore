@@ -15,6 +15,7 @@ test_*.php
 /fotos
 /storage/uploads/*
 !/storage/uploads/.gitkeep
+/storage/backups/*.sql
 
 # Logs
 /storage/logs/*

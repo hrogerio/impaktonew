@@ -1,0 +1,540 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (!isset($_SESSION['usuario'])) {
+    header("Location: " . (defined('BASE') ? BASE : '') . "/?erro=nao_logado");
+    exit;
+}
+
+$paginaAtual = 'pontos';
+
+try {
+    require_once __DIR__ . '/../../../config/database.php';
+    $pdo = getDatabase();
+} catch (Exception $e) {
+    die("Erro na conexão com o banco de dados.");
+}
+
+$id    = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$modo  = $id > 0 ? 'editar' : 'novo';
+$ponto = [];
+$fotos = [];
+
+if ($modo === 'editar') {
+    $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ? AND (ativo = 1 OR ativo IS NULL)");
+    $stmt->execute([$id]);
+    $ponto = $stmt->fetch();
+    if (!$ponto) {
+        header("Location: /gestor/pontos");
+        exit;
+    }
+    $stmtF = $pdo->prepare("SELECT * FROM ponto_fotos WHERE ponto_id = ? ORDER BY ordem ASC, id ASC");
+    $stmtF->execute([$id]);
+    $fotos = $stmtF->fetchAll();
+}
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
+}
+$csrfToken = $_SESSION['csrf_token'];
+
+$msg    = isset($_GET['msg']) ? $_GET['msg'] : '';
+$abaGet = ($modo === 'editar' && isset($_GET['aba'])) ? $_GET['aba'] : 'dados';
+
+function v($arr, $campo, $default = '') {
+    return isset($arr[$campo]) ? htmlspecialchars($arr[$campo], ENT_QUOTES) : $default;
+}
+
+$situacoes = ['Disponivel','Ocupado','Reservado','Vencido','Permuta','Bisemana'];
+$tipos     = ['Painel','Outdoor','Frontlight','Painel LED'];
+?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= $modo === 'editar' ? 'Editar Ponto #' . htmlspecialchars($ponto['numero']) : 'Novo Ponto' ?> — Impakto Mídia</title>
+    <link rel="icon" href="/public/assets/img/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/assets/css/gestor.css">
+    <link rel="stylesheet" href="/public/assets/css/form_ponto.css">
+</head>
+<body>
+
+<?php require __DIR__ . '/../layouts/_nav.php'; ?>
+
+<div class="container">
+<div class="form-page">
+
+    <!-- ── Cabeçalho ───────────────────────────────────────── -->
+    <div class="form-header">
+        <a href="/gestor/pontos" class="btn-voltar">← Voltar</a>
+        <h2 class="form-title">
+            <?php if ($modo === 'editar'): ?>
+                Editar Ponto <span style="color:var(--color-accent-primary)">#<?= htmlspecialchars($ponto['numero']) ?></span>
+            <?php else: ?>
+                Novo Ponto
+            <?php endif; ?>
+        </h2>
+        <?php if ($modo === 'editar'): ?>
+        <form method="post" action="/gestor/pontos/excluir"
+              onsubmit="return confirm('Excluir o ponto #<?= htmlspecialchars($ponto['numero'], ENT_QUOTES) ?>? Esta ação não pode ser desfeita.')">
+            <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+            <input type="hidden" name="id" value="<?= (int)$ponto['id'] ?>">
+            <button type="submit" class="btn-excluir-ponto">🗑 Excluir ponto</button>
+        </form>
+        <?php endif; ?>
+    </div>
+
+    <!-- ── Mensagens ────────────────────────────────────────── -->
+    <?php if ($msg === 'salvo'): ?>
+        <div class="form-msg ok">✅ Dados salvos com sucesso.</div>
+    <?php elseif ($msg === 'criado'): ?>
+        <div class="form-msg ok">✅ Ponto criado! Agora adicione as fotos abaixo.</div>
+    <?php elseif ($msg === 'erro'): ?>
+        <div class="form-msg erro">⚠️ Verifique os campos obrigatórios (Número, Logradouro, Cidade).</div>
+    <?php endif; ?>
+
+    <!-- ── Abas (só em modo editar) ─────────────────────────── -->
+    <?php if ($modo === 'editar'): ?>
+    <div class="form-tabs">
+        <button class="form-tab" data-tab="dados" onclick="trocarAba('dados')">📋 Dados</button>
+        <button class="form-tab" data-tab="fotos" onclick="trocarAba('fotos')">📷 Fotos (<?= count($fotos) ?>)</button>
+    </div>
+    <?php endif; ?>
+
+    <!-- ══════════════════════════════════════════════════════
+         ABA DADOS
+    ══════════════════════════════════════════════════════════ -->
+    <div class="form-tab-content" id="tab-dados">
+        <form method="post" action="/gestor/pontos/salvar">
+            <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+            <?php if ($modo === 'editar'): ?>
+            <input type="hidden" name="id" value="<?= (int)$ponto['id'] ?>">
+            <?php endif; ?>
+
+            <!-- ── Identificação ── -->
+            <p class="form-section-title">Identificação</p>
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label class="form-label">Número <span class="req">*</span></label>
+                    <input type="number" name="numero" class="form-input"
+                           value="<?= v($ponto,'numero') ?>" required min="1" placeholder="001">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Situação</label>
+                    <select name="situacao" class="form-select">
+                        <option value="">— Selecione —</option>
+                        <?php foreach ($situacoes as $sit): ?>
+                        <option value="<?= $sit ?>" <?= v($ponto,'situacao') === $sit ? 'selected' : '' ?>><?= $sit ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- ── Localização ── -->
+            <p class="form-section-title">Localização</p>
+            <div class="form-grid">
+
+                <div class="form-group span2">
+                    <label class="form-label">Logradouro <span class="req">*</span></label>
+                    <input type="text" name="logradouro" class="form-input"
+                           value="<?= v($ponto,'logradouro') ?>" required maxlength="50"
+                           placeholder="Av. Paulista, 1000">
+                </div>
+
+                <div class="form-group span2">
+                    <label class="form-label">Descrição / Referência</label>
+                    <textarea name="descricao" class="form-textarea"
+                              placeholder="Próximo ao metrô, esquina com Rua X..."><?= v($ponto,'descricao') ?></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Bairro</label>
+                    <input type="text" name="bairro" class="form-input"
+                           value="<?= v($ponto,'bairro') ?>" maxlength="20">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Cidade <span class="req">*</span></label>
+                    <input type="text" name="cidade" class="form-input"
+                           value="<?= v($ponto,'cidade') ?>" required maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Região</label>
+                    <input type="text" name="regiao" class="form-input"
+                           value="<?= v($ponto,'regiao') ?>" maxlength="100" placeholder="Zona Norte, Centro...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Sentido</label>
+                    <input type="text" name="sentido" class="form-input"
+                           value="<?= v($ponto,'sentido') ?>" maxlength="100" placeholder="Sentido bairro / centro">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Corredor</label>
+                    <input type="text" name="corredor" class="form-input"
+                           value="<?= v($ponto,'corredor') ?>" maxlength="100">
+                </div>
+
+                <div class="form-group span2 coord-pair">
+                    <div class="form-group">
+                        <label class="form-label">Latitude</label>
+                        <input type="number" name="latitude" class="form-input" step="0.00000001"
+                               value="<?= v($ponto,'latitude') ?>" placeholder="-23.55052">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Longitude</label>
+                        <input type="number" name="longitude" class="form-input" step="0.00000001"
+                               value="<?= v($ponto,'longitude') ?>" placeholder="-46.63331">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ── Características ── -->
+            <p class="form-section-title">Características</p>
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        <option value="">— Selecione —</option>
+                        <?php foreach ($tipos as $t): ?>
+                        <option value="<?= $t ?>" <?= v($ponto,'tipo') === $t ? 'selected' : '' ?>><?= $t ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Formato</label>
+                    <input type="text" name="formato" class="form-input"
+                           value="<?= v($ponto,'formato') ?>" maxlength="50" placeholder="9×3m, 6×3m...">
+                </div>
+
+            </div>
+
+            <!-- ── Contrato ── -->
+            <p class="form-section-title">Contrato</p>
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label class="form-label">Início do Contrato</label>
+                    <input type="date" name="inicio_contrato" class="form-input"
+                           value="<?= v($ponto,'inicio_contrato') ?>">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Vencimento do Contrato</label>
+                    <input type="date" name="fim_contrato" class="form-input"
+                           value="<?= v($ponto,'fim_contrato') ?>">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Cliente</label>
+                    <input type="text" name="cliente" class="form-input"
+                           value="<?= v($ponto,'cliente') ?>" maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Agência</label>
+                    <input type="text" name="agencia" class="form-input"
+                           value="<?= v($ponto,'agencia') ?>" maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Contato</label>
+                    <input type="text" name="contato" class="form-input"
+                           value="<?= v($ponto,'contato') ?>" maxlength="100" placeholder="Nome ou telefone">
+                </div>
+
+                <div class="form-group span2">
+                    <label class="form-label">Observações</label>
+                    <textarea name="observacoes" class="form-textarea" style="min-height:100px"
+                              placeholder="Informações adicionais sobre o ponto..."><?= v($ponto,'observacoes') ?></textarea>
+                </div>
+
+            </div><!-- /form-grid -->
+
+            <div class="form-actions">
+                <button type="submit" class="btn-salvar">💾 Salvar dados</button>
+                <a href="/gestor/pontos" class="btn-cancelar">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         ABA FOTOS (só em modo editar)
+    ══════════════════════════════════════════════════════════ -->
+    <?php if ($modo === 'editar'): ?>
+    <div class="form-tab-content" id="tab-fotos">
+
+        <?php if (empty($fotos)): ?>
+        <p class="foto-aviso" id="fotoAviso">Nenhuma foto cadastrada. Faça upload abaixo.</p>
+        <?php endif; ?>
+
+        <div class="foto-grid" id="fotoGrid">
+            <?php foreach ($fotos as $f): ?>
+            <div class="foto-card <?= $f['principal'] ? 'principal-card' : '' ?>"
+                 id="fc-<?= (int)$f['id'] ?>" data-id="<?= (int)$f['id'] ?>">
+                <?php if ($f['principal']): ?>
+                <span class="foto-capa-badge">★ Capa</span>
+                <?php endif; ?>
+                <img src="/<?= htmlspecialchars($f['caminho']) ?>" alt="Foto do ponto"
+                     data-src="/<?= htmlspecialchars($f['caminho']) ?>"
+                     onclick="abrirLb(this.dataset.src)"
+                     onerror="this.style.display='none'">
+                <div class="foto-card-actions">
+                    <button class="btn-capa <?= $f['principal'] ? 'ativo' : '' ?>"
+                            onclick="definirCapa(<?= (int)$f['id'] ?>)">
+                        <?= $f['principal'] ? '★ Capa' : '☆ Capa' ?>
+                    </button>
+                    <button class="btn-del-foto" onclick="excluirFoto(<?= (int)$f['id'] ?>)">🗑</button>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- Área de upload -->
+        <div class="upload-area" id="uploadArea">
+            <span class="upload-icon">📁</span>
+            <p><strong>Clique ou arraste fotos aqui</strong></p>
+            <p style="font-size:0.75rem;">JPG, PNG, WEBP — máx. 8 MB por arquivo</p>
+            <button class="btn-upload" type="button"
+                    onclick="document.getElementById('uploadInput').click()">Selecionar fotos</button>
+            <input type="file" id="uploadInput" multiple
+                   accept="image/jpeg,image/png,image/webp"
+                   onchange="subirFotos(this.files)">
+        </div>
+
+        <div class="upload-progress" id="uploadProgress" style="display:none">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <p class="progress-msg" id="progressMsg"></p>
+        </div>
+
+    </div>
+    <?php endif; ?>
+
+</div><!-- /form-page -->
+</div><!-- /container -->
+
+<!-- Lightbox -->
+<div class="lb-overlay" id="lbOverlay" onclick="fecharLb()">
+    <img class="lb-img" id="lbImg" src="" alt="">
+</div>
+
+<script>
+var PONTO_ID   = <?= (int)$id ?>;
+var CSRF_TOKEN = '<?= $csrfToken ?>';
+
+// ── Abas ─────────────────────────────────────────────────────
+function trocarAba(aba) {
+    document.querySelectorAll('.form-tab').forEach(function(t) {
+        t.classList.toggle('ativo', t.dataset.tab === aba);
+    });
+    document.querySelectorAll('.form-tab-content').forEach(function(c) {
+        c.classList.toggle('ativo', c.id === 'tab-' + aba);
+    });
+}
+<?php if ($modo === 'editar'): ?>
+trocarAba('<?= htmlspecialchars($abaGet, ENT_QUOTES) ?>');
+<?php else: ?>
+document.getElementById('tab-dados').classList.add('ativo');
+<?php endif; ?>
+
+// ── Lightbox ──────────────────────────────────────────────────
+function abrirLb(src) {
+    document.getElementById('lbImg').src = src;
+    document.getElementById('lbOverlay').classList.add('aberto');
+}
+function fecharLb() {
+    document.getElementById('lbOverlay').classList.remove('aberto');
+    document.getElementById('lbImg').src = '';
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') fecharLb(); });
+
+<?php if ($modo === 'editar'): ?>
+// ── Drag & drop ────────────────────────────────────────────────
+var uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('click', function(e) {
+    if (e.target === uploadArea || e.target.tagName === 'P' || e.target.tagName === 'SPAN') {
+        document.getElementById('uploadInput').click();
+    }
+});
+uploadArea.addEventListener('dragover',  function(e) { e.preventDefault(); this.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', function()  { this.classList.remove('drag-over'); });
+uploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+    subirFotos(e.dataTransfer.files);
+});
+
+// ── Upload ─────────────────────────────────────────────────────
+function subirFotos(files) {
+    if (!files || !files.length) return;
+    var progress = document.getElementById('uploadProgress');
+    var fill     = document.getElementById('progressFill');
+    var msg      = document.getElementById('progressMsg');
+    progress.style.display = 'block';
+    fill.style.width = '0%';
+
+    var total = files.length, done = 0, ok = 0;
+
+    Array.from(files).forEach(function(file) {
+        if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
+            done++;
+            fill.style.width = Math.round(done / total * 100) + '%';
+            msg.textContent  = 'Ignorado: ' + file.name + ' (formato inválido)';
+            return;
+        }
+        var fd = new FormData();
+        fd.append('action',     'upload');
+        fd.append('ponto_id',   PONTO_ID);
+        fd.append('csrf_token', CSRF_TOKEN);
+        fd.append('foto',       file);
+
+        fetch('/gestor/pontos/fotos', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                done++;
+                fill.style.width = Math.round(done / total * 100) + '%';
+                if (d.ok) {
+                    ok++;
+                    adicionarFotoCard(d.foto);
+                    msg.textContent = ok + ' foto(s) enviada(s)...';
+                } else {
+                    msg.textContent = 'Erro: ' + (d.erro || 'Falha no upload');
+                }
+                if (done === total) {
+                    msg.textContent = ok + ' foto(s) adicionada(s) com sucesso!';
+                    atualizarContadorAba();
+                    document.getElementById('uploadInput').value = '';
+                    setTimeout(function() {
+                        progress.style.display = 'none';
+                        fill.style.width = '0%';
+                    }, 3000);
+                }
+            })
+            .catch(function() {
+                done++;
+                msg.textContent = 'Erro de conexão ao enviar ' + file.name;
+            });
+    });
+}
+
+function adicionarFotoCard(foto) {
+    var aviso = document.getElementById('fotoAviso');
+    if (aviso) aviso.remove();
+
+    var grid = document.getElementById('fotoGrid');
+    var div  = document.createElement('div');
+    div.className = 'foto-card' + (foto.principal ? ' principal-card' : '');
+    div.id        = 'fc-' + foto.id;
+    div.dataset.id = foto.id;
+
+    var img = document.createElement('img');
+    img.src          = '/' + foto.caminho;
+    img.alt          = 'Foto do ponto';
+    img.dataset.src  = '/' + foto.caminho;
+    img.style.cssText = 'width:100%;height:120px;object-fit:cover;display:block;cursor:zoom-in';
+    img.onclick       = function() { abrirLb(this.dataset.src); };
+
+    var actions = document.createElement('div');
+    actions.className = 'foto-card-actions';
+
+    var btnCapa = document.createElement('button');
+    btnCapa.className = 'btn-capa' + (foto.principal ? ' ativo' : '');
+    btnCapa.textContent = foto.principal ? '★ Capa' : '☆ Capa';
+    btnCapa.onclick = (function(id) { return function() { definirCapa(id); }; })(foto.id);
+
+    var btnDel = document.createElement('button');
+    btnDel.className = 'btn-del-foto';
+    btnDel.textContent = '🗑';
+    btnDel.onclick = (function(id) { return function() { excluirFoto(id); }; })(foto.id);
+
+    actions.appendChild(btnCapa);
+    actions.appendChild(btnDel);
+
+    if (foto.principal) {
+        var badge = document.createElement('span');
+        badge.className   = 'foto-capa-badge';
+        badge.textContent = '★ Capa';
+        div.appendChild(badge);
+    }
+    div.appendChild(img);
+    div.appendChild(actions);
+    grid.appendChild(div);
+}
+
+// ── Definir foto principal ─────────────────────────────────────
+function definirCapa(fotoId) {
+    fetch('/gestor/pontos/fotos', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    'action=principal&id=' + fotoId + '&ponto_id=' + PONTO_ID + '&csrf_token=' + CSRF_TOKEN
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (!d.ok) { alert(d.erro || 'Erro ao definir capa'); return; }
+        document.querySelectorAll('.foto-card').forEach(function(c) {
+            c.classList.remove('principal-card');
+            var badge = c.querySelector('.foto-capa-badge');
+            if (badge) badge.remove();
+            var btn = c.querySelector('.btn-capa');
+            if (btn) { btn.classList.remove('ativo'); btn.textContent = '☆ Capa'; }
+        });
+        var card = document.getElementById('fc-' + fotoId);
+        if (!card) return;
+        card.classList.add('principal-card');
+        var btn = card.querySelector('.btn-capa');
+        if (btn) { btn.classList.add('ativo'); btn.textContent = '★ Capa'; }
+        var img = card.querySelector('img');
+        if (img) {
+            var badge = document.createElement('span');
+            badge.className   = 'foto-capa-badge';
+            badge.textContent = '★ Capa';
+            card.insertBefore(badge, img);
+        }
+    });
+}
+
+// ── Excluir foto ───────────────────────────────────────────────
+function excluirFoto(fotoId) {
+    if (!confirm('Excluir esta foto permanentemente?')) return;
+    fetch('/gestor/pontos/fotos', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    'action=excluir&id=' + fotoId + '&csrf_token=' + CSRF_TOKEN
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (!d.ok) { alert(d.erro || 'Erro ao excluir'); return; }
+        var card = document.getElementById('fc-' + fotoId);
+        if (card) card.remove();
+        atualizarContadorAba();
+        if (document.querySelectorAll('.foto-card').length === 0) {
+            var aviso = document.createElement('p');
+            aviso.id        = 'fotoAviso';
+            aviso.className = 'foto-aviso';
+            aviso.textContent = 'Nenhuma foto cadastrada. Faça upload abaixo.';
+            document.getElementById('fotoGrid').before(aviso);
+        }
+    });
+}
+
+function atualizarContadorAba() {
+    var n   = document.querySelectorAll('.foto-card').length;
+    var btn = document.querySelector('.form-tab[data-tab="fotos"]');
+    if (btn) btn.textContent = '📷 Fotos (' + n + ')';
+}
+<?php endif; ?>
+</script>
+
+</body>
+</html>

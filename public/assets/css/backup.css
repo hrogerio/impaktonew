@@ -1,0 +1,30 @@
+/* ===== AÇÕES ===== */
+.backup-actions { display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+.btn-backup { display:inline-flex; align-items:center; gap:0.5rem; padding:0.75rem 1.5rem; border-radius:8px; font-family:'Montserrat',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; border:none; text-decoration:none; transition:all 0.2s; }
+.btn-baixar  { background:#C0392B; color:white; }
+.btn-baixar:hover  { background:#A93226; transform:translateY(-1px); }
+.btn-salvar  { background:#27ae60; color:white; }
+.btn-salvar:hover  { background:#219a52; transform:translateY(-1px); }
+
+/* ===== TABELA BACKUPS ===== */
+.backup-table { width:100%; border-collapse:collapse; font-size:0.83rem; }
+.backup-table th { background:var(--color-accent-primary); color:white; padding:0.6rem 0.875rem; text-align:left; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+.backup-table td { padding:0.6rem 0.875rem; border-bottom:1px solid var(--color-border); vertical-align:middle; }
+.backup-table tbody tr:hover { background:#fafafa; }
+.backup-table tbody tr:last-child td { border-bottom:none; }
+.backup-nome { font-weight:600; color:var(--color-text-dark); font-size:0.82rem; }
+.backup-size { color:var(--color-text-muted); font-size:0.78rem; }
+
+/* ===== BOTÕES DE AÇÃO NA TABELA ===== */
+.btn-dl { display:inline-flex; align-items:center; gap:0.3rem; padding:3px 10px; border:1.5px solid #27ae60; border-radius:6px; color:#27ae60; font-size:0.75rem; font-weight:700; text-decoration:none; transition:all 0.15s; }
+.btn-dl:hover { background:#27ae60; color:white; }
+.btn-del { display:inline-flex; align-items:center; gap:0.3rem; padding:3px 10px; border:1.5px solid #c0392b; border-radius:6px; color:#c0392b; font-size:0.75rem; font-weight:700; background:none; cursor:pointer; font-family:'Montserrat',sans-serif; transition:all 0.15s; }
+.btn-del:hover { background:#c0392b; color:white; }
+
+/* ===== EMPTY ===== */
+.backup-empty { padding:2rem; text-align:center; color:var(--color-text-muted); font-size:0.85rem; }
+
+/* ===== ALERTA ===== */
+.alerta { padding:0.75rem 1rem; border-radius:8px; font-size:0.85rem; font-weight:600; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem; }
+.alerta-ok  { background:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
+.alerta-err { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }

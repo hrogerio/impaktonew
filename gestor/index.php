@@ -43,14 +43,7 @@ $paginaAtual  = 'dashboard';
         <div class="menu-card">
             <a href="/gestor/pontos">
                 <div class="icon"></div>
-                <h3>Lista de Pontos</h3>
-            </a>
-        </div>
-
-        <div class="menu-card">
-            <a href="/gestor/pre-selecao">
-                <div class="icon"></div>
-                <h3>Pré-Seleção</h3>
+                <h3>Pontos & Propostas</h3>
             </a>
         </div>
 

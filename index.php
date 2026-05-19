@@ -64,10 +64,10 @@ switch ($uri) {
         require __DIR__ . '/gestor/index.php';
         break;
 
-    // ── LISTA DE PONTOS ─────────────────────────────────────
+    // ── LISTA DE PONTOS + PRÉ-SELEÇÃO (unificado) ───────────
     case 'gestor/pontos':
         auth_required();
-        require __DIR__ . '/app/Views/gestor/listar_ponto.php';
+        require __DIR__ . '/app/Views/gestor/pontos.php';
         break;
 
     // ── DETALHES DO PONTO (admin + público) ──────────────────
@@ -75,11 +75,40 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/detalhes_ponto.php';
         break;
 
-    // ── PRÉ-SELEÇÃO ─────────────────────────────────────────
-    case 'gestor/pre-selecao':
+    // ── NOVO PONTO ────────────────────────────────────────────
+    case 'gestor/pontos/novo':
         auth_required();
-        require __DIR__ . '/app/Views/gestor/relatorios/pre_selecao.php';
+        require __DIR__ . '/app/Views/gestor/form_ponto.php';
         break;
+
+    // ── EDITAR PONTO ──────────────────────────────────────────
+    case 'gestor/pontos/editar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/form_ponto.php';
+        break;
+
+    // ── SALVAR PONTO (POST: create + update) ─────────────────
+    case 'gestor/pontos/salvar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/salvar_ponto.php';
+        break;
+
+    // ── EXCLUIR PONTO (POST: soft delete) ────────────────────
+    case 'gestor/pontos/excluir':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/excluir_ponto.php';
+        break;
+
+    // ── API: FOTOS (AJAX: upload / principal / excluir) ───────
+    case 'gestor/pontos/fotos':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/fotos.php';
+        break;
+
+    // ── PRÉ-SELEÇÃO (redirect para pontos unificado) ─────────
+    case 'gestor/pre-selecao':
+        header("Location: " . BASE . "/gestor/pontos", true, 301);
+        exit;
 
     // ── RELATÓRIOS ──────────────────────────────────────────
     case 'gestor/relatorios':
@@ -91,6 +120,12 @@ switch ($uri) {
     case 'gestor/auditoria':
         auth_required();
         require __DIR__ . '/backup.php';
+        break;
+
+    // ── BACKUP DO BANCO ──────────────────────────────────────
+    case 'gestor/backup':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/backup_bd.php';
         break;
 
     // ── 404 ─────────────────────────────────────────────────
