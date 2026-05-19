@@ -128,6 +128,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/backup_bd.php';
         break;
 
+    // ── MAPA DE PONTOS ───────────────────────────────────────
+    case 'gestor/mapa':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/mapa.php';
+        break;
+
     // ── 404 ─────────────────────────────────────────────────
     default:
         http_response_code(404);

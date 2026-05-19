@@ -14,7 +14,7 @@ $paginaAtual = $paginaAtual ?? '';
             <a href="/gestor/relatorios" class="nav-link<?= $paginaAtual === 'relatorios'  ? ' active' : '' ?>">Relatórios</a>
             <a href="/gestor/auditoria"  class="nav-link<?= $paginaAtual === 'auditoria'   ? ' active' : '' ?>">Auditoria</a>
             <a href="/gestor/backup"     class="nav-link<?= $paginaAtual === 'backup'      ? ' active' : '' ?>">Backup BD</a>
-            <a href="#" class="nav-link disabled" title="Em desenvolvimento">Google Maps</a>
+            <a href="/gestor/mapa" class="nav-link<?= $paginaAtual === 'mapa' ? ' active' : '' ?>">Mapa</a>
         </nav>
         <div class="user-info">
             <a href="/logout" class="btn-logout" onclick="return confirm('Tem certeza que deseja sair?')">Sair</a>
