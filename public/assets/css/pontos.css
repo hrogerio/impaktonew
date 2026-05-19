@@ -1,0 +1,176 @@
+/* ===== BARRA DE BUSCA ===== */
+.search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--color-bg-white);
+    border: 2px solid var(--color-border);
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+}
+.search-bar:focus-within { border-color: var(--color-accent-primary); }
+.search-bar input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.95rem;
+    color: var(--color-text-dark);
+    background: transparent;
+}
+.search-bar input::placeholder { color: var(--color-text-muted); }
+.search-icon { font-size: 1.1rem; color: var(--color-text-muted); flex-shrink: 0; }
+.search-clear {
+    background: none; border: none; cursor: pointer;
+    color: var(--color-text-muted); font-size: 1rem; padding: 0;
+    display: none;
+}
+.search-clear.visible { display: block; }
+.search-kbd {
+    font-size: 0.7rem; color: var(--color-text-muted);
+    border: 1px solid var(--color-border); border-radius: 4px;
+    padding: 2px 6px; white-space: nowrap;
+}
+
+/* ===== FILTROS ===== */
+.filtros-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    align-items: center;
+}
+.filtro-select {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-dark);
+    background: var(--color-bg-white);
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 28px;
+}
+.filtro-select:focus { outline: none; border-color: var(--color-accent-primary); }
+.filtro-select.ativo { border-color: var(--color-accent-primary); color: var(--color-accent-primary); background-color: #fff8f7; }
+.btn-limpar-filtros {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem; font-weight: 700;
+    color: var(--color-text-muted);
+    background: none; border: none; cursor: pointer;
+    padding: 0.4rem 0.5rem; text-decoration: underline;
+    display: none;
+}
+.btn-limpar-filtros.visible { display: block; }
+
+/* ===== CONTADOR ===== */
+.result-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 0;
+}
+#resultCount { display: flex; align-items: baseline; gap: 0.3rem; flex-wrap: wrap; }
+.result-total { color: var(--color-text-muted); }
+
+/* ===== TABELA ===== */
+.table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.table thead th {
+    background: var(--color-bg-primary);
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--color-border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+.table thead th:hover { color: var(--color-accent-primary); }
+.table thead th .sort-icon { margin-left: 4px; opacity: 0.4; font-size: 0.7rem; }
+.table thead th.sort-asc  .sort-icon::after { content: ' ↑'; opacity: 1; }
+.table thead th.sort-desc .sort-icon::after { content: ' ↓'; opacity: 1; }
+.table thead th .sort-icon::after { content: ' ↕'; }
+.table tbody tr { border-bottom: 1px solid var(--color-border); transition: background 0.1s; }
+.table tbody tr:hover { background: #fafafa; }
+.table td { padding: 0.6rem 0.75rem; vertical-align: middle; }
+
+.col-num         { font-weight: 800; color: var(--color-accent-primary); font-size: 0.9rem; }
+.col-local-main  { font-weight: 600; }
+.col-local-sub   { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 1px; }
+.col-cliente-main { font-weight: 600; }
+.col-cliente-sub  { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 1px; }
+
+/* ===== BADGES SITUAÇÃO ===== */
+.badge-sit {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+.sit-disponivel { background: #dcfce7; color: #166534; }
+.sit-ocupado    { background: #fee2e2; color: #991b1b; }
+.sit-reservado  { background: #ffedd5; color: #9a3412; }
+.sit-vencido    { background: #f3e8ff; color: #6b21a8; }
+.sit-permuta    { background: #ede9fe; color: #4c1d95; }
+.sit-bisemana   { background: #cffafe; color: #164e63; }
+.sit-outro      { background: #f1f5f9; color: #475569; }
+
+/* ===== BADGE CONTRATO ===== */
+.badge-contrato {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ctr-vencido { background: #fde8e8; color: #c0392b; }
+.ctr-critico { background: #fee2e2; color: #991b1b; }
+.ctr-urgente { background: #fff3cd; color: #856404; }
+.ctr-atencao { background: #dbeafe; color: #1e40af; }
+.ctr-ok      { background: #dcfce7; color: #166534; }
+.ctr-sem     { background: #f1f5f9; color: #94a3b8; }
+
+/* ===== LINK DETALHES ===== */
+.link-info {
+    color: var(--color-accent-primary);
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 0.82rem;
+    padding: 4px 10px;
+    border: 1.5px solid var(--color-accent-primary);
+    border-radius: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.link-info:hover { background: var(--color-accent-primary); color: white; }
+
+mark { background: #fff3cd; padding: 1px 3px; border-radius: 3px; }
+
+.empty-row td { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); }
+.empty-row .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+@media (max-width: 768px) {
+    .col-tipo, .col-regiao { display: none; }
+    .search-kbd { display: none; }
+}

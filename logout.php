@@ -1,6 +1,8 @@
 <?php
 // logout.php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Log do logout se houver usuário logado
 if (isset($_SESSION['usuario'])) {
@@ -23,5 +25,5 @@ if (ini_get("session.use_cookies")) {
 session_destroy();
 
 // Redirecionar para o login com mensagem
-header("Location: /impaktonew/public/index.php?mensagem=logout_sucesso");
+header("Location: /?mensagem=logout_sucesso");
 exit;

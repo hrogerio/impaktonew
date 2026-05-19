@@ -1,0 +1,71 @@
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+    --primary: #C0392B;
+    --primary-dark: #A93226;
+    --bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --text: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #6c757d;
+    --border: #dfe3e8;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.12);
+}
+body { font-family:'Montserrat',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; font-size:15px; }
+.header { background:var(--card-bg); box-shadow:var(--shadow-sm); padding:0.7rem 0; position:sticky; top:0; z-index:100; }
+.header-content { max-width:1700px; margin:0 auto; padding:0 1.5rem; display:flex; justify-content:space-between; align-items:center; }
+.logo-img { height:36px; }
+.badge-publico { background:#f0f4ff; color:#1a237e; font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:10px; border:1px solid #c5cae9; }
+.btn-voltar { display:inline-flex; align-items:center; gap:0.5rem; padding:0.55rem 1.3rem; background:var(--primary); color:white; text-decoration:none; border-radius:7px; font-weight:700; font-size:14px; transition:all 0.2s; border:none; cursor:pointer; }
+.btn-voltar:hover { background:var(--primary-dark); transform:translateY(-2px); }
+.container { max-width:1700px; margin:0 auto; padding:1rem 1.5rem 3rem; }
+.numero-titulo { font-size:2.2rem; font-weight:800; color:var(--primary); margin-bottom:1rem; letter-spacing:-1px; }
+.grid { display:grid; grid-template-columns:1fr 1.4fr; gap:1.2rem; }
+.coluna-esquerda, .coluna-direita { display:flex; flex-direction:column; gap:1rem; }
+.card { background:var(--card-bg); border-radius:10px; padding:1.1rem 1.3rem; box-shadow:var(--shadow-md); border:1px solid var(--border); }
+.card-title { font-size:1rem; font-weight:800; color:var(--primary); margin-bottom:0.9rem; padding-bottom:0.5rem; border-bottom:3px solid var(--primary); text-transform:uppercase; letter-spacing:0.6px; }
+.info-row { display:flex; padding:0.6rem 0; border-bottom:1px solid #f5f5f5; align-items:flex-start; gap:0.9rem; }
+.info-row:last-child { border-bottom:none; }
+.info-label { font-weight:700; color:var(--text); min-width:110px; font-size:13.5px; }
+.info-value { color:var(--text-secondary); flex:1; font-size:13.5px; line-height:1.6; font-weight:500; }
+.media-card { box-shadow:0 6px 20px rgba(0,0,0,0.15); border:2px solid var(--border); }
+.foto-container { width:100%; height:420px; border-radius:8px; overflow:hidden; background:linear-gradient(135deg,#f5f5f5,#e8e8e8); display:flex; align-items:center; justify-content:center; }
+.foto-container img { width:100%; height:100%; object-fit:cover; transition:transform 0.3s; }
+.foto-container:hover img { transform:scale(1.05); }
+.sem-foto { color:var(--text-muted); font-size:1rem; font-weight:600; }
+.mapa-container { width:100%; height:420px; border-radius:8px; overflow:hidden; border:2px solid var(--border); }
+.coordenadas { text-align:center; margin-top:0.7rem; color:var(--text-secondary); font-size:12px; font-weight:600; }
+.coordenadas a { color:var(--primary); text-decoration:none; font-weight:700; }
+.coordenadas a:hover { text-decoration:underline; }
+.badge-situacao { padding:6px 14px; border-radius:20px; font-size:12px; font-weight:800; white-space:nowrap; display:inline-block; text-transform:uppercase; letter-spacing:0.5px; }
+.situacao-disponivel { background:#1a9059; color:white; }
+.situacao-ocupado    { background:#dc3545; color:white; }
+.situacao-reservado  { background:#fd7e14; color:white; }
+.situacao-vencido    { background:#6c757d; color:white; }
+.situacao-permuta    { background:#51086e; color:white; }
+.situacao-bisemana   { background:#0dcaf0; color:white; }
+.situacao-outro      { background:#198754; color:white; }
+
+.banner-publico {
+    background: #f0f4ff;
+    border: 1px solid #c5cae9;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+    color: #1a237e;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+@media (max-width:1200px) {
+    .grid { grid-template-columns:1fr; }
+    .foto-container, .mapa-container { height:450px; }
+}
+@media (max-width:768px) {
+    .header-content { flex-direction:column; gap:0.75rem; }
+    .numero-titulo { font-size:1.8rem; }
+    .container { padding:1rem; }
+    .foto-container, .mapa-container { height:350px; }
+}

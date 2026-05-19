@@ -1,9 +1,9 @@
-# Credenciais e configuração sensível
+# Credenciais — NUNCA versionar
 .env
 .env.local
 .env.*.local
 
-# Arquivos de debug e teste — NUNCA subir ao servidor
+# Arquivos de debug e teste
 debug_session.php
 teste_senha.php
 public/teste_db.php
@@ -16,7 +16,7 @@ test_*.php
 /storage/uploads/*
 !/storage/uploads/.gitkeep
 
-# Logs — nunca versionar
+# Logs
 /storage/logs/*
 !/storage/logs/.gitkeep
 
@@ -28,13 +28,11 @@ test_*.php
 /vendor/
 /node_modules/
 
-# IDEs e editores
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
-
-# PHP
 *.log
