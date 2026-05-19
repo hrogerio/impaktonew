@@ -119,7 +119,7 @@ switch ($uri) {
     // ── AUDITORIA ───────────────────────────────────────────
     case 'gestor/auditoria':
         auth_required();
-        require __DIR__ . '/backup.php';
+        require __DIR__ . '/app/Views/gestor/auditoria.php';
         break;
 
     // ── BACKUP DO BANCO ──────────────────────────────────────
