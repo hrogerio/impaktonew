@@ -80,8 +80,8 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
 
         /* ── Tabela ── */
         .col-check { width:32px; padding-right:0 !important; text-align:center; }
-        .col-foto  { width:36px; padding:2px 3px !important; }
-        .thumb-wrap { width:30px; height:22px; border-radius:3px; overflow:hidden; background:#f0f0f0; display:flex; align-items:center; justify-content:center; }
+        .col-foto  { width:70px; padding:3px 4px !important; }
+        .thumb-wrap { width:62px; height:52px; border-radius:4px; overflow:hidden; background:#f0f0f0; display:flex; align-items:center; justify-content:center; }
         .thumb-img  { width:100%; height:100%; object-fit:cover; cursor:zoom-in; }
         .thumb-vazio { font-size:0.65rem; color:#ccc; }
         .table { width:100%; border-collapse:collapse; font-size:0.78rem; table-layout:fixed; }
@@ -99,7 +99,7 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
         .table tbody tr { border-bottom:1px solid var(--color-border); transition:background 0.1s; cursor:pointer; }
         .table tbody tr:hover { background:#fafafa; }
         .table tbody tr.selecionado { background:#fff8f7 !important; box-shadow:inset 3px 0 0 var(--color-accent-primary); }
-        .table td { padding:0.45rem 0.5rem; vertical-align:middle; line-height:1.3; }
+        .table td { padding:1.32rem 0.5rem; vertical-align:middle; line-height:1.3; }
         .col-num { font-weight:800; color:var(--color-accent-primary); font-size:0.82rem; white-space:nowrap; }
         .col-txt  { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:0; font-weight:600; }
         .col-sub  { font-size:0.66rem; color:var(--color-text-muted); font-weight:400; }
@@ -203,7 +203,7 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
                 <thead>
                     <tr>
                         <th class="col-check no-print" style="width:32px"></th>
-                        <th class="col-foto no-print" style="width:40px"></th>
+                        <th class="col-foto no-print" style="width:70px"></th>
                         <th data-col="numero" style="width:52px">Nº<span class="sort-icon"></span></th>
                         <th data-col="logradouro" style="width:35%">Logradouro<span class="sort-icon"></span></th>
                         <th data-col="cidade" style="width:18%">Cidade / Região<span class="sort-icon"></span></th>
