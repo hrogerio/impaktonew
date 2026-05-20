@@ -364,13 +364,15 @@ function filtrar(lista) {
 function ordenar(lista) {
     var dir = sortDir === 'asc' ? 1 : -1;
     return lista.slice().sort(function(a,b) {
-        var va = a[sortCol]||'', vb = b[sortCol]||'';
-        if (sortCol === 'numero') return ((parseInt(va)||0) - (parseInt(vb)||0)) * dir;
+        var va = a[sortCol], vb = b[sortCol];
+        if (sortCol === 'numero' || sortCol === 'ultima_alteracao') {
+            return ((parseInt(va)||0) - (parseInt(vb)||0)) * dir;
+        }
         if (sortCol === 'fim_contrato') {
             if (!va && !vb) return 0; if (!va) return 1; if (!vb) return -1;
             return (new Date(va) - new Date(vb)) * dir;
         }
-        va = normalizar(va); vb = normalizar(vb);
+        va = normalizar(va||''); vb = normalizar(vb||'');
         return (va < vb ? -1 : va > vb ? 1 : 0) * dir;
     });
 }
