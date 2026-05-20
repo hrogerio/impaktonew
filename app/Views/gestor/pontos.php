@@ -45,6 +45,13 @@ if ($pontosJson === false) {
     $pontosJson = json_encode($pontos, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE);
 }
 if ($pontosJson === false) $pontosJson = '[]';
+
+// Últimas 6 alterações/adições para a barra de push
+$recentes = $pdo->query(
+    "SELECT id, numero, logradouro, cidade, situacao
+     FROM pontos WHERE ativo = 1 OR ativo IS NULL
+     ORDER BY id DESC LIMIT 6"
+)->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -169,12 +176,52 @@ if ($pontosJson === false) $pontosJson = '[]';
             padding:1px 6px; border-radius:8px;
         }
 
+        /* ── Push bar ── */
+        .push-bar {
+            display:flex; align-items:center; gap:0.5rem;
+            background:#1e293b; color:white;
+            padding:0.35rem 1.2rem; font-size:0.72rem; flex-shrink:0;
+            overflow:hidden;
+        }
+        .push-bar-label { font-weight:700; color:#94a3b8; white-space:nowrap; flex-shrink:0; }
+        .push-bar-items { display:flex; gap:0.4rem; overflow:hidden; flex:1; }
+        .push-bar-item {
+            color:white; text-decoration:none;
+            padding:2px 8px; border-radius:4px;
+            background:rgba(255,255,255,0.08);
+            white-space:nowrap; font-size:0.7rem;
+            transition:background 0.15s; flex-shrink:0;
+        }
+        .push-bar-item:hover { background:rgba(255,255,255,0.18); }
+        .push-bar-item strong { color:#f87171; margin-right:3px; }
+        .push-bar-close {
+            margin-left:auto; flex-shrink:0;
+            background:none; border:none; color:#475569;
+            font-size:0.8rem; cursor:pointer; padding:2px 5px;
+            border-radius:3px; line-height:1;
+        }
+        .push-bar-close:hover { color:white; background:rgba(255,255,255,0.1); }
+
         @media print { .no-print { display:none !important; } body { overflow:auto; } }
     </style>
 </head>
 <body>
 
 <?php require __DIR__ . '/../layouts/_nav.php'; ?>
+
+<?php if (!empty($recentes)): ?>
+<div class="push-bar no-print" id="pushBar">
+    <span class="push-bar-label">🕐 Recentes:</span>
+    <div class="push-bar-items">
+        <?php foreach ($recentes as $r): ?>
+        <a href="/gestor/pontos/detalhes?id=<?= (int)$r['id'] ?>" class="push-bar-item">
+            <strong><?= htmlspecialchars($r['numero']) ?></strong><?= htmlspecialchars(mb_strimwidth($r['logradouro'], 0, 35, '…')) ?><?= $r['cidade'] ? ' · '.htmlspecialchars($r['cidade']) : '' ?>
+        </a>
+        <?php endforeach; ?>
+    </div>
+    <button class="push-bar-close" onclick="fecharPushBar()" title="Fechar">✕</button>
+</div>
+<?php endif; ?>
 
 <div class="pontos-page" id="pontosPage">
 
@@ -526,10 +573,26 @@ document.addEventListener('keydown', function(e) {
     if (e.key==='Escape') fecharLb();
 });
 
+// ── Push bar ─────────────────────────────────────────────────
+function fecharPushBar() {
+    var pb = document.getElementById('pushBar');
+    if (pb) { pb.style.display = 'none'; ajustarAltura(); }
+    sessionStorage.setItem('pushBarFechado', '1');
+}
+(function() {
+    if (sessionStorage.getItem('pushBarFechado')) {
+        var pb = document.getElementById('pushBar');
+        if (pb) pb.style.display = 'none';
+    }
+})();
+
 // ── Altura viewport ──────────────────────────────────────────
 function ajustarAltura() {
-    var h = document.querySelector('.header');
-    document.getElementById('pontosPage').style.height = (window.innerHeight-(h?h.offsetHeight:60))+'px';
+    var header  = document.querySelector('.header');
+    var pushBar = document.getElementById('pushBar');
+    var used = (header ? header.offsetHeight : 60)
+             + (pushBar && pushBar.style.display !== 'none' ? pushBar.offsetHeight : 0);
+    document.getElementById('pontosPage').style.height = (window.innerHeight - used) + 'px';
 }
 ajustarAltura();
 window.addEventListener('resize', ajustarAltura);
