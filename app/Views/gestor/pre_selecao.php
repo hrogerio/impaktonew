@@ -449,9 +449,8 @@ function abrirEmail() {
     lista.sort(function(a,b){ return (parseInt(a.numero)||0)-(parseInt(b.numero)||0); });
     var linhas = lista.map(function(p,i) {
         var local = p.logradouro+(p.cidade?', '+p.cidade:'')+(p.regiao?' – '+p.regiao:'');
-        var tipo  = p.tipo?' ('+p.tipo+(p.formato?' '+p.formato:'')+')':'';
         var url   = window.location.origin+'/gestor/pontos/detalhes?id='+p.id;
-        return (i+1)+'. Ponto '+(p.numero||'')+' – '+local+tipo+'\n   '+url;
+        return (i+1)+'. Ponto '+(p.numero||'')+' – '+local+'\n   '+url;
     });
     var dest = cliente+(agencia&&agencia!=='Cliente direto'?' / '+agencia:'');
     var txt = 'Prezado(a),\n\nEncaminhamos a pré-seleção de mídia exterior para '+dest
