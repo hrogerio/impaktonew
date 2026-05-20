@@ -29,10 +29,11 @@ $sql = "
                WHEN p.fim_contrato IS NULL OR p.fim_contrato = '0000-00-00' OR p.fim_contrato = ''
                THEN NULL
                ELSE DATE(p.fim_contrato)
-           END AS fim_contrato
+           END AS fim_contrato,
+           COALESCE(p.updated_at, p.created_at) AS ultima_alteracao
     FROM pontos p
     WHERE p.ativo = 1 OR p.ativo IS NULL
-    ORDER BY p.numero ASC
+    ORDER BY COALESCE(p.updated_at, p.created_at) DESC
 ";
 $pontos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
@@ -210,10 +211,9 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
                             Sem período
                         </label>
                     </div>
-                    <div class="sel-date-row" id="periodoDatas">
-                        <input type="date" class="sel-input sel-date" id="selDataInicio">
-                        <span class="sel-date-sep">até</span>
-                        <input type="date" class="sel-input sel-date" id="selDataFim">
+                    <div id="periodoDatas" style="display:flex;flex-direction:column;gap:0.3rem;">
+                        <input type="date" class="sel-input" id="selDataInicio" placeholder="Início">
+                        <input type="date" class="sel-input" id="selDataFim" placeholder="Fim">
                     </div>
                 </div>
 
@@ -274,8 +274,8 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
 <script>
 var PONTOS      = <?= $pontosJson ?>;
 var selecionados = new Set();
-var sortCol     = 'fim_contrato';
-var sortDir     = 'asc';
+var sortCol     = 'ultima_alteracao';
+var sortDir     = 'desc';
 var filtros     = { busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', tipo:'' };
 var pontosMap   = {};
 PONTOS.forEach(function(p) { pontosMap[String(p.id)] = p; });
@@ -548,7 +548,9 @@ function abrirEmail() {
     var periodo = getPeriodo() || '[Período]';
     var linhas  = lista.map(function(p,i) {
         var local = p.logradouro + (p.cidade?', '+p.cidade:'') + (p.regiao?' – '+p.regiao:'');
-        return (i+1)+'. Ponto '+(p.numero||'')+' – '+local+(p.tipo?' ('+p.tipo+(p.formato?' '+p.formato:'')+')':'');
+        var tipo  = p.tipo ? ' ('+p.tipo+(p.formato?' '+p.formato:'')+')' : '';
+        var url   = window.location.origin + '/gestor/pontos/detalhes?id=' + p.id;
+        return (i+1)+'. Ponto '+(p.numero||'')+' – '+local+tipo+'\n   '+url;
     });
     var dest = cliente + (agencia && agencia !== 'Cliente direto' ? ' / ' + agencia : '');
     var txt = 'Prezado(a),\n\nEncaminhamos a pré-seleção de mídia exterior para '+dest
@@ -634,7 +636,6 @@ document.addEventListener('keydown', function(e) {
 // ── Init ───────────────────────────────────────────────────────
 renderTabela();
 renderSelPanel();
-document.querySelector('th[data-col="fim_contrato"]').classList.add('sort-asc');
 document.getElementById('searchInput').focus();
 </script>
 
