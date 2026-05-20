@@ -2,12 +2,12 @@
 .search-bar {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     background: var(--color-bg-white);
-    border: 2px solid var(--color-border);
-    border-radius: 10px;
-    padding: 0.4rem 1rem;
-    margin-bottom: 0.5rem;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.25rem 0.75rem;
+    margin-bottom: 0.35rem;
     transition: border-color 0.2s;
 }
 .search-bar:focus-within { border-color: var(--color-accent-primary); }
@@ -16,7 +16,7 @@
     border: none;
     outline: none;
     font-family: 'Montserrat', sans-serif;
-    font-size: 0.95rem;
+    font-size: 0.8rem;
     color: var(--color-text-dark);
     background: transparent;
 }
@@ -38,27 +38,27 @@
 .filtros-wrap {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-bottom: 0.4rem;
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
     align-items: center;
 }
 .filtro-select {
     font-family: 'Montserrat', sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     font-weight: 600;
     color: var(--color-text-dark);
     background: var(--color-bg-white);
     border: 1.5px solid var(--color-border);
-    border-radius: 8px;
-    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    padding: 0.22rem 0.6rem;
     cursor: pointer;
     transition: border-color 0.2s;
     appearance: none;
     -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 8px center;
-    padding-right: 28px;
+    background-position: right 6px center;
+    padding-right: 22px;
 }
 .filtro-select:focus { outline: none; border-color: var(--color-accent-primary); }
 .filtro-select.ativo { border-color: var(--color-accent-primary); color: var(--color-accent-primary); background-color: #fff8f7; }
@@ -77,26 +77,26 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.3rem;
-    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    padding: 0.25rem 0;
+    padding: 0.15rem 0;
 }
 #resultCount { display: flex; align-items: baseline; gap: 0.3rem; flex-wrap: wrap; }
 .result-total { color: var(--color-text-muted); }
 
 /* ===== TABELA ===== */
-.table { width: 100%; border-collapse: collapse; font-size: 0.82rem; table-layout: fixed; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.78rem; table-layout: fixed; }
 .table thead th {
     background: var(--color-bg-primary);
-    padding: 0.4rem 0.6rem;
+    padding: 0.28rem 0.5rem;
     text-align: left;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 700;
     color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 2px solid var(--color-border);
+    border-bottom: 1.5px solid var(--color-border);
     white-space: nowrap;
     cursor: pointer;
     user-select: none;
@@ -108,20 +108,20 @@
 .table thead th .sort-icon::after { content: ' ↕'; }
 .table tbody tr { border-bottom: 1px solid var(--color-border); transition: background 0.1s; }
 .table tbody tr:hover { background: #fafafa; }
-.table td { padding: 0.3rem 0.6rem; vertical-align: middle; }
+.table td { padding: 0.22rem 0.5rem; vertical-align: middle; }
 
-.col-num         { font-weight: 800; color: var(--color-accent-primary); font-size: 0.88rem; white-space: nowrap; }
+.col-num         { font-weight: 800; color: var(--color-accent-primary); font-size: 0.82rem; white-space: nowrap; }
 .col-local-main  { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-local-sub   { font-size: 0.72rem; color: var(--color-text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-local-sub   { font-size: 0.68rem; color: var(--color-text-muted); margin-top: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-cliente-main { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-cliente-sub  { font-size: 0.72rem; color: var(--color-text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-cliente-sub  { font-size: 0.68rem; color: var(--color-text-muted); margin-top: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ===== BADGES SITUAÇÃO ===== */
 .badge-sit {
     display: inline-block;
-    padding: 3px 10px;
+    padding: 2px 7px;
     border-radius: 20px;
-    font-size: 0.7rem;
+    font-size: 0.62rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -138,9 +138,9 @@
 /* ===== BADGE CONTRATO ===== */
 .badge-contrato {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.72rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 0.62rem;
     font-weight: 600;
     white-space: nowrap;
 }
@@ -156,10 +156,10 @@
     color: var(--color-accent-primary);
     font-weight: 700;
     text-decoration: none;
-    font-size: 0.82rem;
-    padding: 4px 10px;
+    font-size: 0.7rem;
+    padding: 2px 7px;
     border: 1.5px solid var(--color-accent-primary);
-    border-radius: 6px;
+    border-radius: 5px;
     transition: all 0.15s;
     white-space: nowrap;
 }
