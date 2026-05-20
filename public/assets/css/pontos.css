@@ -86,7 +86,7 @@
 .result-total { color: var(--color-text-muted); }
 
 /* ===== TABELA ===== */
-.table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.82rem; table-layout: fixed; }
 .table thead th {
     background: var(--color-bg-primary);
     padding: 0.4rem 0.6rem;
@@ -110,11 +110,11 @@
 .table tbody tr:hover { background: #fafafa; }
 .table td { padding: 0.3rem 0.6rem; vertical-align: middle; }
 
-.col-num         { font-weight: 800; color: var(--color-accent-primary); font-size: 0.9rem; }
-.col-local-main  { font-weight: 600; }
-.col-local-sub   { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 1px; }
-.col-cliente-main { font-weight: 600; }
-.col-cliente-sub  { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 1px; }
+.col-num         { font-weight: 800; color: var(--color-accent-primary); font-size: 0.88rem; white-space: nowrap; }
+.col-local-main  { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-local-sub   { font-size: 0.72rem; color: var(--color-text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-cliente-main { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-cliente-sub  { font-size: 0.72rem; color: var(--color-text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ===== BADGES SITUAÇÃO ===== */
 .badge-sit {

@@ -184,15 +184,13 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
                     <thead>
                         <tr>
                             <th class="col-check no-print"></th>
-                            <th class="col-foto no-print">Foto</th>
-                            <th data-col="numero">Nº<span class="sort-icon"></span></th>
+                            <th class="col-foto no-print"></th>
+                            <th data-col="numero" style="width:44px">Nº<span class="sort-icon"></span></th>
                             <th data-col="logradouro">Logradouro<span class="sort-icon"></span></th>
-                            <th data-col="cidade" class="col-regiao">Cidade / Região<span class="sort-icon"></span></th>
-                            <th data-col="cliente">Cliente<span class="sort-icon"></span></th>
-
-                            <th data-col="situacao">Situação<span class="sort-icon"></span></th>
-                            <th data-col="fim_contrato">Vencimento<span class="sort-icon"></span></th>
-                            <th class="no-print"></th>
+                            <th data-col="cidade" style="width:130px">Cidade / Região<span class="sort-icon"></span></th>
+                            <th data-col="cliente" style="width:110px">Cliente<span class="sort-icon"></span></th>
+                            <th data-col="situacao" style="width:155px">Situação / Vencimento<span class="sort-icon"></span></th>
+                            <th class="no-print" style="width:75px"></th>
                         </tr>
                     </thead>
                     <tbody id="tabelaBody"></tbody>
@@ -395,7 +393,7 @@ function renderTabela() {
     document.getElementById('btnLimpar').className = 'btn-limpar-filtros'+(temFiltro?' visible':'');
 
     if (resultado.length === 0) {
-        tbody.innerHTML = '<tr class="empty-row"><td colspan="8"><div class="empty-icon">🔍</div><div>Nenhum ponto encontrado</div></td></tr>';
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="7"><div class="empty-icon">🔍</div><div>Nenhum ponto encontrado</div></td></tr>';
         return;
     }
 
@@ -422,8 +420,7 @@ function renderTabela() {
         html += '<td><div class="col-cliente-main">'+highlight(p.cliente||'-',busca)+'</div>';
         if (p.agencia) html += '<div class="col-cliente-sub">'+highlight(p.agencia,busca)+'</div>';
         html += '</td>';
-        html += '<td>'+badgeSit(p.situacao)+'</td>';
-        html += '<td>'+badgeContrato(p.fim_contrato)+'</td>';
+        html += '<td>'+badgeSit(p.situacao)+'<div style="margin-top:3px">'+badgeContrato(p.fim_contrato)+'</div></td>';
         html += '<td class="no-print" onclick="event.stopPropagation()" style="white-space:nowrap">';
         html += '<a href="/gestor/pontos/detalhes?id='+encodeURIComponent(p.id)+'" class="link-info">+Info</a>';
         html += '<a href="/gestor/pontos/editar?id='+encodeURIComponent(p.id)+'" class="link-editar" title="Editar ponto">✏️</a>';
