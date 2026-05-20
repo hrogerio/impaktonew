@@ -8,6 +8,13 @@ if (session_status() === PHP_SESSION_NONE) {
 // Detecta se o projeto está num subdiretório (ex: /impaktonew no Laragon)
 // Em produção (domínio próprio) basePath fica vazio
 $basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+// Segurança: se o servidor devolver um path de filesystem em vez de URL, limpa
+if ($basePath === '/' || $basePath === '\\' ||
+    strpos($basePath, '/var/')  !== false ||
+    strpos($basePath, '/home/') !== false ||
+    strpos($basePath, '/srv/')  !== false) {
+    $basePath = '';
+}
 define('BASE', $basePath); // disponível em todos os includes
 
 // Remove o prefixo do subdiretório da URI para o roteamento

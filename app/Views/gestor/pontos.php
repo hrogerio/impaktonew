@@ -58,7 +58,7 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
     <link rel="stylesheet" href="/public/assets/css/pre-selecao.css">
     <link rel="stylesheet" href="/public/assets/css/form_ponto.css">
     <style>
-        .pontos-layout { display:grid; grid-template-columns:1fr 340px; gap:1rem; align-items:start; }
+        .pontos-layout { display:grid; grid-template-columns:1fr minmax(0,340px); gap:1rem; align-items:start; overflow-x:hidden; }
         .col-check { width:36px; padding-right:0 !important; text-align:center; }
         .table tbody tr { cursor:pointer; }
         .table tbody tr.selecionado { background:#fff8f7 !important; box-shadow:inset 3px 0 0 var(--color-accent-primary); }
@@ -167,7 +167,7 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
                             <th data-col="logradouro">Logradouro<span class="sort-icon"></span></th>
                             <th data-col="cidade" class="col-regiao">Cidade / Região<span class="sort-icon"></span></th>
                             <th data-col="cliente">Cliente<span class="sort-icon"></span></th>
-                            <th data-col="tipo" class="col-tipo">Tipo<span class="sort-icon"></span></th>
+
                             <th data-col="situacao">Situação<span class="sort-icon"></span></th>
                             <th data-col="fim_contrato">Vencimento<span class="sort-icon"></span></th>
                             <th class="no-print"></th>
@@ -367,7 +367,7 @@ function renderTabela() {
     document.getElementById('btnLimpar').className = 'btn-limpar-filtros'+(temFiltro?' visible':'');
 
     if (resultado.length === 0) {
-        tbody.innerHTML = '<tr class="empty-row"><td colspan="9"><div class="empty-icon">🔍</div><div>Nenhum ponto encontrado</div></td></tr>';
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="8"><div class="empty-icon">🔍</div><div>Nenhum ponto encontrado</div></td></tr>';
         return;
     }
 
@@ -394,7 +394,6 @@ function renderTabela() {
         html += '<td><div class="col-cliente-main">'+highlight(p.cliente||'-',busca)+'</div>';
         if (p.agencia) html += '<div class="col-cliente-sub">'+highlight(p.agencia,busca)+'</div>';
         html += '</td>';
-        html += '<td class="col-tipo">'+esc(p.tipo||'-')+'</td>';
         html += '<td>'+badgeSit(p.situacao)+'</td>';
         html += '<td>'+badgeContrato(p.fim_contrato)+'</td>';
         html += '<td class="no-print" onclick="event.stopPropagation()" style="white-space:nowrap">';
@@ -514,10 +513,6 @@ function gerarProposta() {
         html += '<td class="no-print"><a href="/gestor/pontos/detalhes?id='+encodeURIComponent(p.id)+'&view=publico" class="link-info-btn" target="_blank">+Info</a></td>';
         html += '</tr>';
     });
-    if (valor) {
-        html += '<tr><td colspan="4" style="text-align:right;font-weight:700;padding-top:0.75rem;border-top:2px solid var(--color-border)">Investimento Total:</td>'
-              + '<td colspan="2" style="font-weight:800;color:var(--color-accent-primary);padding-top:0.75rem;border-top:2px solid var(--color-border)">'+esc(valor)+'</td></tr>';
-    }
     html += '</tbody></table>';
 
     document.getElementById('resultadoTabela').innerHTML = html;

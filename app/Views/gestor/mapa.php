@@ -185,16 +185,16 @@ function initMap() {
         scrollWheelZoom: true
     });
 
-    var satelite = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        { attribution: '© Esri', maxZoom: 19 }
-    );
     var ruas = L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        { attribution: '© OpenStreetMap', maxZoom: 19 }
+        'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+        { subdomains: '0123', attribution: '© Google Maps', maxZoom: 20 }
     );
-    satelite.addTo(map);
-    L.control.layers({ 'Satélite': satelite, 'Mapa': ruas }, {}, { position: 'topright' }).addTo(map);
+    var satelite = L.tileLayer(
+        'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        { subdomains: '0123', attribution: '© Google Maps', maxZoom: 20 }
+    );
+    ruas.addTo(map);
+    L.control.layers({ 'Mapa': ruas, 'Satélite': satelite }, {}, { position: 'topright' }).addTo(map);
 
     markerGroup = L.layerGroup().addTo(map);
     renderizar();

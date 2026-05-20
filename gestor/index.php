@@ -43,7 +43,7 @@ $paginaAtual  = 'dashboard';
         <div class="menu-card">
             <a href="/gestor/pontos">
                 <div class="icon"></div>
-                <h3>Pontos & Propostas</h3>
+                <h3>Pontos / Pré-Seleção</h3>
             </a>
         </div>
 
@@ -54,9 +54,11 @@ $paginaAtual  = 'dashboard';
             </a>
         </div>
 
-        <div class="menu-card disabled" title="Em desenvolvimento">
-            <div class="icon"></div>
-            <h3>Google Maps</h3>
+        <div class="menu-card">
+            <a href="/gestor/mapa">
+                <div class="icon"></div>
+                <h3>Google Maps</h3>
+            </a>
         </div>
     </div>
 </div>
