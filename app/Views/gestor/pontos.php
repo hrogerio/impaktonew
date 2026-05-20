@@ -136,6 +136,30 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
         mark { background:#fff3cd; padding:1px 2px; border-radius:2px; }
         .empty-row td { text-align:center; padding:3rem 1rem; color:var(--color-text-muted); font-size:0.85rem; }
 
+        /* ── Cabeçalho de grupo (região) ── */
+        .group-header td {
+            background:var(--color-bg-primary);
+            padding:0.28rem 0.5rem;
+            border-top:2px solid var(--color-border);
+            border-bottom:1px solid var(--color-border);
+            cursor:default;
+        }
+        .group-header:first-child td { border-top:none; }
+        .group-reg {
+            font-size:0.65rem; font-weight:800;
+            color:var(--color-accent-primary);
+            text-transform:uppercase; letter-spacing:0.8px;
+        }
+        .group-count {
+            margin-left:0.5rem; font-size:0.65rem;
+            color:var(--color-text-muted); font-weight:600;
+        }
+        .group-disp {
+            margin-left:0.4rem; font-size:0.62rem; font-weight:700;
+            color:#166534; background:#dcfce7;
+            padding:1px 6px; border-radius:8px;
+        }
+
         @media print { .no-print { display:none !important; } body { overflow:auto; } }
     </style>
 </head>
@@ -206,7 +230,7 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
                         <th class="col-foto no-print" style="width:70px"></th>
                         <th data-col="numero" style="width:52px">Nº<span class="sort-icon"></span></th>
                         <th data-col="logradouro" style="width:35%">Logradouro<span class="sort-icon"></span></th>
-                        <th data-col="cidade" style="width:18%">Cidade / Região<span class="sort-icon"></span></th>
+                        <th data-col="cidade" style="width:18%">Cidade<span class="sort-icon"></span></th>
                         <th data-col="cliente" style="width:16%">Cliente<span class="sort-icon"></span></th>
                         <th data-col="situacao" style="width:20%">Situação / Vencimento<span class="sort-icon"></span></th>
                         <th class="no-print" style="width:80px"></th>
@@ -235,7 +259,7 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
 var PONTOS   = <?= $pontosJson ?>;
 var CART_KEY = 'impakto_cart';
 var selecao  = new Set(JSON.parse(localStorage.getItem(CART_KEY) || '[]'));
-var sortCol  = 'id', sortDir = 'desc';
+var sortCol  = 'numero', sortDir = 'asc';
 var filtros  = { busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'' };
 var pontosMap = {};
 PONTOS.forEach(function(p) { pontosMap[String(p.id)] = p; });
@@ -307,48 +331,82 @@ function ordenar(lista) {
     });
 }
 
-// ── Renderizar tabela ────────────────────────────────────────
+// ── Renderizar linha de ponto ────────────────────────────────
+function renderLinha(p, busca) {
+    var id  = String(p.id);
+    var sel = selecao.has(id);
+    var html = '<tr data-id="'+id+'"'+(sel?' class="selecionado"':'')+' onclick="toggleRow(event,\''+id+'\')">';
+    html += '<td class="col-check no-print"><input type="checkbox" class="row-check"'+(sel?' checked':'')+' onclick="event.stopPropagation();toggleSel(\''+id+'\')" ></td>';
+    html += '<td class="col-foto no-print" onclick="event.stopPropagation()">';
+    if (p.foto) {
+        html += '<div class="thumb-wrap"><img class="thumb-img" src="/'+esc(p.foto)+'" loading="lazy" onclick="abrirLb(\''+esc(p.foto)+'\')" onerror="this.parentElement.innerHTML=\'<span class=\\\'thumb-vazio\\\'>📷</span>\'"></div>';
+    } else {
+        html += '<div class="thumb-wrap"><span class="thumb-vazio">📷</span></div>';
+    }
+    html += '</td>';
+    html += '<td class="col-num">'+highlight(p.numero,busca)+'</td>';
+    html += '<td class="col-txt" title="'+esc(p.logradouro)+(p.descricao?' · '+esc(p.descricao):'')+'">'+highlight(p.logradouro,busca)+(p.descricao?'<span class="col-sub"> · '+highlight(p.descricao.substring(0,50),busca)+'</span>':'')+'</td>';
+    html += '<td class="col-txt" title="'+esc(p.cidade)+'">'+highlight(p.cidade,busca)+'</td>';
+    html += '<td class="col-txt" title="'+esc(p.cliente||'-')+(p.agencia?' · '+esc(p.agencia):'')+'">'+highlight(p.cliente||'—',busca)+(p.agencia?'<span class="col-sub"> · '+highlight(p.agencia,busca)+'</span>':'')+'</td>';
+    html += '<td style="white-space:nowrap">'+badgeSit(p.situacao)+' '+badgeContrato(p.fim_contrato)+'</td>';
+    html += '<td class="no-print" onclick="event.stopPropagation()" style="white-space:nowrap">';
+    html += '<a href="/gestor/pontos/detalhes?id='+p.id+'" class="link-info">+Info</a>';
+    html += '<a href="/gestor/pontos/editar?id='+p.id+'" class="link-editar" title="Editar">✏️</a>';
+    html += '</td>';
+    html += '</tr>';
+    return html;
+}
+
+// ── Renderizar tabela agrupada por região ────────────────────
 function renderTabela() {
-    var resultado = ordenar(filtrar(PONTOS));
+    var lista = filtrar(PONTOS);
     var busca = filtros.busca;
     var temFiltro = Object.values(filtros).some(function(v){ return !!v; });
 
     var rc = document.getElementById('resultCount');
     if (temFiltro) {
-        rc.innerHTML = '<strong style="color:var(--color-accent-primary)">'+resultado.length+'</strong><span style="color:var(--color-text-muted);font-size:0.78rem"> resultados · '+PONTOS.length+' no total</span>';
+        rc.innerHTML = '<strong style="color:var(--color-accent-primary)">'+lista.length+'</strong><span style="color:var(--color-text-muted);font-size:0.78rem"> resultados · '+PONTOS.length+' no total</span>';
     } else {
         rc.innerHTML = '<strong style="font-size:1rem">'+PONTOS.length+'</strong><span style="color:var(--color-text-muted);font-size:0.78rem"> pontos cadastrados</span>';
     }
     document.getElementById('btnLimpar').className = 'btn-limpar-filtros'+(temFiltro?' visible':'');
 
-    var html = '';
-    if (resultado.length === 0) {
-        html = '<tr class="empty-row"><td colspan="7">Nenhum ponto encontrado</td></tr>';
-    } else {
-        resultado.forEach(function(p) {
-            var id  = String(p.id);
-            var sel = selecao.has(id);
-            html += '<tr data-id="'+id+'"'+(sel?' class="selecionado"':'')+' onclick="toggleRow(event,\''+id+'\')">';
-            html += '<td class="col-check no-print"><input type="checkbox" class="row-check"'+(sel?' checked':'')+' onclick="event.stopPropagation();toggleSel(\''+id+'\')" ></td>';
-            html += '<td class="col-foto no-print" onclick="event.stopPropagation()">';
-            if (p.foto) {
-                html += '<div class="thumb-wrap"><img class="thumb-img" src="/'+esc(p.foto)+'" loading="lazy" onclick="abrirLb(\''+esc(p.foto)+'\')" onerror="this.parentElement.innerHTML=\'<span class=\\\'thumb-vazio\\\'>📷</span>\'"></div>';
-            } else {
-                html += '<div class="thumb-wrap"><span class="thumb-vazio">📷</span></div>';
-            }
-            html += '</td>';
-            html += '<td class="col-num">'+highlight(p.numero,busca)+'</td>';
-            html += '<td class="col-txt" title="'+esc(p.logradouro)+(p.descricao?' · '+esc(p.descricao):'')+'">'+highlight(p.logradouro,busca)+(p.descricao?'<span class="col-sub"> · '+highlight(p.descricao.substring(0,50),busca)+'</span>':'')+'</td>';
-            html += '<td class="col-txt" title="'+esc(p.cidade)+(p.regiao?' · '+esc(p.regiao):'')+'">'+highlight(p.cidade,busca)+(p.regiao?'<span class="col-sub"> · '+highlight(p.regiao,busca)+'</span>':'')+'</td>';
-            html += '<td class="col-txt" title="'+esc(p.cliente||'-')+(p.agencia?' · '+esc(p.agencia):'')+'">'+highlight(p.cliente||'—',busca)+(p.agencia?'<span class="col-sub"> · '+highlight(p.agencia,busca)+'</span>':'')+'</td>';
-            html += '<td style="white-space:nowrap">'+badgeSit(p.situacao)+' '+badgeContrato(p.fim_contrato)+'</td>';
-            html += '<td class="no-print" onclick="event.stopPropagation()" style="white-space:nowrap">';
-            html += '<a href="/gestor/pontos/detalhes?id='+p.id+'" class="link-info">+Info</a>';
-            html += '<a href="/gestor/pontos/editar?id='+p.id+'" class="link-editar" title="Editar">✏️</a>';
-            html += '</td>';
-            html += '</tr>';
-        });
+    if (lista.length === 0) {
+        document.getElementById('tabelaBody').innerHTML = '<tr class="empty-row"><td colspan="8">Nenhum ponto encontrado</td></tr>';
+        atualizarCart();
+        return;
     }
+
+    // Agrupar por região
+    var grupos = {}, ordemGrupos = [];
+    lista.forEach(function(p) {
+        var reg = (p.regiao||'').trim() || 'Sem região';
+        if (!grupos[reg]) { grupos[reg] = []; ordemGrupos.push(reg); }
+        grupos[reg].push(p);
+    });
+
+    // Regiões em ordem alfabética, "Sem região" sempre por último
+    ordemGrupos.sort(function(a, b) {
+        if (a === 'Sem região') return 1;
+        if (b === 'Sem região') return -1;
+        return normalizar(a) < normalizar(b) ? -1 : normalizar(a) > normalizar(b) ? 1 : 0;
+    });
+
+    var html = '';
+    ordemGrupos.forEach(function(reg) {
+        var pts = ordenar(grupos[reg]);
+        var nDisp = pts.filter(function(p){ return normalizar(p.situacao||'').indexOf('disponiv') === 0; }).length;
+
+        // Cabeçalho do grupo
+        html += '<tr class="group-header"><td colspan="8">';
+        html += '<span class="group-reg">'+esc(reg)+'</span>';
+        html += '<span class="group-count">'+pts.length+' ponto'+(pts.length>1?'s':'')+'</span>';
+        if (nDisp > 0) html += '<span class="group-disp">'+nDisp+' disponív'+(nDisp>1?'eis':'el')+'</span>';
+        html += '</td></tr>';
+
+        pts.forEach(function(p) { html += renderLinha(p, busca); });
+    });
+
     document.getElementById('tabelaBody').innerHTML = html;
     atualizarCart();
 }
