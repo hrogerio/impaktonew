@@ -202,13 +202,13 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
             <table class="table" id="tabelaPontos">
                 <thead>
                     <tr>
-                        <th class="col-check no-print"></th>
-                        <th class="col-foto no-print"></th>
-                        <th data-col="numero" style="width:46px">Nº<span class="sort-icon"></span></th>
-                        <th data-col="logradouro">Logradouro<span class="sort-icon"></span></th>
-                        <th data-col="cidade" style="width:140px">Cidade / Região<span class="sort-icon"></span></th>
-                        <th data-col="cliente" style="width:120px">Cliente<span class="sort-icon"></span></th>
-                        <th data-col="situacao" style="width:160px">Situação / Vencimento<span class="sort-icon"></span></th>
+                        <th class="col-check no-print" style="width:32px"></th>
+                        <th class="col-foto no-print" style="width:40px"></th>
+                        <th data-col="numero" style="width:52px">Nº<span class="sort-icon"></span></th>
+                        <th data-col="logradouro" style="width:35%">Logradouro<span class="sort-icon"></span></th>
+                        <th data-col="cidade" style="width:18%">Cidade / Região<span class="sort-icon"></span></th>
+                        <th data-col="cliente" style="width:16%">Cliente<span class="sort-icon"></span></th>
+                        <th data-col="situacao" style="width:20%">Situação / Vencimento<span class="sort-icon"></span></th>
                         <th class="no-print" style="width:80px"></th>
                     </tr>
                 </thead>
