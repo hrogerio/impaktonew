@@ -63,10 +63,12 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
         body { overflow: hidden; }
         .pontos-page { display:flex; flex-direction:column; padding:0.4rem 1rem 0; overflow:hidden; box-sizing:border-box; }
         .pontos-controls { flex-shrink:0; }
-        .pontos-layout { display:grid; grid-template-columns:1fr minmax(0,290px); gap:0.75rem; flex:1; min-height:0; overflow:hidden; margin-top:0.3rem; }
+        .pontos-layout { display:grid; grid-template-columns:1fr minmax(0,270px); gap:0.75rem; flex:1; min-height:0; overflow:hidden; margin-top:0.3rem; }
         .pontos-left { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
-        .table-container { flex:1; overflow-y:auto; min-height:0; }
-        .sel-panel { overflow-y:auto; position:relative !important; top:0 !important; }
+        .table-container { flex:1; overflow-y:auto; min-height:0; scrollbar-width:none; }
+        .table-container::-webkit-scrollbar { display:none; }
+        .sel-panel { overflow-y:auto; position:relative !important; top:0 !important; scrollbar-width:none; }
+        .sel-panel::-webkit-scrollbar { display:none; }
 
         /* ── Tabela ── */
         .col-check { width:36px; padding-right:0 !important; text-align:center; }
@@ -223,15 +225,15 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
 
                 <div class="sel-input-group">
                     <div class="sel-label-row">
-                        <label class="sel-label">Período da Campanha</label>
+                        <label class="sel-label">Período</label>
                         <label class="sel-check-label">
                             <input type="checkbox" id="semPeriodo" onchange="toggleSemPeriodo()">
                             Sem período
                         </label>
                     </div>
-                    <div id="periodoDatas" style="display:flex;flex-direction:column;gap:0.3rem;">
-                        <input type="date" class="sel-input" id="selDataInicio" placeholder="Início">
-                        <input type="date" class="sel-input" id="selDataFim" placeholder="Fim">
+                    <div id="periodoDatas" style="display:flex;flex-direction:column;gap:0.25rem;">
+                        <input type="date" class="sel-input" id="selDataInicio">
+                        <input type="date" class="sel-input" id="selDataFim">
                     </div>
                 </div>
 
@@ -334,11 +336,12 @@ function badgeContrato(data) {
     var dias = Math.round((fim - hoje) / 86400000);
     var mes  = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][fim.getMonth()];
     var lbl  = mes + '/' + fim.getFullYear().toString().slice(2);
-    if (dias < 0)   return '<div style="font-size:0.78rem;font-weight:600;color:#6b21a8;">'+lbl+'</div><span class="badge-contrato ctr-vencido">Vencido há '+Math.abs(dias)+'d</span>';
-    if (dias <= 7)  return '<div style="font-size:0.78rem;font-weight:600;">'+lbl+'</div><span class="badge-contrato ctr-critico">'+dias+' dias</span>';
-    if (dias <= 30) return '<div style="font-size:0.78rem;font-weight:600;">'+lbl+'</div><span class="badge-contrato ctr-urgente">'+dias+' dias</span>';
-    if (dias <= 90) return '<div style="font-size:0.78rem;font-weight:600;">'+lbl+'</div><span class="badge-contrato ctr-atencao">'+Math.floor(dias/30)+'m</span>';
-    return '<div style="font-size:0.78rem;font-weight:600;">'+lbl+'</div><span class="badge-contrato ctr-ok">'+Math.floor(dias/30)+'m</span>';
+    var lblSpan = '<span style="font-size:0.66rem;font-weight:600;margin-right:3px">'+lbl+'</span>';
+    if (dias < 0)   return lblSpan+'<span class="badge-contrato ctr-vencido">há '+Math.abs(dias)+'d</span>';
+    if (dias <= 7)  return lblSpan+'<span class="badge-contrato ctr-critico">'+dias+'d</span>';
+    if (dias <= 30) return lblSpan+'<span class="badge-contrato ctr-urgente">'+dias+'d</span>';
+    if (dias <= 90) return lblSpan+'<span class="badge-contrato ctr-atencao">'+Math.floor(dias/30)+'m</span>';
+    return lblSpan+'<span class="badge-contrato ctr-ok">'+Math.floor(dias/30)+'m</span>';
 }
 
 // ── Filtrar / Ordenar ──────────────────────────────────────────
