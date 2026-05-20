@@ -112,10 +112,17 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/fotos.php';
         break;
 
-    // ── PRÉ-SELEÇÃO (redirect para pontos unificado) ─────────
+    // ── PRÉ-SELEÇÃO ──────────────────────────────────────────
     case 'gestor/pre-selecao':
-        header("Location: " . BASE . "/gestor/pontos", true, 301);
-        exit;
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/pre_selecao.php';
+        break;
+
+    // ── API: DADOS DOS PONTOS (AJAX pré-seleção) ─────────────
+    case 'gestor/pontos/dados':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/pontos_dados.php';
+        break;
 
     // ── RELATÓRIOS ──────────────────────────────────────────
     case 'gestor/relatorios':
