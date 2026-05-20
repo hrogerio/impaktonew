@@ -55,8 +55,27 @@ try {
         .ps-num { font-weight:800; color:var(--color-accent-primary); }
         .ps-local { font-weight:600; }
         .ps-sub { font-size:0.72rem; color:var(--color-text-muted); margin-top:1px; }
-        .ps-remove { background:none; border:none; color:#ccc; font-size:1rem; cursor:pointer; padding:2px 6px; border-radius:4px; }
-        .ps-remove:hover { background:#fee2e2; color:#991b1b; }
+
+        /* thumbnail */
+        .ps-td-foto { padding:4px 6px !important; width:72px; }
+        .ps-thumb { width:64px; height:52px; border-radius:5px; overflow:hidden; background:#f0f0f0; display:flex; align-items:center; justify-content:center; cursor:zoom-in; flex-shrink:0; }
+        .ps-thumb img { width:100%; height:100%; object-fit:cover; }
+        .ps-thumb-vazio { font-size:1.2rem; color:#ccc; }
+
+        /* botão remover */
+        .ps-remove {
+            display:flex; align-items:center; justify-content:center;
+            width:28px; height:28px; border-radius:50%;
+            background:#fee2e2; border:none; color:#c0392b;
+            font-size:0.85rem; font-weight:800; cursor:pointer;
+            transition:all 0.15s; line-height:1;
+        }
+        .ps-remove:hover { background:#c0392b; color:white; transform:scale(1.1); }
+
+        /* lightbox */
+        .ps-lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:2000; align-items:center; justify-content:center; cursor:zoom-out; }
+        .ps-lb.aberto { display:flex; }
+        .ps-lb img { max-width:90vw; max-height:88vh; border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
 
         /* ── Badge ── */
         .badge-sit { display:inline-block; padding:2px 8px; border-radius:20px; font-size:0.65rem; font-weight:700; text-transform:uppercase; white-space:nowrap; }
@@ -242,6 +261,11 @@ try {
     </div>
 </div>
 
+<!-- Lightbox foto -->
+<div class="ps-lb" id="psLb" onclick="psFecharLb()">
+    <img id="psLbImg" src="" alt="">
+</div>
+
 <!-- Modal E-mail -->
 <div class="email-overlay" id="emailOverlay">
     <div class="email-modal">
@@ -328,15 +352,26 @@ function renderLista() {
         return;
     }
 
-    var html = '<table class="ps-table"><thead><tr><th style="width:46px">Nº</th><th>Logradouro</th><th style="width:130px">Cidade / Região</th><th style="width:80px">Situação</th><th style="width:30px" class="no-print"></th></tr></thead><tbody>';
+    var html = '<table class="ps-table"><thead><tr>'
+        +'<th class="no-print" style="width:72px"></th>'
+        +'<th style="width:50px">Nº</th>'
+        +'<th>Logradouro</th>'
+        +'<th style="width:160px">Cidade / Região</th>'
+        +'<th style="width:90px">Situação</th>'
+        +'<th class="no-print" style="width:44px"></th>'
+        +'</tr></thead><tbody>';
     selecao.forEach(function(id) {
-        var p = pontosData[id] || { id:id, numero:'#'+id, logradouro:'Carregando...', cidade:'', regiao:'', situacao:'' };
+        var p = pontosData[id] || { id:id, numero:'#'+id, logradouro:'Carregando...', cidade:'', regiao:'', situacao:'', foto:'' };
+        var fotoHtml = p.foto
+            ? '<div class="ps-thumb" onclick="psAbrirLb(\''+esc(p.foto)+'\')"><img src="/'+esc(p.foto)+'" loading="lazy" onerror="this.parentElement.innerHTML=\'<span class=\\\'ps-thumb-vazio\\\'>📷</span>\'"></div>'
+            : '<div class="ps-thumb" style="cursor:default"><span class="ps-thumb-vazio">📷</span></div>';
         html += '<tr>';
+        html += '<td class="ps-td-foto no-print">'+fotoHtml+'</td>';
         html += '<td class="ps-num">'+esc(p.numero)+'</td>';
         html += '<td><div class="ps-local">'+esc(p.logradouro)+'</div>'+(p.descricao?'<div class="ps-sub">'+esc(p.descricao)+'</div>':'')+'</td>';
         html += '<td><div>'+esc(p.cidade||'—')+'</div>'+(p.regiao?'<div class="ps-sub">'+esc(p.regiao)+'</div>':'')+'</td>';
         html += '<td>'+badgeSit(p.situacao)+'</td>';
-        html += '<td class="no-print"><button class="ps-remove" onclick="remover(\''+id+'\')" title="Remover">✕</button></td>';
+        html += '<td class="no-print" style="text-align:center"><button class="ps-remove" onclick="remover(\''+id+'\')" title="Remover ponto">✕</button></td>';
         html += '</tr>';
     });
     html += '</tbody></table>';
@@ -452,8 +487,18 @@ function copiarEmail() {
 }
 
 document.addEventListener('keydown', function(e) {
-    if (e.key==='Escape') fecharEmail();
+    if (e.key==='Escape') { fecharEmail(); psFecharLb(); }
 });
+
+// ── Lightbox ─────────────────────────────────────────────────
+function psAbrirLb(foto) {
+    document.getElementById('psLbImg').src = '/'+foto;
+    document.getElementById('psLb').classList.add('aberto');
+}
+function psFecharLb() {
+    document.getElementById('psLb').classList.remove('aberto');
+    document.getElementById('psLbImg').src = '';
+}
 
 // ── Init ──────────────────────────────────────────────────────
 carregarPontos();
