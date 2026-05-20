@@ -173,23 +173,65 @@ try {
         /* ── Impressão ── */
         .print-view { display:none; }
         @media print {
-            .no-print, .ps-form-card, nav, .ps-titulo { display:none !important; }
-            .ps-layout { display:block !important; }
-            .ps-card   { display:none !important; }
-            .print-view { display:block !important; font-family:'Montserrat',Arial,sans-serif; }
-            .pv-cabecalho { border-bottom:2px solid #c0392b; padding-bottom:0.75rem; margin-bottom:1rem; }
-            .pv-empresa { font-size:1rem; font-weight:800; color:#c0392b; }
-            .pv-titulo  { font-size:0.95rem; font-weight:700; margin-top:0.2rem; }
-            .pv-sub     { font-size:0.78rem; color:#666; }
-            .pv-grupo   { background:#f4f4f4; padding:0.3rem 0.6rem; font-size:0.72rem; font-weight:800;
-                          text-transform:uppercase; letter-spacing:0.6px; color:#333;
-                          border-left:3px solid #c0392b; margin:0.75rem 0 0.2rem; }
-            .pv-table   { width:100%; border-collapse:collapse; font-size:0.78rem; margin-bottom:0.5rem; }
-            .pv-table th { border-bottom:1.5px solid #333; padding:0.3rem 0.5rem; text-align:left; font-size:0.68rem; font-weight:700; color:#555; }
-            .pv-table td { padding:0.35rem 0.5rem; border-bottom:1px solid #e0e0e0; }
-            .pv-num     { font-weight:800; color:#c0392b; width:40px; }
-            .pv-sit     { white-space:nowrap; }
-            .pv-rodape  { margin-top:2rem; font-size:0.72rem; color:#888; border-top:1px solid #ddd; padding-top:0.5rem; }
+            /* Esconde tudo, mostra só o print-view */
+            body > *                { display:none !important; }
+            body > #printView       { display:block !important; }
+
+            /* Reset do body para impressão */
+            body { overflow:visible !important; margin:0; padding:0; background:white; }
+            #printView {
+                font-family:'Montserrat',Arial,sans-serif;
+                padding:1.5cm 1.8cm;
+                color:#1a1a1a;
+                print-color-adjust:exact;
+                -webkit-print-color-adjust:exact;
+            }
+
+            /* Cabeçalho */
+            .pv-cabecalho {
+                display:flex; align-items:flex-start; justify-content:space-between;
+                border-bottom:2.5px solid #c0392b; padding-bottom:0.6rem; margin-bottom:1.2rem;
+            }
+            .pv-empresa { font-size:1.1rem; font-weight:800; color:#c0392b; letter-spacing:0.5px; }
+            .pv-titulo  { font-size:0.95rem; font-weight:700; margin-top:0.2rem; color:#1a1a1a; }
+            .pv-sub     { font-size:0.8rem; color:#555; margin-top:0.15rem; }
+            .pv-data-box { font-size:0.72rem; color:#888; text-align:right; }
+
+            /* Grupo/região */
+            .pv-grupo {
+                background:#f0f0f0 !important; padding:0.25rem 0.6rem;
+                font-size:0.7rem; font-weight:800; text-transform:uppercase;
+                letter-spacing:0.7px; color:#222;
+                border-left:4px solid #c0392b; margin:1rem 0 0.1rem;
+                page-break-after:avoid;
+            }
+
+            /* Tabela */
+            .pv-table { width:100%; border-collapse:collapse; font-size:0.78rem; }
+            .pv-table th {
+                border-bottom:1.5px solid #555; padding:0.3rem 0.5rem;
+                text-align:left; font-size:0.65rem; font-weight:700;
+                color:#555; text-transform:uppercase; letter-spacing:0.4px;
+            }
+            .pv-table td { padding:0.32rem 0.5rem; border-bottom:1px solid #e8e8e8; vertical-align:middle; }
+            .pv-table tbody tr:last-child td { border-bottom:none; }
+            .pv-num { font-weight:800; color:#c0392b; width:36px; }
+            .pv-sit { white-space:nowrap; font-size:0.72rem; font-weight:700; text-transform:uppercase; }
+
+            /* Badge de situação no print */
+            .badge-sit { padding:1px 6px; border-radius:8px; font-size:0.65rem; font-weight:800; }
+
+            /* Total */
+            .pv-total {
+                border-top:2px solid #333; margin-top:0.8rem; padding-top:0.4rem;
+                font-size:0.82rem; font-weight:800;
+            }
+
+            /* Rodapé */
+            .pv-rodape {
+                margin-top:1.5rem; font-size:0.68rem; color:#aaa;
+                border-top:1px solid #e0e0e0; padding-top:0.4rem;
+            }
         }
     </style>
 </head>
@@ -288,12 +330,15 @@ try {
 <!-- View de impressão (invisível na tela, aparece só no print) -->
 <div class="print-view" id="printView">
     <div class="pv-cabecalho">
-        <div class="pv-empresa">Impakto Mídia</div>
-        <div class="pv-titulo" id="pvTitulo"></div>
-        <div class="pv-sub"    id="pvSub"></div>
+        <div>
+            <div class="pv-empresa">Impakto Mídia</div>
+            <div class="pv-titulo" id="pvTitulo"></div>
+            <div class="pv-sub"    id="pvSub"></div>
+        </div>
+        <div class="pv-data-box">Emitido em<br><span id="pvData"></span></div>
     </div>
     <div id="pvConteudo"></div>
-    <div class="pv-rodape">Documento gerado em <span id="pvData"></span> · Impakto Mídia</div>
+    <div class="pv-rodape">Impakto Mídia · impaktomidia.com.br</div>
 </div>
 
 <!-- Lightbox foto -->
@@ -495,7 +540,7 @@ function gerarPreSelecao() {
         });
         html += '</tbody></table>';
     });
-    html += '<div style="border-top:2px solid #333;margin-top:0.75rem;padding-top:0.4rem;font-size:0.78rem;font-weight:800;">TOTAL: '+lista.length+' ponto'+(lista.length>1?'s'  :'')+'</div>';
+    html += '<div class="pv-total">TOTAL: '+lista.length+' ponto'+(lista.length>1?'s':'')+'</div>';
     document.getElementById('pvConteudo').innerHTML = html;
 }
 
