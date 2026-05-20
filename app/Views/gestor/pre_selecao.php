@@ -126,28 +126,36 @@ try {
         }
         .btn-limpar-sel:hover { border-color:var(--color-accent-primary); color:var(--color-accent-primary); }
 
-        /* ── Resultado ── */
-        .ps-resultado { margin-top:1.5rem; background:white; border:1px solid var(--color-border); border-radius:10px; overflow:hidden; display:none; }
-        .ps-resultado.visivel { display:block; }
-        .ps-resultado-header { padding:0.75rem 1rem 0.75rem 1.25rem; background:var(--color-bg-primary); border-bottom:1px solid var(--color-border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; }
-        .ps-resultado-titulo { font-size:0.9rem; font-weight:800; color:var(--color-text-dark); }
-        .ps-resultado-actions { display:flex; gap:0.5rem; }
-        .btn-acao { padding:0.35rem 0.875rem; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; border:1.5px solid; font-family:'Montserrat',sans-serif; transition:all 0.15s; text-decoration:none; }
-        .btn-imprimir { color:#3498db; border-color:#3498db; background:white; }
-        .btn-imprimir:hover { background:#3498db; color:white; }
-        .btn-csv     { color:#27ae60; border-color:#27ae60; background:white; }
-        .btn-csv:hover { background:#27ae60; color:white; }
-        .btn-email   { color:#6c3483; border-color:#6c3483; background:white; }
-        .btn-email:hover { background:#6c3483; color:white; }
-        .ps-resultado-body { padding:1rem 1.25rem; overflow-x:auto; }
-        .res-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
-        .res-table th { background:var(--color-accent-primary); color:white; padding:0.5rem 0.75rem; text-align:left; font-size:0.72rem; font-weight:700; }
-        .res-table td { padding:0.55rem 0.75rem; border-bottom:1px solid var(--color-border); }
-        .res-table tbody tr:hover { background:#fafafa; }
-        .res-num { font-weight:800; color:var(--color-accent-primary); }
-        .res-sub { font-size:0.72rem; color:var(--color-text-muted); }
-        .link-info-btn { display:inline-block; padding:3px 10px; border:1.5px solid var(--color-accent-primary); border-radius:6px; color:var(--color-accent-primary); font-size:0.72rem; font-weight:700; text-decoration:none; }
-        .link-info-btn:hover { background:var(--color-accent-primary); color:white; }
+        /* ── Barra exportação ── */
+        .ps-export-bar {
+            display:none; margin-top:0.75rem;
+            border:1.5px solid var(--color-accent-primary);
+            border-radius:8px; overflow:hidden;
+        }
+        .ps-export-bar.visivel { display:block; }
+        .ps-export-titulo {
+            padding:0.5rem 0.75rem;
+            font-size:0.72rem; font-weight:700; color:var(--color-accent-primary);
+            background:#fff8f7; border-bottom:1px solid #fcd5d0;
+            line-height:1.4;
+        }
+        .ps-export-acoes {
+            display:flex; gap:0;
+        }
+        .btn-acao {
+            flex:1; padding:0.5rem 0.25rem;
+            font-family:'Montserrat',sans-serif; font-size:0.75rem; font-weight:700;
+            cursor:pointer; border:none; border-right:1px solid var(--color-border);
+            background:white; transition:background 0.15s; text-decoration:none;
+            display:flex; align-items:center; justify-content:center; gap:0.3rem;
+        }
+        .btn-acao:last-child { border-right:none; }
+        .btn-imprimir { color:#3498db; }
+        .btn-imprimir:hover { background:#ebf5fb; }
+        .btn-csv      { color:#27ae60; }
+        .btn-csv:hover { background:#eafaf1; }
+        .btn-email    { color:#6c3483; }
+        .btn-email:hover { background:#f5eef8; }
 
         /* ── Modal E-mail ── */
         .email-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
@@ -194,20 +202,6 @@ try {
                 </div>
             </div>
 
-            <!-- Resultado gerado -->
-            <div class="ps-resultado" id="psResultado">
-                <div class="ps-resultado-header">
-                    <div class="ps-resultado-titulo" id="psTitulo"></div>
-                    <div class="ps-resultado-actions no-print">
-                        <button class="btn-acao btn-imprimir" onclick="window.print()">🖨️ Imprimir</button>
-                        <button class="btn-acao btn-csv"     onclick="exportarCSV()">📊 CSV</button>
-                        <button class="btn-acao btn-email"   onclick="abrirEmail()">✉️ E-mail</button>
-                    </div>
-                </div>
-                <div class="ps-resultado-body">
-                    <div id="psTabelaResultado"></div>
-                </div>
-            </div>
         </div>
 
         <!-- Coluna direita: formulário -->
@@ -254,6 +248,16 @@ try {
                 <button class="btn-limpar-sel" onclick="limparTudo()">
                     🗑️ Limpar seleção
                 </button>
+
+                <!-- Barra de exportação (aparece após gerar) -->
+                <div class="ps-export-bar" id="psExportBar">
+                    <div class="ps-export-titulo" id="psTitulo"></div>
+                    <div class="ps-export-acoes">
+                        <button class="btn-acao btn-imprimir" onclick="window.print()">🖨️ Imprimir</button>
+                        <button class="btn-acao btn-csv"      onclick="exportarCSV()">📊 CSV</button>
+                        <button class="btn-acao btn-email"    onclick="abrirEmail()">✉️ E-mail</button>
+                    </div>
+                </div>
 
             </div>
         </div>
@@ -382,14 +386,14 @@ function remover(id) {
     selecao = selecao.filter(function(i){ return i !== id; });
     localStorage.setItem(CART_KEY, JSON.stringify(selecao));
     renderLista();
-    document.getElementById('psResultado').classList.remove('visivel');
+    document.getElementById('psExportBar').classList.remove('visivel');
 }
 function limparTudo() {
     if (!confirm('Limpar toda a seleção?')) return;
     selecao = [];
     localStorage.setItem(CART_KEY, JSON.stringify(selecao));
     renderLista();
-    document.getElementById('psResultado').classList.remove('visivel');
+    document.getElementById('psExportBar').classList.remove('visivel');
 }
 
 // ── Toggles ──────────────────────────────────────────────────
@@ -415,29 +419,9 @@ function gerarPreSelecao() {
     var agencia = getAgencia();
     var periodo = getPeriodo();
 
-    var titulo = '📋 Pré-Seleção — '+cliente+(agencia?' / '+agencia:'')+(periodo?' · '+periodo:'');
+    var titulo = '📋 '+cliente+(agencia?' / '+agencia:'')+(periodo?' · '+periodo:'');
     document.getElementById('psTitulo').textContent = titulo;
-
-    var lista = selecao.map(function(id){ return pontosData[id]; }).filter(Boolean);
-    lista.sort(function(a,b){ return (parseInt(a.numero)||0)-(parseInt(b.numero)||0); });
-
-    var html = '<table class="res-table"><thead><tr><th>Nº</th><th>Logradouro</th><th>Cidade / Região</th><th>Tipo / Formato</th><th>Situação</th><th class="no-print"></th></tr></thead><tbody>';
-    lista.forEach(function(p) {
-        html += '<tr>';
-        html += '<td class="res-num">'+esc(p.numero)+'</td>';
-        html += '<td><div style="font-weight:600">'+esc(p.logradouro)+'</div>'+(p.descricao?'<div class="res-sub">'+esc(p.descricao)+'</div>':'')+'</td>';
-        html += '<td><div>'+esc(p.cidade||'—')+'</div>'+(p.regiao?'<div class="res-sub">'+esc(p.regiao)+'</div>':'')+'</td>';
-        html += '<td><div>'+esc(p.tipo||'—')+'</div>'+(p.formato?'<div class="res-sub">'+esc(p.formato)+'</div>':'')+'</td>';
-        html += '<td>'+badgeSit(p.situacao)+'</td>';
-        html += '<td class="no-print"><a href="/gestor/pontos/detalhes?id='+p.id+'" class="link-info-btn" target="_blank">+Info</a></td>';
-        html += '</tr>';
-    });
-    html += '</tbody></table>';
-
-    document.getElementById('psTabelaResultado').innerHTML = html;
-    var res = document.getElementById('psResultado');
-    res.classList.add('visivel');
-    setTimeout(function(){ res.scrollIntoView({ behavior:'smooth', block:'start' }); }, 50);
+    document.getElementById('psExportBar').classList.add('visivel');
 }
 
 // ── CSV ───────────────────────────────────────────────────────
