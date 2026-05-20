@@ -202,7 +202,7 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
             <table class="table" id="tabelaPontos">
                 <thead>
                     <tr>
-                        <th class="col-check no-print" style="width:32px"></th>
+                        <th class="col-check no-print" style="width:32px"><input type="checkbox" id="checkAll" class="row-check" title="Selecionar todos visíveis" onclick="toggleTodos(this.checked)"></th>
                         <th class="col-foto no-print" style="width:70px"></th>
                         <th data-col="numero" style="width:52px">Nº<span class="sort-icon"></span></th>
                         <th data-col="logradouro" style="width:35%">Logradouro<span class="sort-icon"></span></th>
@@ -370,11 +370,31 @@ function toggleSel(id) {
     }
     atualizarCart();
 }
+function toggleTodos(marcar) {
+    var visiveis = ordenar(filtrar(PONTOS));
+    visiveis.forEach(function(p) {
+        var id = String(p.id);
+        if (marcar) selecao.add(id);
+        else selecao.delete(id);
+    });
+    localStorage.setItem(CART_KEY, JSON.stringify(Array.from(selecao)));
+    renderTabela();
+}
 function atualizarCart() {
     var n = selecao.size;
     document.getElementById('cartBadge').textContent = n;
     document.getElementById('selCount').textContent = n > 0 ? n+' selecionado'+(n>1?'s':'') : '';
     document.getElementById('cartBtn').className = 'cart-btn no-print'+(n>0?' visivel':'');
+
+    // sincroniza checkbox master com os visíveis
+    var visiveis = ordenar(filtrar(PONTOS));
+    var chkAll = document.getElementById('checkAll');
+    if (chkAll && visiveis.length > 0) {
+        var todosSel = visiveis.every(function(p){ return selecao.has(String(p.id)); });
+        var algumSel = visiveis.some(function(p){  return selecao.has(String(p.id)); });
+        chkAll.checked = todosSel;
+        chkAll.indeterminate = !todosSel && algumSel;
+    }
 }
 
 // ── Filtros / busca ──────────────────────────────────────────
