@@ -30,10 +30,10 @@ $sql = "
                THEN NULL
                ELSE DATE(p.fim_contrato)
            END AS fim_contrato,
-           COALESCE(p.updated_at, p.created_at) AS ultima_alteracao
+           p.id AS ultima_alteracao
     FROM pontos p
     WHERE p.ativo = 1 OR p.ativo IS NULL
-    ORDER BY COALESCE(p.updated_at, p.created_at) DESC
+    ORDER BY p.id DESC
 ";
 $pontos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
