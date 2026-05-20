@@ -531,7 +531,7 @@ function gerarPreSelecao() {
         html += '<table class="pv-table"><thead><tr><th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Situação</th><th>Link</th></tr></thead><tbody>';
         pts.forEach(function(p) {
             n++;
-            var url = window.location.origin+'/gestor/pontos/detalhes?id='+p.id;
+            var url = window.location.origin+'/gestor/pontos/detalhes?id='+p.id+'&view=publico';
             html += '<tr>';
             html += '<td class="pv-num">'+esc(p.numero)+'</td>';
             html += '<td><div style="font-weight:600">'+esc(p.logradouro)+'</div>'+(p.descricao?'<div style="font-size:0.7rem;color:#666">'+esc(p.descricao)+'</div>':'')+'</td>';
@@ -578,7 +578,7 @@ function abrirEmail() {
         ag.grupos[reg].forEach(function(p) {
             n++;
             var local = p.logradouro+(p.cidade?', '+p.cidade:'');
-            var url   = window.location.origin+'/gestor/pontos/detalhes?id='+p.id;
+            var url   = window.location.origin+'/gestor/pontos/detalhes?id='+p.id+'&view=publico';
             linhas.push(n+'. Ponto '+(p.numero||'')+' – '+local+'\n   '+url);
         });
         secoes.push(linhas.join('\n'));
