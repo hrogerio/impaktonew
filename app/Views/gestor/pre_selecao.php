@@ -192,7 +192,6 @@ try {
                 display:flex; align-items:flex-start; justify-content:space-between;
                 border-bottom:2.5px solid #c0392b; padding-bottom:0.6rem; margin-bottom:1.2rem;
             }
-            .pv-empresa { font-size:1.1rem; font-weight:800; color:#c0392b; letter-spacing:0.5px; }
             .pv-titulo  { font-size:0.95rem; font-weight:700; margin-top:0.2rem; color:#1a1a1a; }
             .pv-sub     { font-size:0.8rem; color:#555; margin-top:0.15rem; }
             .pv-data-box { font-size:0.72rem; color:#888; text-align:right; }
@@ -331,7 +330,7 @@ try {
 <div class="print-view" id="printView">
     <div class="pv-cabecalho">
         <div>
-            <div class="pv-empresa">Impakto Mídia</div>
+            <img src="/public/assets/img/logo.png" alt="Impakto Mídia" style="height:42px;width:auto;margin-bottom:0.4rem;display:block;">
             <div class="pv-titulo" id="pvTitulo"></div>
             <div class="pv-sub"    id="pvSub"></div>
         </div>
