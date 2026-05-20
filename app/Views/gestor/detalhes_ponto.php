@@ -19,18 +19,31 @@ try {
     die("Erro na conexão: " . $e->getMessage());
 }
 
-$id = $_GET['id'] ?? null;
-if (!$id || !is_numeric($id)) {
-    if ($modoPublico) die("Ponto não encontrado.");
-    header("Location: " . (defined('BASE') ? BASE : '') . "/gestor/pontos");
-    exit;
+// Suporta URL amigável /ponto/009 (slug = número) ou ?id=7
+$slug = $_GET['slug'] ?? null;
+$id   = $_GET['id']   ?? null;
+
+if ($slug) {
+    // Busca pelo número (ex: 009, 42)
+    $stmt = $pdo->prepare("SELECT * FROM pontos WHERE numero = ? AND (ativo = 1 OR ativo IS NULL) LIMIT 1");
+    $stmt->execute([$slug]);
+    $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Fallback: tenta pelo ID numérico
+    if (!$ponto && is_numeric($slug)) {
+        $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ? LIMIT 1");
+        $stmt->execute([(int)$slug]);
+        $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+} elseif ($id && is_numeric($id)) {
+    $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ?");
+    $stmt->execute([$id]);
+    $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+} else {
+    $ponto = null;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ?");
-$stmt->execute([$id]);
-$ponto = $stmt->fetch(PDO::FETCH_ASSOC);
-
 if (!$ponto) {
+    http_response_code(404);
     if ($modoPublico) die("Ponto não encontrado.");
     header("Location: " . (defined('BASE') ? BASE : '') . "/gestor/pontos");
     exit;

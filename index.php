@@ -31,6 +31,14 @@ function auth_required() {
     }
 }
 
+// ── URL amigável: /ponto/009 → detalhes público ──────────────
+if (preg_match('#^ponto/([a-zA-Z0-9\-]+)$#', $uri, $m)) {
+    $_GET['slug']  = $m[1];
+    $_GET['view']  = 'publico';
+    require __DIR__ . '/app/Views/gestor/detalhes_ponto.php';
+    exit;
+}
+
 switch ($uri) {
 
     // ── LOGIN ────────────────────────────────────────────────

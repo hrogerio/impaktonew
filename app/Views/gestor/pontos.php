@@ -35,7 +35,16 @@ $cidades    = $pdo->query("SELECT DISTINCT cidade   FROM pontos WHERE cidade   I
 $clientes   = $pdo->query("SELECT DISTINCT cliente  FROM pontos WHERE cliente  IS NOT NULL AND cliente  != '' AND (ativo=1 OR ativo IS NULL) ORDER BY cliente" )->fetchAll(PDO::FETCH_COLUMN);
 $corredores = $pdo->query("SELECT DISTINCT corredor FROM pontos WHERE corredor IS NOT NULL AND corredor != '' AND (ativo=1 OR ativo IS NULL) ORDER BY corredor")->fetchAll(PDO::FETCH_COLUMN);
 
+// Garante UTF-8 válido em todos os campos antes do json_encode
+array_walk_recursive($pontos, function(&$v) {
+    if (is_string($v)) $v = mb_convert_encoding($v, 'UTF-8', 'UTF-8');
+});
 $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
+if ($pontosJson === false) {
+    // Fallback: substitui chars inválidos e tenta novamente
+    $pontosJson = json_encode($pontos, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE);
+}
+if ($pontosJson === false) $pontosJson = '[]';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -256,7 +265,8 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
 </div>
 
 <script>
-var PONTOS   = <?= $pontosJson ?>;
+var PONTOS   = (function(){ try { return <?= $pontosJson ?>; } catch(e){ return []; } })();
+if (!Array.isArray(PONTOS)) PONTOS = [];
 var CART_KEY = 'impakto_cart';
 var selecao  = new Set(JSON.parse(localStorage.getItem(CART_KEY) || '[]'));
 var sortCol  = 'numero', sortDir = 'asc';
