@@ -495,6 +495,7 @@ function gerarPreSelecao() {
         });
         html += '</tbody></table>';
     });
+    html += '<div style="border-top:2px solid #333;margin-top:0.75rem;padding-top:0.4rem;font-size:0.78rem;font-weight:800;">TOTAL: '+lista.length+' ponto'+(lista.length>1?'s'  :'')+'</div>';
     document.getElementById('pvConteudo').innerHTML = html;
 }
 
@@ -539,6 +540,7 @@ function abrirEmail() {
     var txt = 'Prezado(a),\n\nEncaminhamos a pré-seleção de mídia exterior para '+dest
         +' referente ao período de '+periodo+'.\n\nPONTOS SELECIONADOS:\n\n'
         +secoes.join('\n\n')
+        +'\n\nTOTAL: '+lista.length+' ponto'+(lista.length>1?'s':'')+'.'
         +'\n\nEstamos à disposição para quaisquer esclarecimentos.\n\nAtenciosamente,\nImpakto Mídia';
     document.getElementById('emailTexto').value = txt;
     document.getElementById('emailOverlay').classList.add('aberto');
