@@ -170,7 +170,27 @@ try {
         .btn-copiar.copiado { background:#27ae60; }
         .btn-fechar-modal { padding:0.6rem 1rem; background:none; color:#666; border:1px solid #ddd; border-radius:8px; font-family:inherit; font-size:0.85rem; cursor:pointer; }
 
-        @media print { .no-print { display:none !important; } .ps-resultado { display:block !important; } }
+        /* ── Impressão ── */
+        .print-view { display:none; }
+        @media print {
+            .no-print, .ps-form-card, nav, .ps-titulo { display:none !important; }
+            .ps-layout { display:block !important; }
+            .ps-card   { display:none !important; }
+            .print-view { display:block !important; font-family:'Montserrat',Arial,sans-serif; }
+            .pv-cabecalho { border-bottom:2px solid #c0392b; padding-bottom:0.75rem; margin-bottom:1rem; }
+            .pv-empresa { font-size:1rem; font-weight:800; color:#c0392b; }
+            .pv-titulo  { font-size:0.95rem; font-weight:700; margin-top:0.2rem; }
+            .pv-sub     { font-size:0.78rem; color:#666; }
+            .pv-grupo   { background:#f4f4f4; padding:0.3rem 0.6rem; font-size:0.72rem; font-weight:800;
+                          text-transform:uppercase; letter-spacing:0.6px; color:#333;
+                          border-left:3px solid #c0392b; margin:0.75rem 0 0.2rem; }
+            .pv-table   { width:100%; border-collapse:collapse; font-size:0.78rem; margin-bottom:0.5rem; }
+            .pv-table th { border-bottom:1.5px solid #333; padding:0.3rem 0.5rem; text-align:left; font-size:0.68rem; font-weight:700; color:#555; }
+            .pv-table td { padding:0.35rem 0.5rem; border-bottom:1px solid #e0e0e0; }
+            .pv-num     { font-weight:800; color:#c0392b; width:40px; }
+            .pv-sit     { white-space:nowrap; }
+            .pv-rodape  { margin-top:2rem; font-size:0.72rem; color:#888; border-top:1px solid #ddd; padding-top:0.5rem; }
+        }
     </style>
 </head>
 <body>
@@ -263,6 +283,17 @@ try {
         </div>
 
     </div>
+</div>
+
+<!-- View de impressão (invisível na tela, aparece só no print) -->
+<div class="print-view" id="printView">
+    <div class="pv-cabecalho">
+        <div class="pv-empresa">Impakto Mídia</div>
+        <div class="pv-titulo" id="pvTitulo"></div>
+        <div class="pv-sub"    id="pvSub"></div>
+    </div>
+    <div id="pvConteudo"></div>
+    <div class="pv-rodape">Documento gerado em <span id="pvData"></span> · Impakto Mídia</div>
 </div>
 
 <!-- Lightbox foto -->
@@ -412,6 +443,22 @@ function toggleSemPeriodo() {
     if (cb.checked) { ini.value=''; fim.value=''; }
 }
 
+// ── Helper: agrupar por região ────────────────────────────────
+function agruparPorRegiao(lista) {
+    var grupos = {}, ordem = [];
+    lista.forEach(function(p) {
+        var reg = (p.regiao||'').trim() || 'Sem região';
+        if (!grupos[reg]) { grupos[reg] = []; ordem.push(reg); }
+        grupos[reg].push(p);
+    });
+    ordem.sort(function(a, b) {
+        if (a === 'Sem região') return 1;
+        if (b === 'Sem região') return -1;
+        return a.localeCompare(b);
+    });
+    return { grupos: grupos, ordem: ordem };
+}
+
 // ── Gerar ─────────────────────────────────────────────────────
 function gerarPreSelecao() {
     if (selecao.length === 0) return;
@@ -422,6 +469,33 @@ function gerarPreSelecao() {
     var titulo = '📋 '+cliente+(agencia?' / '+agencia:'')+(periodo?' · '+periodo:'');
     document.getElementById('psTitulo').textContent = titulo;
     document.getElementById('psExportBar').classList.add('visivel');
+
+    // Gera view de impressão agrupada por região
+    var lista = selecao.map(function(id){ return pontosData[id]; }).filter(Boolean);
+    lista.sort(function(a,b){ return (parseInt(a.numero)||0)-(parseInt(b.numero)||0); });
+    var ag = agruparPorRegiao(lista);
+
+    document.getElementById('pvTitulo').textContent = 'Pré-Seleção — '+cliente+(agencia?' / '+agencia:'');
+    document.getElementById('pvSub').textContent    = periodo ? 'Período: '+periodo : '';
+    document.getElementById('pvData').textContent   = new Date().toLocaleDateString('pt-BR');
+
+    var n = 0, html = '';
+    ag.ordem.forEach(function(reg) {
+        var pts = ag.grupos[reg];
+        html += '<div class="pv-grupo">'+esc(reg)+' &nbsp;('+pts.length+' ponto'+(pts.length>1?'s':'')+')</div>';
+        html += '<table class="pv-table"><thead><tr><th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Situação</th></tr></thead><tbody>';
+        pts.forEach(function(p) {
+            n++;
+            html += '<tr>';
+            html += '<td class="pv-num">'+esc(p.numero)+'</td>';
+            html += '<td><div style="font-weight:600">'+esc(p.logradouro)+'</div>'+(p.descricao?'<div style="font-size:0.7rem;color:#666">'+esc(p.descricao)+'</div>':'')+'</td>';
+            html += '<td>'+esc(p.cidade||'—')+'</td>';
+            html += '<td class="pv-sit">'+badgeSit(p.situacao)+'</td>';
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+    });
+    document.getElementById('pvConteudo').innerHTML = html;
 }
 
 // ── CSV ───────────────────────────────────────────────────────
@@ -447,14 +521,24 @@ function abrirEmail() {
     var periodo = getPeriodo() || '[Período]';
     var lista = selecao.map(function(id){ return pontosData[id]; }).filter(Boolean);
     lista.sort(function(a,b){ return (parseInt(a.numero)||0)-(parseInt(b.numero)||0); });
-    var linhas = lista.map(function(p,i) {
-        var local = p.logradouro+(p.cidade?', '+p.cidade:'')+(p.regiao?' – '+p.regiao:'');
-        var url   = window.location.origin+'/gestor/pontos/detalhes?id='+p.id;
-        return (i+1)+'. Ponto '+(p.numero||'')+' – '+local+'\n   '+url;
-    });
+    var ag = agruparPorRegiao(lista);
     var dest = cliente+(agencia&&agencia!=='Cliente direto'?' / '+agencia:'');
+
+    var n = 0, secoes = [];
+    ag.ordem.forEach(function(reg) {
+        var linhas = [reg.toUpperCase()+' ('+ag.grupos[reg].length+' ponto'+(ag.grupos[reg].length>1?'s':'')+')'];
+        ag.grupos[reg].forEach(function(p) {
+            n++;
+            var local = p.logradouro+(p.cidade?', '+p.cidade:'');
+            var url   = window.location.origin+'/gestor/pontos/detalhes?id='+p.id;
+            linhas.push(n+'. Ponto '+(p.numero||'')+' – '+local+'\n   '+url);
+        });
+        secoes.push(linhas.join('\n'));
+    });
+
     var txt = 'Prezado(a),\n\nEncaminhamos a pré-seleção de mídia exterior para '+dest
-        +' referente ao período de '+periodo+'.\n\nPONTOS SELECIONADOS:\n\n'+linhas.join('\n')
+        +' referente ao período de '+periodo+'.\n\nPONTOS SELECIONADOS:\n\n'
+        +secoes.join('\n\n')
         +'\n\nEstamos à disposição para quaisquer esclarecimentos.\n\nAtenciosamente,\nImpakto Mídia';
     document.getElementById('emailTexto').value = txt;
     document.getElementById('emailOverlay').classList.add('aberto');
