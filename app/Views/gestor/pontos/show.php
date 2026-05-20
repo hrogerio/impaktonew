@@ -59,9 +59,7 @@ if (!$ponto) {
             <div class="info-item">
                 <strong>Agência:</strong> <?= htmlspecialchars($ponto['agencia'] ?? '') ?>
             </div>
-            <div class="info-item">
-                <strong>Tipo:</strong> <?= htmlspecialchars($ponto['tipo'] ?? '') ?>
-            </div>
+          
             <div class="info-item">
                 <strong>Situação:</strong>
                 <span class="badge <?= strtolower($ponto['situacao'] ?? '') ?>">

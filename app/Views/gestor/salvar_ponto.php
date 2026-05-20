@@ -63,46 +63,54 @@ $params = [
     ':longitude'       => coordOuNull($_POST['longitude']  ?? ''),
 ];
 
-if ($id > 0) {
-    $params[':id'] = $id;
-    $stmt = $pdo->prepare("
-        UPDATE pontos SET
-            numero          = :numero,
-            logradouro      = :logradouro,
-            descricao       = :descricao,
-            bairro          = :bairro,
-            cidade          = :cidade,
-            regiao          = :regiao,
-            sentido         = :sentido,
-            corredor        = :corredor,
-            tipo            = :tipo,
-            formato         = :formato,
-            situacao        = :situacao,
-            cliente         = :cliente,
-            agencia         = :agencia,
-            contato         = :contato,
-            observacoes     = :observacoes,
-            inicio_contrato = :inicio_contrato,
-            fim_contrato    = :fim_contrato,
-            latitude        = :latitude,
-            longitude       = :longitude
-        WHERE id = :id AND (ativo = 1 OR ativo IS NULL)
-    ");
-    $stmt->execute($params);
-    header("Location: /gestor/pontos/editar?id=$id&msg=salvo");
-} else {
-    $stmt = $pdo->prepare("
-        INSERT INTO pontos
-            (numero, logradouro, descricao, bairro, cidade, regiao, sentido, corredor,
-             tipo, formato, situacao, cliente, agencia, contato, observacoes,
-             inicio_contrato, fim_contrato, latitude, longitude, ativo)
-        VALUES
-            (:numero, :logradouro, :descricao, :bairro, :cidade, :regiao, :sentido, :corredor,
-             :tipo, :formato, :situacao, :cliente, :agencia, :contato, :observacoes,
-             :inicio_contrato, :fim_contrato, :latitude, :longitude, 1)
-    ");
-    $stmt->execute($params);
-    $novoId = (int)$pdo->lastInsertId();
-    header("Location: /gestor/pontos/editar?id=$novoId&msg=criado&aba=fotos");
+// Garante que colunas opcionais existem antes de usá-las
+$colunasExistentes = [];
+$rsCol = $pdo->query("SHOW COLUMNS FROM pontos");
+foreach ($rsCol->fetchAll(PDO::FETCH_ASSOC) as $col) {
+    $colunasExistentes[$col['Field']] = true;
+}
+
+// Remove do params qualquer coluna que ainda não existe no servidor
+$colunasOpcionais = ['bairro','sentido','corredor','contato','observacoes',
+                     'inicio_contrato','fim_contrato','latitude','longitude'];
+foreach ($colunasOpcionais as $c) {
+    if (!isset($colunasExistentes[$c])) unset($params[":$c"]);
+}
+
+try {
+    if ($id > 0) {
+        $setCols = [
+            "numero = :numero", "logradouro = :logradouro", "descricao = :descricao",
+            "cidade = :cidade", "regiao = :regiao", "tipo = :tipo",
+            "formato = :formato", "situacao = :situacao",
+            "cliente = :cliente", "agencia = :agencia",
+        ];
+        // Adiciona colunas opcionais apenas se existirem
+        foreach ($colunasOpcionais as $c) {
+            if (isset($colunasExistentes[$c])) $setCols[] = "$c = :$c";
+        }
+        $params[':id'] = $id;
+        $stmt = $pdo->prepare("UPDATE pontos SET ".implode(', ', $setCols)."
+            WHERE id = :id AND (ativo = 1 OR ativo IS NULL)");
+        $stmt->execute($params);
+        header("Location: /gestor/pontos/editar?id=$id&msg=salvo");
+    } else {
+        $cols = ['numero','logradouro','descricao','cidade','regiao',
+                 'tipo','formato','situacao','cliente','agencia','ativo'];
+        $vals = [':numero',':logradouro',':descricao',':cidade',':regiao',
+                 ':tipo',':formato',':situacao',':cliente',':agencia','1'];
+        foreach ($colunasOpcionais as $c) {
+            if (isset($colunasExistentes[$c])) { $cols[] = $c; $vals[] = ":$c"; }
+        }
+        $stmt = $pdo->prepare("INSERT INTO pontos (".implode(',',$cols).")
+            VALUES (".implode(',',$vals).")");
+        $stmt->execute($params);
+        $novoId = (int)$pdo->lastInsertId();
+        header("Location: /gestor/pontos/editar?id=$novoId&msg=criado&aba=fotos");
+    }
+} catch (PDOException $e) {
+    error_log("ERRO salvar_ponto id=$id: " . $e->getMessage());
+    $redir = $id > 0 ? "/gestor/pontos/editar?id=$id&msg=erro_db" : "/gestor/pontos/novo?msg=erro_db";
+    header("Location: $redir");
 }
 exit;
