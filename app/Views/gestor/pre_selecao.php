@@ -214,8 +214,9 @@ try {
             }
             .pv-table td { padding:0.32rem 0.5rem; border-bottom:1px solid #e8e8e8; vertical-align:middle; }
             .pv-table tbody tr:last-child td { border-bottom:none; }
-            .pv-num { font-weight:800; color:#c0392b; width:36px; }
-            .pv-sit { white-space:nowrap; font-size:0.72rem; font-weight:700; text-transform:uppercase; }
+            .pv-num  { font-weight:800; color:#c0392b; width:36px; }
+            .pv-sit  { white-space:nowrap; font-size:0.72rem; font-weight:700; text-transform:uppercase; }
+            .pv-link { width:40px; text-align:center; }
 
             /* Badge de situação no print */
             .badge-sit { padding:1px 6px; border-radius:8px; font-size:0.65rem; font-weight:800; }
@@ -527,14 +528,16 @@ function gerarPreSelecao() {
     ag.ordem.forEach(function(reg) {
         var pts = ag.grupos[reg];
         html += '<div class="pv-grupo">'+esc(reg)+' &nbsp;('+pts.length+' ponto'+(pts.length>1?'s':'')+')</div>';
-        html += '<table class="pv-table"><thead><tr><th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Situação</th></tr></thead><tbody>';
+        html += '<table class="pv-table"><thead><tr><th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Situação</th><th>Link</th></tr></thead><tbody>';
         pts.forEach(function(p) {
             n++;
+            var url = window.location.origin+'/gestor/pontos/detalhes?id='+p.id;
             html += '<tr>';
             html += '<td class="pv-num">'+esc(p.numero)+'</td>';
             html += '<td><div style="font-weight:600">'+esc(p.logradouro)+'</div>'+(p.descricao?'<div style="font-size:0.7rem;color:#666">'+esc(p.descricao)+'</div>':'')+'</td>';
             html += '<td>'+esc(p.cidade||'—')+'</td>';
             html += '<td class="pv-sit">'+badgeSit(p.situacao)+'</td>';
+            html += '<td class="pv-link"><a href="'+url+'" style="color:#c0392b;font-size:0.68rem;font-weight:700;text-decoration:none;">+Info</a></td>';
             html += '</tr>';
         });
         html += '</tbody></table>';
