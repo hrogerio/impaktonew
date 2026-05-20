@@ -59,51 +59,66 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
     <link rel="stylesheet" href="/public/assets/css/pre-selecao.css">
     <link rel="stylesheet" href="/public/assets/css/form_ponto.css">
     <style>
-        .pontos-layout { display:grid; grid-template-columns:1fr minmax(0,340px); gap:1rem; align-items:start; overflow-x:hidden; }
+        /* ── Full-viewport layout ── */
+        body { overflow: hidden; }
+        .pontos-page { display:flex; flex-direction:column; padding:0.75rem 1.5rem 0; overflow:hidden; box-sizing:border-box; }
+        .pontos-controls { flex-shrink:0; }
+        .pontos-layout { display:grid; grid-template-columns:1fr minmax(0,310px); gap:1rem; flex:1; min-height:0; overflow:hidden; margin-top:0.5rem; }
+        .pontos-left { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+        .table-container { flex:1; overflow-y:auto; min-height:0; }
+        .sel-panel { overflow-y:auto; position:relative !important; top:0 !important; }
+
+        /* ── Tabela ── */
         .col-check { width:36px; padding-right:0 !important; text-align:center; }
         .table tbody tr { cursor:pointer; }
         .table tbody tr.selecionado { background:#fff8f7 !important; box-shadow:inset 3px 0 0 var(--color-accent-primary); }
         .row-check { width:16px; height:16px; cursor:pointer; accent-color:var(--color-accent-primary); }
-        @media (max-width:960px) { .pontos-layout { grid-template-columns:1fr; } .sel-panel { position:static; } }
-        @media print { .no-print { display:none !important; } .pontos-layout { display:block; } }
 
-        /* ===== PAINEL: NOVOS ELEMENTOS ===== */
+        /* ── Painel lateral ── */
         .sel-required { color:var(--color-accent-primary); }
         .sel-label-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.3rem; }
         .sel-label-row .sel-label { margin-bottom:0; }
         .sel-check-label { display:flex; align-items:center; gap:0.3rem; font-size:0.72rem; font-weight:600; color:var(--color-text-muted); cursor:pointer; user-select:none; }
         .sel-check-label input[type=checkbox] { accent-color:var(--color-accent-primary); width:13px; height:13px; cursor:pointer; }
-        .sel-date-row { display:flex; align-items:center; gap:0.4rem; }
-        .sel-date { flex:1; padding:0.5rem 0.4rem; font-size:0.78rem; }
-        .sel-date:disabled { opacity:0.4; pointer-events:none; }
-        .sel-date-sep { font-size:0.75rem; color:var(--color-text-muted); font-weight:600; white-space:nowrap; }
         .sel-input:disabled { opacity:0.4; pointer-events:none; background:var(--color-bg-primary); }
 
-        /* ===== THUMBNAIL ===== */
+        /* ── Thumbnail ── */
         .col-foto { width:64px; padding:4px 6px !important; }
         .thumb-wrap { width:54px; height:40px; border-radius:5px; overflow:hidden; background:#f0f0f0; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
         .thumb-img { width:100%; height:100%; object-fit:cover; cursor:zoom-in; transition:opacity 0.15s; }
         .thumb-img:hover { opacity:0.85; }
         .thumb-vazio { font-size:1.1rem; color:#ccc; }
 
-        /* ===== LIGHTBOX ===== */
+        /* ── Lightbox ── */
         .lb-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:2000; align-items:center; justify-content:center; cursor:zoom-out; }
         .lb-overlay.aberto { display:flex; }
         .lb-img { max-width:90vw; max-height:88vh; border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,0.5); object-fit:contain; }
         .lb-info { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.7); color:white; padding:0.4rem 1rem; border-radius:20px; font-size:0.8rem; font-family:'Montserrat',sans-serif; white-space:nowrap; }
+
+        /* ── Modal Resultado ── */
+        .resultado-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:900; align-items:center; justify-content:center; }
+        .resultado-overlay.aberto { display:flex; }
+        .resultado-modal { background:white; border-radius:12px; width:92vw; max-width:1050px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+        .resultado-modal-header { padding:1rem 1.5rem; border-bottom:1px solid var(--color-border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; gap:1rem; flex-wrap:wrap; }
+        .resultado-modal-title { font-size:0.92rem; font-weight:800; color:var(--color-text-dark); flex:1; }
+        .resultado-modal-actions { display:flex; gap:0.5rem; flex-shrink:0; }
+        .resultado-modal-body { flex:1; overflow-y:auto; padding:1rem 1.5rem; }
+        .resultado-modal-close { background:none; border:none; font-size:1.3rem; cursor:pointer; color:#999; padding:0; line-height:1; flex-shrink:0; }
+        .resultado-modal-close:hover { color:#333; }
+
+        @media (max-width:960px) { .pontos-layout { grid-template-columns:1fr; } }
+        @media print { .no-print { display:none !important; } }
     </style>
 </head>
 <body>
 
 <?php require __DIR__ . '/../layouts/_nav.php'; ?>
 
-<div class="container" style="padding-bottom:2rem;">
+<div class="pontos-page" id="pontosPage">
 
-    <div class="pontos-layout">
-
-        <!-- ===== LISTA DE PONTOS ===== -->
-        <div>
-            <div class="search-bar no-print">
+    <!-- ── Controles ── -->
+    <div class="pontos-controls">
+        <div class="search-bar no-print">
                 <span class="search-icon">🔍</span>
                 <input type="text" id="searchInput" placeholder="Buscar por número, logradouro, cidade, cliente..." autocomplete="off">
                 <button class="search-clear" id="searchClear" title="Limpar">✕</button>
@@ -152,12 +167,18 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
                 <button class="btn-limpar-filtros" id="btnLimpar">Limpar filtros</button>
             </div>
 
-            <div class="result-bar no-print" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <div class="result-bar no-print" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:0.4rem;">
                 <span id="resultCount" style="flex:1;"></span>
                 <span id="selCount" style="font-size:0.78rem;color:var(--color-accent-primary);font-weight:700;"></span>
                 <a href="/gestor/pontos/novo" class="btn-novo-ponto">+ Novo Ponto</a>
             </div>
+    </div><!-- /pontos-controls -->
 
+    <!-- ── Layout principal ── -->
+    <div class="pontos-layout">
+
+        <!-- Coluna esquerda: tabela -->
+        <div class="pontos-left">
             <div class="table-container">
                 <table class="table" id="tabelaPontos">
                     <thead>
@@ -177,9 +198,9 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
                     <tbody id="tabelaBody"></tbody>
                 </table>
             </div>
-        </div>
+        </div><!-- /pontos-left -->
 
-        <!-- ===== PAINEL DE SELEÇÃO ===== -->
+        <!-- Coluna direita: painel seleção -->
         <div class="sel-panel no-print">
             <div class="sel-header">
                 <span class="sel-title">Selecionados</span>
@@ -233,21 +254,26 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
             </div>
         </div>
 
-    </div>
+    </div><!-- /pontos-layout -->
 
-    <!-- ===== RESULTADOS ===== -->
-    <div class="resultado-section" id="resultadoSection" style="display:none; margin-top:1.5rem;">
-        <div class="resultado-header">
-            <div class="resultado-title" id="resultadoTitulo"></div>
-            <div class="resultado-actions no-print">
-                <button class="btn-resultado btn-print-r" onclick="window.print()">🖨️ Imprimir / PDF</button>
+</div><!-- /pontos-page -->
+
+<!-- ===== MODAL RESULTADO ===== -->
+<div class="resultado-overlay" id="resultadoOverlay">
+    <div class="resultado-modal">
+        <div class="resultado-modal-header">
+            <div class="resultado-modal-title" id="resultadoTitulo"></div>
+            <div class="resultado-modal-actions no-print">
+                <button class="btn-resultado btn-print-r" onclick="window.print()">🖨️ Imprimir</button>
                 <button class="btn-resultado btn-csv-r"   onclick="exportarCSV()">📊 CSV</button>
                 <button class="btn-resultado btn-email-r" onclick="abrirEmail()">✉️ E-mail</button>
             </div>
+            <button class="resultado-modal-close no-print" onclick="fecharResultado()">✕</button>
         </div>
-        <div id="resultadoTabela"></div>
+        <div class="resultado-modal-body">
+            <div id="resultadoTabela"></div>
+        </div>
     </div>
-
 </div>
 
 <!-- ===== LIGHTBOX ===== -->
@@ -425,7 +451,7 @@ function limparSelecao() {
     selecionados.clear();
     renderTabela();
     renderSelPanel();
-    document.getElementById('resultadoSection').style.display = 'none';
+    fecharResultado();
 }
 
 // ── Painel lateral ─────────────────────────────────────────────
@@ -516,9 +542,10 @@ function gerarProposta() {
     html += '</tbody></table>';
 
     document.getElementById('resultadoTabela').innerHTML = html;
-    var sec = document.getElementById('resultadoSection');
-    sec.style.display = 'block';
-    setTimeout(function(){ sec.scrollIntoView({ behavior:'smooth', block:'start' }); }, 50);
+    document.getElementById('resultadoOverlay').classList.add('aberto');
+}
+function fecharResultado() {
+    document.getElementById('resultadoOverlay').classList.remove('aberto');
 }
 
 // ── Exportar CSV ───────────────────────────────────────────────
@@ -630,8 +657,17 @@ function fecharLb() {
 
 document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey||e.metaKey) && e.key==='k') { e.preventDefault(); document.getElementById('searchInput').focus(); }
-    if (e.key === 'Escape') { fecharEmail(); fecharLb(); }
+    if (e.key === 'Escape') { fecharEmail(); fecharLb(); fecharResultado(); }
 });
+
+// ── Altura full-viewport ───────────────────────────────────────
+function ajustarAltura() {
+    var header = document.querySelector('.header');
+    var h = window.innerHeight - (header ? header.offsetHeight : 60);
+    document.getElementById('pontosPage').style.height = h + 'px';
+}
+ajustarAltura();
+window.addEventListener('resize', ajustarAltura);
 
 // ── Init ───────────────────────────────────────────────────────
 renderTabela();
