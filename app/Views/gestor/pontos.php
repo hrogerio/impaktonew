@@ -61,9 +61,9 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
     <style>
         /* ── Full-viewport layout ── */
         body { overflow: hidden; }
-        .pontos-page { display:flex; flex-direction:column; padding:0.75rem 1.5rem 0; overflow:hidden; box-sizing:border-box; }
+        .pontos-page { display:flex; flex-direction:column; padding:0.4rem 1rem 0; overflow:hidden; box-sizing:border-box; }
         .pontos-controls { flex-shrink:0; }
-        .pontos-layout { display:grid; grid-template-columns:1fr minmax(0,310px); gap:1rem; flex:1; min-height:0; overflow:hidden; margin-top:0.5rem; }
+        .pontos-layout { display:grid; grid-template-columns:1fr minmax(0,290px); gap:0.75rem; flex:1; min-height:0; overflow:hidden; margin-top:0.3rem; }
         .pontos-left { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
         .table-container { flex:1; overflow-y:auto; min-height:0; }
         .sel-panel { overflow-y:auto; position:relative !important; top:0 !important; }
@@ -83,11 +83,10 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
         .sel-input:disabled { opacity:0.4; pointer-events:none; background:var(--color-bg-primary); }
 
         /* ── Thumbnail ── */
-        .col-foto { width:38px; padding:2px 3px !important; }
-        .thumb-wrap { width:32px; height:24px; border-radius:3px; overflow:hidden; background:#f0f0f0; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-        .thumb-img { width:100%; height:100%; object-fit:cover; cursor:zoom-in; transition:opacity 0.15s; }
-        .thumb-img:hover { opacity:0.85; }
-        .thumb-vazio { font-size:0.75rem; color:#ccc; }
+        .col-foto { width:32px; padding:1px 2px !important; }
+        .thumb-wrap { width:28px; height:20px; border-radius:3px; overflow:hidden; background:#f0f0f0; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .thumb-img { width:100%; height:100%; object-fit:cover; cursor:zoom-in; }
+        .thumb-vazio { font-size:0.65rem; color:#ccc; }
 
         /* ── Lightbox ── */
         .lb-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:2000; align-items:center; justify-content:center; cursor:zoom-out; }
@@ -411,16 +410,10 @@ function renderTabela() {
         }
         html += '</td>';
         html += '<td class="col-num">'+highlight(p.numero,busca)+'</td>';
-        html += '<td><div class="col-local-main">'+highlight(p.logradouro,busca)+'</div>';
-        if (p.descricao) html += '<div class="col-local-sub">'+highlight(p.descricao.substring(0,60)+(p.descricao.length>60?'...':''),busca)+'</div>';
-        html += '</td>';
-        html += '<td class="col-regiao"><div>'+highlight(p.cidade,busca)+'</div>';
-        if (p.regiao) html += '<div class="col-local-sub">'+highlight(p.regiao,busca)+'</div>';
-        html += '</td>';
-        html += '<td><div class="col-cliente-main">'+highlight(p.cliente||'-',busca)+'</div>';
-        if (p.agencia) html += '<div class="col-cliente-sub">'+highlight(p.agencia,busca)+'</div>';
-        html += '</td>';
-        html += '<td>'+badgeSit(p.situacao)+'<div style="margin-top:3px">'+badgeContrato(p.fim_contrato)+'</div></td>';
+        html += '<td class="col-local-main" title="'+(p.descricao?esc(p.logradouro)+' · '+esc(p.descricao):esc(p.logradouro))+'">'+highlight(p.logradouro,busca)+(p.descricao?'<span class="col-local-sub"> · '+highlight(p.descricao.substring(0,45),busca)+'</span>':'')+'</td>';
+        html += '<td class="col-local-main" title="'+esc(p.cidade)+(p.regiao?' · '+esc(p.regiao):'')+'">'+highlight(p.cidade,busca)+(p.regiao?'<span class="col-local-sub"> · '+highlight(p.regiao,busca)+'</span>':'')+'</td>';
+        html += '<td class="col-local-main" title="'+esc(p.cliente||'-')+(p.agencia?' · '+esc(p.agencia):'')+'">'+highlight(p.cliente||'-',busca)+(p.agencia?'<span class="col-local-sub"> · '+highlight(p.agencia,busca)+'</span>':'')+'</td>';
+        html += '<td style="white-space:nowrap">'+badgeSit(p.situacao)+'&nbsp;'+badgeContrato(p.fim_contrato)+'</td>';
         html += '<td class="no-print" onclick="event.stopPropagation()" style="white-space:nowrap">';
         html += '<a href="/gestor/pontos/detalhes?id='+encodeURIComponent(p.id)+'" class="link-info">+Info</a>';
         html += '<a href="/gestor/pontos/editar?id='+encodeURIComponent(p.id)+'" class="link-editar" title="Editar ponto">✏️</a>';

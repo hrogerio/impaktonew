@@ -39,13 +39,13 @@
 
 /* ===== PAINEL DIREITO ===== */
 .sel-panel { background:var(--color-bg-white); border:1px solid var(--color-border); border-radius:var(--border-radius); position:sticky; top:1rem; }
-.sel-header { padding:0.875rem 1rem; border-bottom:1px solid var(--color-border); background:var(--color-bg-primary); display:flex; align-items:center; justify-content:space-between; }
-.sel-title { font-size:0.82rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+.sel-header { padding:0.45rem 0.75rem; border-bottom:1px solid var(--color-border); background:var(--color-bg-primary); display:flex; align-items:center; justify-content:space-between; }
+.sel-title { font-size:0.72rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.5px; }
 .sel-badge { background:var(--color-accent-primary); color:white; font-size:0.72rem; font-weight:800; padding:2px 8px; border-radius:10px; min-width:24px; text-align:center; }
-.sel-form { padding:0.875rem; }
-.sel-input-group { margin-bottom:0.75rem; }
-.sel-label { font-size:0.72rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:0.3rem; display:block; }
-.sel-input { width:100%; font-family:'Montserrat',sans-serif; font-size:0.82rem; border:1px solid var(--color-border); border-radius:6px; padding:0.5rem 0.75rem; color:var(--color-text-dark); background:var(--color-bg-white); box-sizing:border-box; transition:border-color 0.15s; }
+.sel-form { padding:0.5rem 0.75rem; }
+.sel-input-group { margin-bottom:0.4rem; }
+.sel-label { font-size:0.65rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:0.2rem; display:block; }
+.sel-input { width:100%; font-family:'Montserrat',sans-serif; font-size:0.78rem; border:1px solid var(--color-border); border-radius:6px; padding:0.3rem 0.6rem; color:var(--color-text-dark); background:var(--color-bg-white); box-sizing:border-box; transition:border-color 0.15s; }
 .sel-input:focus { outline:none; border-color:var(--color-accent-primary); }
 
 /* Lista selecionados */
@@ -60,10 +60,10 @@
 
 /* Botões ação */
 .sel-actions { display:flex; flex-direction:column; gap:0.5rem; }
-.btn-gerar { width:100%; padding:0.7rem; background:var(--color-accent-primary); color:white; border:none; border-radius:8px; font-family:'Montserrat',sans-serif; font-size:0.85rem; font-weight:700; cursor:pointer; transition:opacity 0.15s; }
+.btn-gerar { width:100%; padding:0.45rem; background:var(--color-accent-primary); color:white; border:none; border-radius:6px; font-family:'Montserrat',sans-serif; font-size:0.78rem; font-weight:700; cursor:pointer; transition:opacity 0.15s; }
 .btn-gerar:hover { opacity:0.9; }
 .btn-gerar:disabled { opacity:0.4; cursor:not-allowed; }
-.btn-limpar-sel { width:100%; padding:0.55rem; background:none; color:var(--color-text-muted); border:1px solid var(--color-border); border-radius:8px; font-family:'Montserrat',sans-serif; font-size:0.78rem; font-weight:600; cursor:pointer; transition:all 0.15s; }
+.btn-limpar-sel { width:100%; padding:0.3rem; background:none; color:var(--color-text-muted); border:1px solid var(--color-border); border-radius:6px; font-family:'Montserrat',sans-serif; font-size:0.72rem; font-weight:600; cursor:pointer; transition:all 0.15s; }
 .btn-limpar-sel:hover { border-color:var(--color-accent-primary); color:var(--color-accent-primary); }
 
 /* ===== RESULTADOS ===== */
