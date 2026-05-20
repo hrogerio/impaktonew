@@ -99,7 +99,7 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
         .table tbody tr { border-bottom:1px solid var(--color-border); transition:background 0.1s; cursor:pointer; }
         .table tbody tr:hover { background:#fafafa; }
         .table tbody tr.selecionado { background:#fff8f7 !important; box-shadow:inset 3px 0 0 var(--color-accent-primary); }
-        .table td { padding:0.22rem 0.5rem; vertical-align:middle; line-height:1.3; }
+        .table td { padding:0.45rem 0.5rem; vertical-align:middle; line-height:1.3; }
         .col-num { font-weight:800; color:var(--color-accent-primary); font-size:0.82rem; white-space:nowrap; }
         .col-txt  { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:0; font-weight:600; }
         .col-sub  { font-size:0.66rem; color:var(--color-text-muted); font-weight:400; }
