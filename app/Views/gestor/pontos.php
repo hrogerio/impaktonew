@@ -83,11 +83,11 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
         .sel-input:disabled { opacity:0.4; pointer-events:none; background:var(--color-bg-primary); }
 
         /* ── Thumbnail ── */
-        .col-foto { width:64px; padding:4px 6px !important; }
-        .thumb-wrap { width:54px; height:40px; border-radius:5px; overflow:hidden; background:#f0f0f0; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .col-foto { width:48px; padding:2px 4px !important; }
+        .thumb-wrap { width:42px; height:32px; border-radius:4px; overflow:hidden; background:#f0f0f0; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
         .thumb-img { width:100%; height:100%; object-fit:cover; cursor:zoom-in; transition:opacity 0.15s; }
         .thumb-img:hover { opacity:0.85; }
-        .thumb-vazio { font-size:1.1rem; color:#ccc; }
+        .thumb-vazio { font-size:0.9rem; color:#ccc; }
 
         /* ── Lightbox ── */
         .lb-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:2000; align-items:center; justify-content:center; cursor:zoom-out; }
