@@ -24,15 +24,28 @@ $slug = $_GET['slug'] ?? null;
 $id   = $_GET['id']   ?? null;
 
 if ($slug) {
-    // Busca pelo número (ex: 009, 42)
-    $stmt = $pdo->prepare("SELECT * FROM pontos WHERE numero = ? AND (ativo = 1 OR ativo IS NULL) LIMIT 1");
-    $stmt->execute([$slug]);
-    $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Busca pelo número (ex: 009, 42) — tenta com ativo, cai sem ativo se coluna não existir
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM pontos WHERE numero = ? AND (ativo = 1 OR ativo IS NULL) LIMIT 1");
+        $stmt->execute([$slug]);
+        $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        // coluna ativo pode não existir em produção
+        $stmt = $pdo->prepare("SELECT * FROM pontos WHERE numero = ? LIMIT 1");
+        $stmt->execute([$slug]);
+        $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
     // Fallback: tenta pelo ID numérico
     if (!$ponto && is_numeric($slug)) {
-        $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ? LIMIT 1");
-        $stmt->execute([(int)$slug]);
-        $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ? AND (ativo = 1 OR ativo IS NULL) LIMIT 1");
+            $stmt->execute([(int)$slug]);
+            $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ? LIMIT 1");
+            $stmt->execute([(int)$slug]);
+            $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
     }
 } elseif ($id && is_numeric($id)) {
     $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ?");
@@ -50,8 +63,9 @@ if (!$ponto) {
 }
 
 // Carregar fotos da tabela ponto_fotos (principal primeiro)
+// Usa $ponto['id'] — garante funcionamento tanto via ?id= quanto via /ponto/slug
 $stmtF = $pdo->prepare("SELECT * FROM ponto_fotos WHERE ponto_id = ? ORDER BY principal DESC, ordem ASC, id ASC");
-$stmtF->execute([$id]);
+$stmtF->execute([$ponto['id']]);
 $fotos = $stmtF->fetchAll(PDO::FETCH_ASSOC);
 
 // Fallback para campo foto legado se ponto_fotos estiver vazio
