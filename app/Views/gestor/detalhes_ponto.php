@@ -1,7 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
-}
+}   
 
 // Modo público — acesso via link da pré-seleção (sem login)
 $modoPublico = isset($_GET['view']) && $_GET['view'] === 'publico';
@@ -24,28 +24,28 @@ $slug = $_GET['slug'] ?? null;
 $id   = $_GET['id']   ?? null;
 
 if ($slug) {
-    // Busca pelo número (ex: 009, 42) — tenta com ativo, cai sem ativo se coluna não existir
+    // Busca pelo número (ex: 009, 42) — sem filtro ativo para máxima compatibilidade
     try {
-        $stmt = $pdo->prepare("SELECT * FROM pontos WHERE numero = ? AND (ativo = 1 OR ativo IS NULL) LIMIT 1");
-        $stmt->execute([$slug]);
-        $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        // coluna ativo pode não existir em produção
         $stmt = $pdo->prepare("SELECT * FROM pontos WHERE numero = ? LIMIT 1");
         $stmt->execute([$slug]);
         $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("detalhes_ponto slug numero={$slug} ERRO: " . $e->getMessage());
+        $ponto = null;
     }
     // Fallback: tenta pelo ID numérico
     if (!$ponto && is_numeric($slug)) {
         try {
-            $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ? AND (ativo = 1 OR ativo IS NULL) LIMIT 1");
-            $stmt->execute([(int)$slug]);
-            $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
             $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ? LIMIT 1");
             $stmt->execute([(int)$slug]);
             $ponto = $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("detalhes_ponto slug id={$slug} ERRO: " . $e->getMessage());
+            $ponto = null;
         }
+    }
+    if (!$ponto) {
+        error_log("detalhes_ponto: ponto nao encontrado para slug={$slug}");
     }
 } elseif ($id && is_numeric($id)) {
     $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ?");
