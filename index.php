@@ -33,10 +33,30 @@ function auth_required() {
 
 // ── URL amigável: /ponto/009 → detalhes público ──────────────
 if (preg_match('#^ponto/([a-zA-Z0-9\-]+)$#', $uri, $m)) {
-    $_GET['slug']  = $m[1];
-    $_GET['view']  = 'publico';
-    require __DIR__ . '/app/Views/gestor/detalhes_ponto.php';
-    exit;
+    $slug = $m[1];
+    require_once __DIR__ . '/config/database.php';
+    $pdo = getDatabase();
+    $pontoId = null;
+    try {
+        $s = $pdo->prepare("SELECT id FROM pontos WHERE numero = ? LIMIT 1");
+        $s->execute([$slug]);
+        $row = $s->fetch(PDO::FETCH_ASSOC);
+        if ($row) $pontoId = $row['id'];
+    } catch (PDOException $e) {}
+    if (!$pontoId && is_numeric($slug)) {
+        try {
+            $s = $pdo->prepare("SELECT id FROM pontos WHERE id = ? LIMIT 1");
+            $s->execute([(int)$slug]);
+            $row = $s->fetch(PDO::FETCH_ASSOC);
+            if ($row) $pontoId = $row['id'];
+        } catch (PDOException $e) {}
+    }
+    if ($pontoId) {
+        header("Location: " . BASE . "/gestor/pontos/detalhes?id={$pontoId}&view=publico");
+        exit;
+    }
+    http_response_code(404);
+    die("Ponto não encontrado.");
 }
 
 switch ($uri) {
@@ -124,6 +144,42 @@ switch ($uri) {
     case 'gestor/pre-selecao':
         auth_required();
         require __DIR__ . '/app/Views/gestor/pre_selecao.php';
+        break;
+
+    // ── API: SALVAR PRÉ-SELEÇÃO (POST) ───────────────────────
+    case 'gestor/pre-selecao/salvar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/salvar_pre_selecao.php';
+        break;
+
+    // ── API: DADOS DE PRÉ-SELEÇÃO SALVA (AJAX reabrir) ───────
+    case 'gestor/pre-selecao/dados':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/pre_selecao_dados.php';
+        break;
+
+    // ── RESERVAS (histórico de pré-seleções) ─────────────────
+    case 'gestor/reservas':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/reservas.php';
+        break;
+
+    // ── VER RESERVA ───────────────────────────────────────────
+    case 'gestor/reservas/ver':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/reserva_ver.php';
+        break;
+
+    // ── API: RESERVAS RECENTES ────────────────────────────────
+    case 'gestor/reservas/recentes':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/reservas_recentes.php';
+        break;
+
+    // ── API: EXCLUIR RESERVA (POST) ───────────────────────────
+    case 'gestor/reservas/excluir':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/excluir_reserva.php';
         break;
 
     // ── API: DADOS DOS PONTOS (AJAX pré-seleção) ─────────────

@@ -17,7 +17,7 @@ try {
 // Pontos com coordenadas cadastradas
 $pontos = $pdo->query("
     SELECT p.id, p.numero, p.logradouro, p.bairro, p.cidade, p.regiao,
-           p.tipo, p.situacao, p.formato,
+           p.tipo, p.situacao, p.formato, p.cliente,
            p.latitude  + 0 AS latitude,
            p.longitude + 0 AS longitude,
            COALESCE(
@@ -51,6 +51,13 @@ $tipos = $pdo->query("
     WHERE (ativo=1 OR ativo IS NULL) AND latitude IS NOT NULL AND latitude != 0
       AND tipo IS NOT NULL AND tipo != ''
     ORDER BY tipo
+")->fetchAll(PDO::FETCH_COLUMN);
+
+$clientes = $pdo->query("
+    SELECT DISTINCT cliente FROM pontos
+    WHERE (ativo=1 OR ativo IS NULL) AND latitude IS NOT NULL AND latitude != 0
+      AND cliente IS NOT NULL AND cliente != ''
+    ORDER BY cliente
 ")->fetchAll(PDO::FETCH_COLUMN);
 
 $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -120,6 +127,13 @@ $centroLng = count($pontos) ? array_sum(array_column($pontos, 'longitude')) / co
                     <?php endforeach; ?>
                 </select>
 
+                <select class="mapa-select" id="mapaFiltroCliente">
+                    <option value="">Todos os clientes</option>
+                    <?php foreach ($clientes as $c): ?>
+                    <option value="<?= htmlspecialchars($c) ?>"><?= htmlspecialchars($c) ?></option>
+                    <?php endforeach; ?>
+                </select>
+
                 <button class="mapa-btn-limpar" id="mapaBtnLimpar" onclick="limparFiltros()">
                     ✕ Limpar filtros
                 </button>
@@ -152,7 +166,7 @@ $centroLng = count($pontos) ? array_sum(array_column($pontos, 'longitude')) / co
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 var PONTOS = <?= $pontosJson ?>;
-var filtros = { busca: '', situacao: '', cidade: '', tipo: '' };
+var filtros = { busca: '', situacao: '', cidade: '', tipo: '', cliente: '' };
 var _visiveis = [];
 var markerGroup;
 var map;
@@ -246,12 +260,13 @@ function renderizar() {
     _visiveis = [];
 
     var busca = normalizar(filtros.busca);
-    var temFiltro = filtros.busca || filtros.situacao || filtros.cidade || filtros.tipo;
+    var temFiltro = filtros.busca || filtros.situacao || filtros.cidade || filtros.tipo || filtros.cliente;
 
     PONTOS.forEach(function(p, i) {
         if (filtros.situacao && p.situacao !== filtros.situacao) return;
         if (filtros.cidade   && p.cidade   !== filtros.cidade)   return;
         if (filtros.tipo     && p.tipo     !== filtros.tipo)     return;
+        if (filtros.cliente  && (p.cliente || '').trim() !== filtros.cliente) return;
         if (busca) {
             var campos = [p.numero, p.logradouro, p.bairro, p.cidade, p.regiao];
             if (!campos.some(function(c) { return normalizar(c).indexOf(busca) !== -1; })) return;
@@ -339,11 +354,16 @@ document.getElementById('mapaFiltroTipo').addEventListener('change', function() 
     this.className = 'mapa-select' + (this.value ? ' ativo' : '');
     renderizar();
 });
+document.getElementById('mapaFiltroCliente').addEventListener('change', function() {
+    filtros.cliente = this.value;
+    this.className = 'mapa-select' + (this.value ? ' ativo' : '');
+    renderizar();
+});
 
 function limparFiltros() {
-    filtros = { busca: '', situacao: '', cidade: '', tipo: '' };
+    filtros = { busca: '', situacao: '', cidade: '', tipo: '', cliente: '' };
     document.getElementById('mapaBusca').value = '';
-    ['mapaFiltroSit','mapaFiltroCidade','mapaFiltroTipo'].forEach(function(id) {
+    ['mapaFiltroSit','mapaFiltroCidade','mapaFiltroTipo','mapaFiltroCliente'].forEach(function(id) {
         document.getElementById(id).value = '';
         document.getElementById(id).className = 'mapa-select';
     });

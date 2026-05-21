@@ -5,6 +5,9 @@
     RewriteRule ^public/ - [L]
     RewriteRule ^fotos/ - [L]
 
+    # URL amigável: /ponto/X → handler direto (redirect externo para bypassar OPcache)
+    RewriteRule ^ponto/([a-zA-Z0-9\-]+)$ /public/ponto.php?slug=$1 [R=302,QSA,L]
+
     # Roteamento: tudo que não é arquivo existente passa pelo index.php
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [QSA,L]

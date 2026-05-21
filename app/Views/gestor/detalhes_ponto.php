@@ -1,7 +1,8 @@
 <?php
+// ==VERSAO-2025-05-21==
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
-}   
+}
 
 // Modo público — acesso via link da pré-seleção (sem login)
 $modoPublico = isset($_GET['view']) && $_GET['view'] === 'publico';
@@ -57,7 +58,7 @@ if ($slug) {
 
 if (!$ponto) {
     http_response_code(404);
-    if ($modoPublico) die("Ponto não encontrado.");
+    if ($modoPublico) die("Ponto não encontrado. [slug=" . htmlspecialchars($slug ?? 'NULL') . " | id=" . htmlspecialchars($id ?? 'NULL') . " | GET=" . htmlspecialchars(json_encode($_GET)) . "]");
     header("Location: " . (defined('BASE') ? BASE : '') . "/gestor/pontos");
     exit;
 }

@@ -170,6 +170,56 @@ try {
         .btn-copiar.copiado { background:#27ae60; }
         .btn-fechar-modal { padding:0.6rem 1rem; background:none; color:#666; border:1px solid #ddd; border-radius:8px; font-family:inherit; font-size:0.85rem; cursor:pointer; }
 
+        /* ── Reservas recentes ── */
+        .ps-reservas-section {
+            margin-top:1.5rem;
+            background:white; border:1px solid var(--color-border); border-radius:10px; overflow:hidden;
+        }
+        .ps-reservas-header {
+            padding:0.65rem 1rem;
+            background:var(--color-bg-primary); border-bottom:1px solid var(--color-border);
+            display:flex; align-items:center; justify-content:space-between;
+            font-size:0.8rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.4px;
+        }
+        .ps-reservas-loading { padding:1.5rem; text-align:center; color:var(--color-text-muted); font-size:0.82rem; }
+        .ps-reservas-empty   { padding:1.5rem; text-align:center; color:var(--color-text-muted); font-size:0.82rem; }
+        .ps-res-table { width:100%; border-collapse:collapse; font-size:0.81rem; }
+        .ps-res-table th {
+            background:var(--color-bg-primary); padding:0.4rem 0.85rem;
+            font-size:0.65rem; font-weight:700; color:var(--color-text-muted);
+            text-transform:uppercase; letter-spacing:0.4px;
+            border-bottom:1.5px solid var(--color-border); text-align:left;
+        }
+        .ps-res-table td { padding:0.55rem 0.85rem; border-bottom:1px solid var(--color-border); vertical-align:middle; }
+        .ps-res-table tbody tr:last-child td { border-bottom:none; }
+        .ps-res-table tbody tr:hover { background:#fafafa; }
+        .ps-res-cli  { font-weight:700; color:var(--color-text-dark); }
+        .ps-res-ag   { font-size:0.7rem; color:var(--color-text-muted); margin-top:1px; }
+        .ps-res-num  { font-weight:700; color:var(--color-accent-primary); text-align:center; }
+        .ps-res-data { font-size:0.73rem; color:var(--color-text-muted); white-space:nowrap; }
+        .ps-res-acoes { display:flex; gap:0.35rem; }
+        .btn-res-reabrir {
+            padding:0.25rem 0.6rem; background:#fff3f3;
+            border:1px solid #fca5a5; border-radius:5px;
+            font-size:0.72rem; font-weight:700; color:var(--color-accent-primary);
+            cursor:pointer; transition:all 0.15s; white-space:nowrap;
+            font-family:'Montserrat',sans-serif;
+        }
+        .btn-res-reabrir:hover { background:var(--color-accent-primary); color:white; border-color:var(--color-accent-primary); }
+        .btn-res-ver {
+            padding:0.25rem 0.6rem; background:#f8f9fa;
+            border:1px solid var(--color-border); border-radius:5px;
+            font-size:0.72rem; font-weight:700; color:var(--color-text-muted);
+            text-decoration:none; white-space:nowrap; transition:all 0.15s;
+        }
+        .btn-res-ver:hover { background:#f3f4f6; color:var(--color-text-dark); }
+        .btn-res-excluir {
+            padding:0.25rem 0.5rem; background:#fff; border:1px solid #fca5a5;
+            border-radius:5px; font-size:0.72rem; font-weight:700; color:#c0392b;
+            cursor:pointer; transition:all 0.15s; font-family:'Montserrat',sans-serif;
+        }
+        .btn-res-excluir:hover { background:#c0392b; color:white; border-color:#c0392b; }
+
         /* ── Impressão ── */
         .print-view { display:none; }
         @media print {
@@ -266,7 +316,7 @@ try {
 
         </div>
 
-        <!-- Coluna direita: formulário -->
+        <!-- Coluna direita: formulário + reservas recentes -->
         <div class="ps-form-card no-print">
             <div class="ps-form-header">
                 <div class="ps-form-title">Dados da Proposta</div>
@@ -318,6 +368,7 @@ try {
                         <button class="btn-acao btn-imprimir" onclick="window.print()">🖨️ Imprimir</button>
                         <button class="btn-acao btn-csv"      onclick="exportarCSV()">📊 CSV</button>
                         <button class="btn-acao btn-email"    onclick="abrirEmail()">✉️ E-mail</button>
+                        <a class="btn-acao" href="/gestor/reservas" style="color:#555">📋 Reservas</a>
                     </div>
                 </div>
 
@@ -325,6 +376,18 @@ try {
         </div>
 
     </div>
+
+    <!-- ── Reservas recentes ──────────────────────────────────── -->
+    <div class="ps-reservas-section no-print" id="psReservasSection">
+        <div class="ps-reservas-header">
+            <span>📋 Reservas recentes</span>
+            <a href="/gestor/reservas" style="font-size:0.75rem;font-weight:700;color:var(--color-accent-primary);text-decoration:none">Ver todas →</a>
+        </div>
+        <div id="psReservasLista">
+            <div class="ps-reservas-loading">Carregando...</div>
+        </div>
+    </div>
+
 </div>
 
 <!-- View de impressão (invisível na tela, aparece só no print) -->
@@ -340,6 +403,19 @@ try {
     <div id="pvConteudo"></div>
     <div class="pv-rodape">Impakto Mídia · impaktomidia.com.br</div>
 </div>
+
+<!-- Toast -->
+<div id="psToast" style="
+    position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;
+    background:#1a9059;color:white;padding:0.75rem 1.25rem;
+    border-radius:8px;font-size:0.83rem;font-weight:700;
+    box-shadow:0 4px 16px rgba(0,0,0,0.2);
+    transform:translateY(80px);opacity:0;transition:all 0.3s ease;
+    pointer-events:none;
+" class=""></div>
+<style>
+#psToast.show { transform:translateY(0) !important; opacity:1 !important; pointer-events:auto !important; }
+</style>
 
 <!-- Lightbox foto -->
 <div class="ps-lb" id="psLb" onclick="psFecharLb()">
@@ -515,6 +591,30 @@ function gerarPreSelecao() {
     document.getElementById('psTitulo').textContent = titulo;
     document.getElementById('psExportBar').classList.add('visivel');
 
+    // ── Salvar no banco ───────────────────────────────────────
+    var semPeriodo = document.getElementById('semPeriodo').checked;
+    var payload = {
+        cliente:     cliente,
+        agencia:     (agencia === 'Cliente direto' ? '' : agencia),
+        periodo_ini: semPeriodo ? null : (document.getElementById('psDataInicio').value || null),
+        periodo_fim: semPeriodo ? null : (document.getElementById('psDataFim').value || null),
+        sem_periodo: semPeriodo,
+        pontos_ids:  selecao.map(Number)
+    };
+    fetch('/gestor/pre-selecao/salvar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            carregarReservas();
+            mostrarToast('✅ Reserva #'+data.id+' salva! <a href="/gestor/reservas/ver?id='+data.id+'" style="color:white;text-decoration:underline">Ver →</a>');
+        }
+    })
+    .catch(function() { /* silencioso — não bloqueia o fluxo */ });
+
     // Gera view de impressão agrupada por região
     var lista = selecao.map(function(id){ return pontosData[id]; }).filter(Boolean);
     lista.sort(function(a,b){ return (parseInt(a.numero)||0)-(parseInt(b.numero)||0); });
@@ -531,7 +631,7 @@ function gerarPreSelecao() {
         html += '<table class="pv-table"><thead><tr><th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Situação</th><th>Link</th></tr></thead><tbody>';
         pts.forEach(function(p) {
             n++;
-            var url = window.location.origin+'/ponto/'+(p.numero||p.id);
+            var url = window.location.origin+'/public/p.php?id='+p.id;
             html += '<tr>';
             html += '<td class="pv-num">'+esc(p.numero)+'</td>';
             html += '<td><div style="font-weight:600">'+esc(p.logradouro)+'</div>'+(p.descricao?'<div style="font-size:0.7rem;color:#666">'+esc(p.descricao)+'</div>':'')+'</td>';
@@ -578,7 +678,7 @@ function abrirEmail() {
         ag.grupos[reg].forEach(function(p) {
             n++;
             var local = p.logradouro+(p.cidade?', '+p.cidade:'');
-            var url   = window.location.origin+'/ponto/'+(p.numero||p.id);
+            var url   = window.location.origin+'/public/p.php?id='+p.id;
             linhas.push(n+'. Ponto '+(p.numero||'')+' – '+local+'\n   '+url);
         });
         secoes.push(linhas.join('\n'));
@@ -602,6 +702,15 @@ function copiarEmail() {
     });
 }
 
+// ── Toast ─────────────────────────────────────────────────────
+function mostrarToast(html) {
+    var t = document.getElementById('psToast');
+    t.innerHTML = html;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function() { t.classList.remove('show'); }, 4000);
+}
+
 document.addEventListener('keydown', function(e) {
     if (e.key==='Escape') { fecharEmail(); psFecharLb(); }
 });
@@ -616,8 +725,101 @@ function psFecharLb() {
     document.getElementById('psLbImg').src = '';
 }
 
+// ── Reservas recentes ─────────────────────────────────────────
+function carregarReservas() {
+    fetch('/gestor/reservas/recentes')
+        .then(function(r) { return r.json(); })
+        .then(function(lista) {
+            var div = document.getElementById('psReservasLista');
+            if (!lista || lista.length === 0) {
+                div.innerHTML = '<div class="ps-reservas-empty">Nenhuma reserva registrada ainda.</div>';
+                return;
+            }
+            var html = '<table class="ps-res-table"><thead><tr>'
+                + '<th>Cliente / Agência</th><th style="width:130px">Período</th>'
+                + '<th style="width:50px;text-align:center">Pts</th>'
+                + '<th style="width:110px">Data</th>'
+                + '<th style="width:120px"></th>'
+                + '</tr></thead><tbody>';
+            lista.forEach(function(ps) {
+                var per = ps.sem_periodo ? 'Sem período'
+                    : (ps.periodo_ini && ps.periodo_fim
+                        ? fmtData(ps.periodo_ini) + ' – ' + fmtData(ps.periodo_fim)
+                        : (ps.periodo_ini ? 'A partir de ' + fmtData(ps.periodo_ini) : '—'));
+                html += '<tr>';
+                html += '<td><div class="ps-res-cli">'+esc(ps.cliente)+'</div>'+(ps.agencia?'<div class="ps-res-ag">'+esc(ps.agencia)+'</div>':'')+'</td>';
+                html += '<td style="font-size:0.75rem;color:var(--color-text-muted)">'+esc(per)+'</td>';
+                html += '<td class="ps-res-num">'+ps.total_pontos+'</td>';
+                html += '<td class="ps-res-data">'+fmtDatetime(ps.criado_em)+'</td>';
+                html += '<td><div class="ps-res-acoes">'
+                    + '<a href="/gestor/reservas/ver?id='+ps.id+'" class="btn-res-ver">👁 Ver</a>'
+                    + '<button class="btn-res-reabrir" onclick="reabrirReserva('+ps.id+')">↩ Reabrir</button>'
+                    + '<button class="btn-res-excluir" onclick="excluirReserva('+ps.id+', this)" title="Excluir">🗑</button>'
+                    + '</div></td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            div.innerHTML = html;
+        })
+        .catch(function() {
+            document.getElementById('psReservasLista').innerHTML =
+                '<div class="ps-reservas-empty" style="color:#c0392b">Erro ao carregar reservas.</div>';
+        });
+}
+
+function reabrirReserva(id) {
+    fetch('/gestor/pre-selecao/dados?id=' + id)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.erro) { alert('Erro ao carregar a reserva.'); return; }
+            selecao = data.pontos_ids;
+            localStorage.setItem(CART_KEY, JSON.stringify(selecao));
+            pontosData = {};
+            carregarPontos();
+            mostrarToast('✅ ' + selecao.length + ' ponto(s) carregado(s) da reserva!');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        })
+        .catch(function() { alert('Erro de comunicação.'); });
+}
+
+function excluirReserva(id, btn) {
+    if (!confirm('Excluir esta reserva? Esta ação não pode ser desfeita.')) return;
+    btn.disabled = true;
+    fetch('/gestor/reservas/excluir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            var tr = btn.closest('tr');
+            tr.style.transition = 'opacity 0.3s';
+            tr.style.opacity = '0';
+            setTimeout(function() { tr.remove(); }, 300);
+            mostrarToast('🗑 Reserva excluída.');
+        } else {
+            btn.disabled = false;
+            alert('Erro ao excluir.');
+        }
+    })
+    .catch(function() { btn.disabled = false; alert('Erro de comunicação.'); });
+}
+
+function fmtData(val) {
+    if (!val) return '';
+    var p = val.split('-');
+    return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : val;
+}
+function fmtDatetime(val) {
+    if (!val) return '';
+    var parts = val.split(' ');
+    return fmtData(parts[0]) + (parts[1] ? ' ' + parts[1].slice(0,5) : '');
+}
+
 // ── Init ──────────────────────────────────────────────────────
 carregarPontos();
+carregarReservas();
 </script>
 
 </body>
