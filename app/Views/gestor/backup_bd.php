@@ -45,7 +45,7 @@ function gerarSQL(PDO $pdo): string {
             $cols = '`' . implode('`, `', array_keys($rows[0])) . '`';
             $vals = [];
             foreach ($rows as $row) {
-                $v = array_map(fn($x) => $x === null ? 'NULL' : $pdo->quote($x), array_values($row));
+                $v = array_map(function($x) use ($pdo) { return $x === null ? 'NULL' : $pdo->quote($x); }, array_values($row));
                 $vals[] = '(' . implode(', ', $v) . ')';
             }
             $out .= "INSERT INTO `{$table}` ({$cols}) VALUES\n" . implode(",\n", $vals) . ";\n\n";
@@ -85,6 +85,9 @@ if (isset($_GET['acao']) && $_GET['acao'] === 'dl' && isset($_GET['f'])) {
 
 // ── Ação: salvar no servidor ─────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['acao'] ?? '') === 'salvar') {
+    if (!is_dir($backupDir)) {
+        mkdir($backupDir, 0755, true);
+    }
     $sql      = gerarSQL($pdo);
     $filename = 'backup_impakto_' . date('Y-m-d_H-i-s') . '.sql';
     if (file_put_contents($backupDir . $filename, $sql) !== false) {

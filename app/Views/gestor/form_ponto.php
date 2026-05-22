@@ -37,8 +37,9 @@ if (empty($_SESSION['csrf_token'])) {
 }
 $csrfToken = $_SESSION['csrf_token'];
 
-$msg    = isset($_GET['msg']) ? $_GET['msg'] : '';
-$abaGet = ($modo === 'editar' && isset($_GET['aba'])) ? $_GET['aba'] : 'dados';
+$msg     = isset($_GET['msg']) ? $_GET['msg'] : '';
+$abaGet  = ($modo === 'editar' && isset($_GET['aba'])) ? $_GET['aba'] : 'dados';
+$mapsKey = getenv('GOOGLE_MAPS_KEY') ?: '';
 
 function v($arr, $campo, $default = '') {
     return isset($arr[$campo]) ? htmlspecialchars($arr[$campo], ENT_QUOTES) : $default;
@@ -59,6 +60,25 @@ $tipos     = ['Painel','Outdoor','Frontlight','Painel LED'];
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/assets/css/gestor.css">
     <link rel="stylesheet" href="/public/assets/css/form_ponto.css">
+    <style>
+        .coord-pair { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+        .coord-whatsapp { display:flex; gap:0.5rem; margin-top:0.75rem; }
+        .coord-whatsapp .form-input { flex:1; font-size:0.82rem; }
+        .coord-search { display:flex; gap:0.5rem; }
+        .coord-search .form-input { flex:1; }
+        .btn-coord-apply {
+            padding:0 1rem; background:var(--color-accent-primary); color:#fff;
+            border:none; border-radius:6px; cursor:pointer; font-size:0.82rem;
+            font-weight:600; white-space:nowrap;
+        }
+        .btn-coord-apply:hover { filter:brightness(1.1); }
+        .btn-map-toggle {
+            background:none; border:1px solid var(--color-accent-primary);
+            color:var(--color-accent-primary); padding:0.3rem 0.9rem;
+            border-radius:6px; cursor:pointer; font-size:0.8rem; font-weight:600;
+        }
+        .btn-map-toggle:hover { background:var(--color-accent-primary); color:#fff; }
+    </style>
 </head>
 <body>
 
@@ -183,17 +203,50 @@ $tipos     = ['Painel','Outdoor','Frontlight','Painel LED'];
                            value="<?= v($ponto,'corredor') ?>" maxlength="100">
                 </div>
 
-                <div class="form-group span2 coord-pair">
-                    <div class="form-group">
-                        <label class="form-label">Latitude</label>
-                        <input type="number" name="latitude" class="form-input" step="0.00000001"
-                               value="<?= v($ponto,'latitude') ?>" placeholder="-23.55052">
+                <div class="form-group span2">
+                    <div class="coord-pair">
+                        <div class="form-group">
+                            <label class="form-label">Latitude</label>
+                            <input type="text" name="latitude" id="inputLat" class="form-input"
+                                   value="<?= v($ponto,'latitude') ?>" placeholder="-23.55052"
+                                   inputmode="decimal" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Longitude</label>
+                            <input type="text" name="longitude" id="inputLng" class="form-input"
+                                   value="<?= v($ponto,'longitude') ?>" placeholder="-46.63331"
+                                   inputmode="decimal" autocomplete="off">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Longitude</label>
-                        <input type="number" name="longitude" class="form-input" step="0.00000001"
-                               value="<?= v($ponto,'longitude') ?>" placeholder="-46.63331">
+
+                    <!-- Colar do WhatsApp -->
+                    <div class="coord-whatsapp">
+                        <input type="text" id="coordPaste" class="form-input"
+                               placeholder="📋 Colar do WhatsApp: -23.550520, -46.633310"
+                               autocomplete="off">
+                        <button type="button" class="btn-coord-apply" onclick="aplicarCoordColadas()">Aplicar</button>
                     </div>
+
+                    <?php if ($mapsKey): ?>
+                    <div style="margin-top:0.6rem;">
+                        <button type="button" class="btn-map-toggle" id="btnMapToggle" onclick="toggleMapa()">
+                            📍 Ajustar no mapa
+                        </button>
+                    </div>
+                    <div id="mapPickerWrap" style="display:none;margin-top:0.75rem;">
+                        <div class="coord-search" style="margin-bottom:0.5rem;">
+                            <input type="text" id="mapSearch" class="form-input"
+                                   placeholder="Buscar endereço no mapa..."
+                                   autocomplete="off"
+                                   onkeydown="if(event.key==='Enter'){event.preventDefault();buscarNoMapa();}">
+                            <button type="button" class="btn-coord-apply" onclick="buscarNoMapa()">Buscar</button>
+                        </div>
+                        <div id="mapPicker" style="height:340px;border-radius:8px;border:1px solid var(--color-border);"></div>
+                        <p style="font-size:0.73rem;color:var(--color-text-muted);margin-top:0.3rem;">
+                            Clique no mapa ou arraste o marcador para definir a posição exata.
+                        </p>
+                    </div>
+                    <?php endif; ?>
                 </div>
 
             </div>
@@ -346,6 +399,95 @@ function trocarAba(aba) {
 trocarAba('<?= htmlspecialchars($abaGet, ENT_QUOTES) ?>');
 <?php else: ?>
 document.getElementById('tab-dados').classList.add('ativo');
+<?php endif; ?>
+
+// ── Coordenadas: colar do WhatsApp ────────────────────────────
+function aplicarCoordColadas() {
+    var raw   = document.getElementById('coordPaste').value.trim();
+    var match = raw.match(/^(-?\d+[.,]\d+)[,\s]+(-?\d+[.,]\d+)$/);
+    if (!match) {
+        alert('Formato inválido.\nUse: -23.550520, -46.633310');
+        return;
+    }
+    var lat = parseFloat(match[1].replace(',', '.'));
+    var lng = parseFloat(match[2].replace(',', '.'));
+    document.getElementById('inputLat').value = lat.toFixed(8);
+    document.getElementById('inputLng').value = lng.toFixed(8);
+    document.getElementById('coordPaste').value = '';
+    if (mapInitialized) {
+        atualizarMarcador(lat, lng);
+        mapInstance.setZoom(17);
+    }
+}
+
+<?php if ($mapsKey): ?>
+// ── Mapa ───────────────────────────────────────────────────────
+var mapInstance    = null;
+var mapMarker      = null;
+var mapInitialized = false;
+
+function toggleMapa() {
+    var wrap = document.getElementById('mapPickerWrap');
+    var btn  = document.getElementById('btnMapToggle');
+    if (wrap.style.display === 'none') {
+        wrap.style.display = 'block';
+        btn.textContent = '🗺 Fechar mapa';
+        if (!mapInitialized) inicializarMapa();
+    } else {
+        wrap.style.display = 'none';
+        btn.textContent = '📍 Ajustar no mapa';
+    }
+}
+
+function inicializarMapa() {
+    mapInitialized = true;
+    var latVal = document.getElementById('inputLat').value.trim();
+    var lngVal = document.getElementById('inputLng').value.trim();
+    var lat = latVal ? parseFloat(latVal.replace(',', '.')) : -15.793889;
+    var lng = lngVal ? parseFloat(lngVal.replace(',', '.')) : -47.882778;
+    var pos  = { lat: lat, lng: lng };
+    var zoom = latVal ? 17 : 5;
+
+    mapInstance = new google.maps.Map(document.getElementById('mapPicker'), {
+        center: pos, zoom: zoom,
+        mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
+    });
+    mapMarker = new google.maps.Marker({
+        position: pos, map: mapInstance, draggable: true,
+        animation: google.maps.Animation.DROP,
+    });
+    mapInstance.addListener('click', function(e) {
+        atualizarMarcador(e.latLng.lat(), e.latLng.lng());
+    });
+    mapMarker.addListener('dragend', function(e) {
+        atualizarMarcador(e.latLng.lat(), e.latLng.lng());
+    });
+}
+
+function atualizarMarcador(lat, lng) {
+    var pos = { lat: lat, lng: lng };
+    mapMarker.setPosition(pos);
+    mapInstance.panTo(pos);
+    document.getElementById('inputLat').value = lat.toFixed(8);
+    document.getElementById('inputLng').value = lng.toFixed(8);
+}
+
+function buscarNoMapa() {
+    var query = document.getElementById('mapSearch').value.trim();
+    if (!query) return;
+    var geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: query, region: 'BR' }, function(results, status) {
+        if (status === 'OK' && results[0]) {
+            var loc = results[0].geometry.location;
+            if (!mapInitialized) inicializarMapa();
+            mapInstance.setCenter(loc);
+            mapInstance.setZoom(17);
+            atualizarMarcador(loc.lat(), loc.lng());
+        } else {
+            alert('Endereço não encontrado. Tente ser mais específico.');
+        }
+    });
+}
 <?php endif; ?>
 
 // ── Lightbox ──────────────────────────────────────────────────
@@ -535,6 +677,10 @@ function atualizarContadorAba() {
 }
 <?php endif; ?>
 </script>
+
+<?php if ($mapsKey): ?>
+<script src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars($mapsKey) ?>&language=pt-BR"></script>
+<?php endif; ?>
 
 </body>
 </html>
