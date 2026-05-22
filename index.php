@@ -107,7 +107,7 @@ switch ($uri) {
 
     // ── DETALHES DO PONTO (admin + público) ──────────────────
     case 'gestor/pontos/detalhes':
-        require __DIR__ . '/app/Views/gestor/detalhes_ponto.php';
+        require __DIR__ . '/app/Views/gestor/ponto_detalhes.php';
         break;
 
     // ── NOVO PONTO ────────────────────────────────────────────
