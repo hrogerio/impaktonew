@@ -224,6 +224,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/mapa.php';
         break;
 
+    // ── LISTA DE CAMPANHAS ───────────────────────────────
+    case 'gestor/campanhas':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/campanhas.php';
+        break;
+
     // ── CAMPANHAS: SALVAR (POST) ──────────────────────────
     case 'gestor/campanhas/salvar':
         auth_required();
