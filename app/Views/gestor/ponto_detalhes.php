@@ -575,9 +575,10 @@ function encerrarCampanha() {
             mostrarToast('Campanha encerrada. Ponto disponível.');
             setTimeout(function() { location.reload(); }, 900);
         } else {
-            alert('Erro ao encerrar.');
+            alert('Erro ao encerrar: ' + (data.erro || 'desconhecido'));
         }
-    });
+    })
+    .catch(function(e) { alert('Erro de comunicação: ' + e); });
 }
 function toggleHistorico() {
     var lista = document.getElementById('histLista');

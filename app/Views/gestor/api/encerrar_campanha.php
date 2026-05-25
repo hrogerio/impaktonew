@@ -27,7 +27,7 @@ try {
     ")->execute([$pontoId]);
 
     $pdo->prepare("
-        UPDATE pontos SET situacao='Disponível' WHERE id=?
+        UPDATE pontos SET situacao='Disponivel' WHERE id=?
     ")->execute([$pontoId]);
 
     $pdo->commit();
