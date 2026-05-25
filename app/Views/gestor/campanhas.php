@@ -35,19 +35,32 @@ $rows = $pdo->query("
         c.criado_em DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-// Agrupar por cliente
-$grupos  = [];
-$semCliente = [];
+// Agrupar: Cliente → Campanha(nome+período+status) → Painéis
+$grupos = [];
 foreach ($rows as $r) {
-    $cli = trim($r['cliente'] ?? '');
-    if ($cli === '') { $semCliente[] = $r; continue; }
-    $grupos[$cli][] = $r;
+    $cli  = trim($r['cliente']  ?? '') ?: '— Sem cliente —';
+    $camp = trim($r['campanha'] ?? '') ?: '—';
+    // Chave única da campanha: nome + situação + início + fim + status ativo
+    $campKey = md5($camp . '|' . $r['situacao'] . '|' . ($r['inicio'] ?? '') . '|' . ($r['fim'] ?? '') . '|' . $r['ativo']);
+
+    if (!isset($grupos[$cli])) $grupos[$cli] = [];
+    if (!isset($grupos[$cli][$campKey])) {
+        $grupos[$cli][$campKey] = [
+            'nome'     => $camp,
+            'situacao' => $r['situacao'],
+            'ativo'    => (int)$r['ativo'],
+            'inicio'   => $r['inicio'],
+            'fim'      => $r['fim'],
+            'rows'     => [],
+        ];
+    }
+    $grupos[$cli][$campKey]['rows'][] = $r;
 }
-if (!empty($semCliente)) $grupos['— Sem cliente —'] = $semCliente;
 
 // Clientes únicos para filtro
-$clientes = array_unique(array_filter(array_map(fn($r) => trim($r['cliente'] ?? ''), $rows)));
+$clientes = array_keys($grupos);
 sort($clientes);
+$clientes = array_filter($clientes, fn($c) => $c !== '— Sem cliente —');
 
 $CORES = [
     'Ocupado'   => '#dc3545', 'Reservado' => '#fd7e14',
@@ -160,6 +173,8 @@ function diasRestantes($fim) {
         .cp-table tbody tr:last-child td { border-bottom:none; }
         .cp-table tbody tr:hover { background:#fafafa; }
         .cp-table tbody tr.encerrada { opacity:0.6; }
+        /* Remover borda da tabela externa (não usada mais) */
+        .cp-table-wrap { display:none; }
 
         .cp-num   { font-weight:800; color:var(--color-accent-primary); font-size:0.8rem; }
         .cp-end   { font-size:0.75rem; color:var(--color-text-muted); }
@@ -184,6 +199,27 @@ function diasRestantes($fim) {
 
         .cp-link { font-size:0.75rem; font-weight:700; color:var(--color-accent-primary); text-decoration:none; }
         .cp-link:hover { text-decoration:underline; }
+
+        /* ── Sub-grupos de campanha ── */
+        .cp-grupo-body { border:1px solid var(--color-border); border-top:none; border-radius:0 0 10px 10px; overflow:hidden; }
+        .cp-camp-grupo { border-bottom:1px solid #f0f2f5; }
+        .cp-camp-grupo:last-child { border-bottom:none; }
+        .cp-camp-header {
+            display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;
+            padding:0.6rem 1rem; background:#fafbfc; border-bottom:1px solid #f0f2f5;
+        }
+        .cp-camp-nome { font-size:0.85rem; font-weight:800; color:var(--color-text-dark); }
+        .cp-camp-per  { font-size:0.75rem; color:var(--color-text-muted); font-weight:600; }
+        .cp-camp-paineis {
+            margin-left:auto; font-size:0.7rem; font-weight:700;
+            color:var(--color-text-muted); background:#f0f2f5;
+            padding:2px 8px; border-radius:8px;
+        }
+        .cp-paineis-table { width:100%; border-collapse:collapse; }
+        .cp-paineis-table td { padding:0.5rem 1rem; border-bottom:1px solid #f5f5f7; vertical-align:middle; }
+        .cp-paineis-table tbody tr:last-child td { border-bottom:none; }
+        .cp-paineis-table tbody tr:hover { background:#fafafa; }
+        .cp-paineis-table tbody tr.encerrada { opacity:0.55; }
 
         .cp-empty { padding:3rem; text-align:center; color:var(--color-text-muted); font-size:0.85rem; }
         .cp-grupo-hidden { display:none; }
@@ -263,103 +299,89 @@ function diasRestantes($fim) {
         <span class="cp-contador" id="cpContador"></span>
     </div>
 
-    <!-- ── Grupos por cliente ── -->
+    <!-- ── Grupos: Cliente → Campanha → Painéis ── -->
     <div id="cpGrupos">
-    <?php foreach ($grupos as $cliente => $camps):
-        $nAtivas = count(array_filter($camps, fn($c) => $c['ativo']));
+    <?php foreach ($grupos as $cliente => $campanhas):
+        $totalPaineis = array_sum(array_map(fn($c) => count($c['rows']), $campanhas));
+        $totalAtivas  = array_sum(array_map(fn($c) => $c['ativo'] ? 1 : 0, $campanhas));
+        $buscaCli = strtolower($cliente);
     ?>
-    <div class="cp-grupo" data-cliente="<?= htmlspecialchars(strtolower($cliente)) ?>">
+    <div class="cp-grupo" data-cliente="<?= htmlspecialchars($buscaCli) ?>">
 
+        <!-- Cabeçalho do cliente -->
         <div class="cp-grupo-header" onclick="toggleGrupo(this)">
             <div class="cp-grupo-nome"><?= htmlspecialchars($cliente) ?></div>
-            <span class="cp-grupo-count"><?= count($camps) ?> campanha<?= count($camps) > 1 ? 's' : '' ?></span>
-            <?php if ($nAtivas > 0): ?>
-            <span class="cp-grupo-ativas"><?= $nAtivas ?> ativa<?= $nAtivas > 1 ? 's' : '' ?></span>
+            <span class="cp-grupo-count"><?= count($campanhas) ?> campanha<?= count($campanhas) > 1 ? 's' : '' ?> · <?= $totalPaineis ?> painel<?= $totalPaineis > 1 ? 'is' : '' ?></span>
+            <?php if ($totalAtivas > 0): ?>
+            <span class="cp-grupo-ativas"><?= $totalAtivas ?> ativa<?= $totalAtivas > 1 ? 's' : '' ?></span>
             <?php endif; ?>
             <span class="cp-grupo-seta">▼</span>
         </div>
 
-        <div class="cp-table-wrap cp-grupo-body">
-            <table class="cp-table">
-                <thead>
-                    <tr>
-                        <th style="width:60px">Ponto</th>
-                        <th>Localização</th>
-                        <th>Campanha</th>
-                        <th style="width:140px">Período</th>
-                        <th style="width:85px">Situação</th>
-                        <th style="width:80px">Status</th>
-                        <th style="width:40px"></th>
-                    </tr>
-                </thead>
+        <!-- Campanhas deste cliente -->
+        <div class="cp-grupo-body">
+        <?php foreach ($campanhas as $campKey => $camp):
+            $cor      = corSit($camp['situacao'], $CORES);
+            $nPaineis = count($camp['rows']);
+            $diasC    = $camp['fim'] ? diasRestantes($camp['fim']) : null;
+            $ini = fmtD($camp['inicio']); $fim = fmtD($camp['fim']);
+            $periodo  = ($ini !== '—' ? $ini : '') . ($fim !== '—' ? ' – ' . $fim : '');
+            // Busca string para filtro JS (acumula todos os painéis)
+            $buscarStr = strtolower($cliente . ' ' . $camp['nome'] . ' ' . $camp['situacao']);
+            foreach ($camp['rows'] as $r) {
+                $buscarStr .= ' ' . ($r['numero'] ?? '') . ' ' . ($r['logradouro'] ?? '') . ' ' . ($r['agencia'] ?? '');
+            }
+        ?>
+        <div class="cp-camp-grupo cp-row"
+             data-busca="<?= htmlspecialchars($buscarStr) ?>"
+             data-situacao="<?= htmlspecialchars($camp['situacao']) ?>"
+             data-status="<?= $camp['ativo'] ?>"
+             data-cliente="<?= htmlspecialchars($buscaCli) ?>">
+
+            <!-- Sub-cabeçalho da campanha -->
+            <div class="cp-camp-header">
+                <span class="sit-badge" style="background:<?= $cor ?>"><?= htmlspecialchars($camp['situacao']) ?></span>
+                <span class="cp-camp-nome"><?= htmlspecialchars($camp['nome'] !== '—' ? $camp['nome'] : 'Sem nome') ?></span>
+                <?php if ($periodo): ?>
+                <span class="cp-camp-per"><?= $periodo ?>
+                    <?php if ($camp['ativo'] && $diasC !== null && $diasC >= 0 && $diasC <= 30):
+                        $cls = $diasC <= 7 ? 'prazo-urg' : 'prazo-ale'; ?>
+                    <span class="<?= $cls ?>"><?= $diasC ?>d</span>
+                    <?php endif; ?>
+                </span>
+                <?php endif; ?>
+                <span class="cp-camp-paineis"><?= $nPaineis ?> painel<?= $nPaineis > 1 ? 'is' : '' ?></span>
+                <?php if ($camp['ativo']): ?>
+                <span class="status-badge status-ativa">✅ Ativa</span>
+                <?php else: ?>
+                <span class="status-badge status-encerrada">Encerrada</span>
+                <?php endif; ?>
+            </div>
+
+            <!-- Painéis desta campanha -->
+            <table class="cp-table cp-paineis-table">
                 <tbody>
-                <?php foreach ($camps as $c):
-                    $cor  = corSit($c['situacao'], $CORES);
-                    $dias = $c['fim'] ? diasRestantes($c['fim']) : null;
-                    $buscarStr = strtolower(
-                        ($c['cliente']  ?? '') . ' ' .
-                        ($c['campanha'] ?? '') . ' ' .
-                        ($c['agencia']  ?? '') . ' ' .
-                        ($c['numero']   ?? '') . ' ' .
-                        ($c['logradouro'] ?? '')
-                    );
-                ?>
-                <tr class="cp-row <?= !$c['ativo'] ? 'encerrada' : '' ?>"
-                    data-busca="<?= htmlspecialchars($buscarStr) ?>"
-                    data-situacao="<?= htmlspecialchars($c['situacao']) ?>"
-                    data-status="<?= $c['ativo'] ?>"
-                    data-cliente="<?= htmlspecialchars(strtolower($c['cliente'] ?? '')) ?>">
+                <?php foreach ($camp['rows'] as $r): ?>
+                <tr class="<?= !$camp['ativo'] ? 'encerrada' : '' ?>">
+                    <td style="width:60px"><span class="cp-num"><?= str_pad($r['numero'], 3, '0', STR_PAD_LEFT) ?></span></td>
                     <td>
-                        <div class="cp-num"><?= str_pad($c['numero'], 3, '0', STR_PAD_LEFT) ?></div>
+                        <div style="font-weight:600;font-size:0.82rem"><?= htmlspecialchars($r['logradouro']) ?></div>
+                        <div class="cp-sub"><?= htmlspecialchars(implode(' · ', array_filter([$r['cidade'] ?? '', $r['regiao'] ?? '']))) ?></div>
                     </td>
-                    <td>
-                        <div style="font-weight:600;font-size:0.82rem"><?= htmlspecialchars($c['logradouro']) ?></div>
-                        <div class="cp-sub"><?= htmlspecialchars(implode(' · ', array_filter([$c['cidade'] ?? '', $c['regiao'] ?? '']))) ?></div>
-                    </td>
-                    <td>
-                        <?php if ($c['campanha']): ?>
-                        <div class="cp-camp"><?= htmlspecialchars($c['campanha']) ?></div>
-                        <?php endif; ?>
-                        <?php if ($c['agencia']): ?>
-                        <div class="cp-sub"><?= htmlspecialchars($c['agencia']) ?></div>
-                        <?php endif; ?>
-                        <?php if (!$c['campanha'] && !$c['agencia']): ?>
-                        <span style="color:#ccc;font-size:0.75rem">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="cp-per">
-                        <?php
-                        $ini = fmtD($c['inicio']);
-                        $fim = fmtD($c['fim']);
-                        if ($ini !== '—' || $fim !== '—') {
-                            echo $ini . ($fim !== '—' ? ' – ' . $fim : '');
-                            if ($c['ativo'] && $dias !== null && $dias >= 0 && $dias <= 30) {
-                                $cls = $dias <= 7 ? 'prazo-urg' : 'prazo-ale';
-                                echo '<span class="'.$cls.'">'.$dias.'d</span>';
-                            }
-                        } else {
-                            echo '—';
-                        }
-                        ?>
-                    </td>
-                    <td>
-                        <span class="sit-badge" style="background:<?= $cor ?>"><?= htmlspecialchars($c['situacao']) ?></span>
-                    </td>
-                    <td>
-                        <?php if ($c['ativo']): ?>
-                        <span class="status-badge status-ativa">✅ Ativa</span>
-                        <?php else: ?>
-                        <span class="status-badge status-encerrada">Encerrada</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <a href="/gestor/pontos/detalhes?id=<?= $c['ponto_id'] ?>" class="cp-link" title="Ver ponto">→</a>
+                    <?php if ($r['agencia']): ?>
+                    <td><div class="cp-sub">📍 <?= htmlspecialchars($r['agencia']) ?></div></td>
+                    <?php else: ?><td></td><?php endif; ?>
+                    <td style="width:40px;text-align:right">
+                        <a href="/gestor/pontos/detalhes?id=<?= $r['ponto_id'] ?>" class="cp-link" title="Ver ponto">→</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
+        <?php endforeach; ?>
+        </div>
+
     </div>
     <?php endforeach; ?>
     </div>
