@@ -78,7 +78,7 @@ $centroLng = count($pontos) ? array_sum(array_column($pontos, 'longitude')) / co
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/assets/css/gestor.css">
     <link rel="stylesheet" href="/public/assets/css/mapa.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <!-- Google Maps via API key (sem Leaflet) -->
     <style>
         body { overflow: hidden; }
     </style>
@@ -163,75 +163,48 @@ $centroLng = count($pontos) ? array_sum(array_column($pontos, 'longitude')) / co
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
-var PONTOS = <?= $pontosJson ?>;
+var PONTOS  = <?= $pontosJson ?>;
 var filtros = { busca: '', situacao: '', cidade: '', tipo: '', cliente: '' };
-var _visiveis = [];
-var markerGroup;
-var map;
+var _visiveis  = [];
+var _markers   = []; // google.maps.Marker[]
+var map, infoWindow;
 
-// ── Cores por situação ────────────────────────────────────────
+// ── Cores por situação ─────────────────────────────────────────
 var CORES = {
-    'Disponivel': '#1a9059', 'Disponível': '#1a9059',
-    'Ocupado':    '#dc3545',
-    'Reservado':  '#fd7e14',
-    'Vencido':    '#6c757d',
-    'Permuta':    '#51086e',
-    'Bisemana':   '#0284c7'
+    'Disponivel':'#1a9059','Disponível':'#1a9059',
+    'Ocupado':'#dc3545','Reservado':'#fd7e14',
+    'Vencido':'#6c757d','Permuta':'#51086e','Bisemana':'#0284c7'
 };
 function corSit(sit) { return CORES[sit] || '#888888'; }
 
-// ── Helpers ───────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────
 function esc(str) {
-    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function normalizar(str) {
-    return (str || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    return (str||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 }
 
-// ── Inicializar mapa ──────────────────────────────────────────
-function initMap() {
-    map = L.map('map', {
-        center: [<?= round($centroLat, 6) ?>, <?= round($centroLng, 6) ?>],
-        zoom: PONTOS.length === 1 ? 16 : 12,
-        zoomControl: true,
-        scrollWheelZoom: true
-    });
-
-    var ruas = L.tileLayer(
-        'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-        { subdomains: '0123', attribution: '© Google Maps', maxZoom: 20 }
-    );
-    var satelite = L.tileLayer(
-        'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-        { subdomains: '0123', attribution: '© Google Maps', maxZoom: 20 }
-    );
-    ruas.addTo(map);
-    L.control.layers({ 'Mapa': ruas, 'Satélite': satelite }, {}, { position: 'topright' }).addTo(map);
-
-    markerGroup = L.layerGroup().addTo(map);
-    renderizar();
-}
-
-// ── Criar ícone do marcador ───────────────────────────────────
+// ── SVG de ícone circular ──────────────────────────────────────
 function criarIcone(sit, destaque) {
     var cor  = corSit(sit);
-    var size = destaque ? 18 : 14;
-    var border = destaque ? '3px solid white' : '2.5px solid white';
-    return L.divIcon({
-        className: '',
-        html: '<div style="width:'+size+'px;height:'+size+'px;background:'+cor+';border:'+border+';border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.45);transition:all 0.15s"></div>',
-        iconSize:   [size, size],
-        iconAnchor: [size/2, size/2],
-        popupAnchor:[0, -size/2 - 2]
-    });
+    var size = destaque ? 20 : 14;
+    return {
+        url: 'data:image/svg+xml,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">' +
+            '<circle cx="'+(size/2)+'" cy="'+(size/2)+'" r="'+(size/2-2)+'" fill="'+cor+'" stroke="white" stroke-width="2.5"/>' +
+            '</svg>'
+        ),
+        scaledSize: { width: size, height: size },
+        anchor: { x: size/2, y: size/2 }
+    };
 }
 
-// ── HTML do popup ─────────────────────────────────────────────
+// ── HTML do InfoWindow ─────────────────────────────────────────
 function popupHtml(p) {
     var cor = corSit(p.situacao);
-    var html = '<div style="font-family:Montserrat,sans-serif;min-width:200px;max-width:240px">';
+    var html = '<div style="font-family:Montserrat,sans-serif;min-width:200px;max-width:240px;padding:2px">';
     if (p.foto) {
         html += '<img src="/'+esc(p.foto)+'" style="width:100%;height:90px;object-fit:cover;border-radius:6px;margin-bottom:8px;display:block" onerror="this.style.display=\'none\'">';
     }
@@ -249,53 +222,104 @@ function popupHtml(p) {
     html += '<div style="margin-top:8px;display:flex;gap:6px">';
     html += '<a href="/gestor/pontos/detalhes?id='+p.id+'" style="font-size:0.75rem;font-weight:700;color:#C0392B;text-decoration:none">Ver detalhes →</a>';
     html += '<a href="/gestor/pontos/editar?id='+p.id+'" style="font-size:0.75rem;font-weight:700;color:#6c757d;text-decoration:none;margin-left:auto">✏️ Editar</a>';
-    html += '</div>';
-    html += '</div>';
+    html += '</div></div>';
     return html;
 }
 
-// ── Renderizar marcadores e lista ─────────────────────────────
-function renderizar() {
-    markerGroup.clearLayers();
-    _visiveis = [];
+// ── Inicializar mapa ───────────────────────────────────────────
+function initMap() {
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: <?= round($centroLat, 6) ?>, lng: <?= round($centroLng, 6) ?> },
+        zoom: PONTOS.length === 1 ? 16 : 12,
+        mapTypeId: 'roadmap',
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+            position: google.maps.ControlPosition.TOP_RIGHT,
+            mapTypeIds: ['roadmap', 'hybrid', 'satellite']
+        },
+        streetViewControl: false,
+        fullscreenControl: true,
+        zoomControl: true,
+        gestureHandling: 'greedy'
+    });
 
-    var busca = normalizar(filtros.busca);
+    infoWindow = new google.maps.InfoWindow({ maxWidth: 260 });
+
+    // Pré-criar todos os markers (ocultos)
+    PONTOS.forEach(function(p, i) {
+        var lat = parseFloat(p.latitude);
+        var lng = parseFloat(p.longitude);
+        if (isNaN(lat) || isNaN(lng)) { _markers.push(null); return; }
+
+        var marker = new google.maps.Marker({
+            position: { lat: lat, lng: lng },
+            map: null,            // oculto por padrão
+            title: 'Ponto #' + p.numero,
+            icon: criarIcone(p.situacao, false)
+        });
+        marker._pontoIdx = i;
+        marker.addListener('click', function() {
+            infoWindow.setContent(popupHtml(p));
+            infoWindow.open(map, marker);
+            destacarLista(i);
+        });
+        _markers.push(marker);
+    });
+
+    renderizar();
+    ajustarAltura();
+}
+
+// ── Renderizar (filtro + mostrar/ocultar markers) ──────────────
+function renderizar() {
+    // Fecha infoWindow aberto
+    if (infoWindow) infoWindow.close();
+
+    _visiveis = [];
+    var busca    = normalizar(filtros.busca);
     var temFiltro = filtros.busca || filtros.situacao || filtros.cidade || filtros.tipo || filtros.cliente;
 
     PONTOS.forEach(function(p, i) {
-        if (filtros.situacao && p.situacao !== filtros.situacao) return;
-        if (filtros.cidade   && p.cidade   !== filtros.cidade)   return;
-        if (filtros.tipo     && p.tipo     !== filtros.tipo)     return;
-        if (filtros.cliente  && (p.cliente || '').trim() !== filtros.cliente) return;
+        var marker = _markers[i];
+        if (!marker) return;
+
+        var visivel = true;
+        if (filtros.situacao && p.situacao !== filtros.situacao) visivel = false;
+        if (filtros.cidade   && p.cidade   !== filtros.cidade)   visivel = false;
+        if (filtros.tipo     && p.tipo     !== filtros.tipo)     visivel = false;
+        if (filtros.cliente  && (p.cliente||'').trim() !== filtros.cliente) visivel = false;
         if (busca) {
             var campos = [p.numero, p.logradouro, p.bairro, p.cidade, p.regiao];
-            if (!campos.some(function(c) { return normalizar(c).indexOf(busca) !== -1; })) return;
+            if (!campos.some(function(c) { return normalizar(c).indexOf(busca) !== -1; })) visivel = false;
         }
 
-        var lat = parseFloat(p.latitude);
-        var lng = parseFloat(p.longitude);
-        if (isNaN(lat) || isNaN(lng)) return;
-
-        var marker = L.marker([lat, lng], { icon: criarIcone(p.situacao, false) });
-        marker.bindPopup(popupHtml(p), { maxWidth: 260 });
-        marker._pontoIdx = i;
-        marker.addTo(markerGroup);
-        _visiveis.push({ p: p, idx: i, marker: marker });
+        marker.setMap(visivel ? map : null);
+        if (visivel) _visiveis.push({ p: p, idx: i, marker: marker });
     });
 
     document.getElementById('mapaContador').textContent = _visiveis.length;
     document.getElementById('mapaBtnLimpar').className = 'mapa-btn-limpar' + (temFiltro ? ' visivel' : '');
     renderLista();
 
-    // Ajusta zoom para conter todos os marcadores visíveis
+    // Ajustar bounds
     if (_visiveis.length > 1) {
-        var coords = _visiveis.map(function(v) { return [parseFloat(v.p.latitude), parseFloat(v.p.longitude)]; });
-        map.fitBounds(L.latLngBounds(coords), { padding: [40, 40], maxZoom: 14 });
+        var bounds = new google.maps.LatLngBounds();
+        _visiveis.forEach(function(v) {
+            bounds.extend({ lat: parseFloat(v.p.latitude), lng: parseFloat(v.p.longitude) });
+        });
+        map.fitBounds(bounds);
+        // limitar zoom máximo
+        var listener = google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+            if (map.getZoom() > 14) map.setZoom(14);
+        });
     } else if (_visiveis.length === 1) {
-        map.setView([parseFloat(_visiveis[0].p.latitude), parseFloat(_visiveis[0].p.longitude)], 16);
+        map.panTo({ lat: parseFloat(_visiveis[0].p.latitude), lng: parseFloat(_visiveis[0].p.longitude) });
+        map.setZoom(16);
     }
 }
 
+// ── Lista lateral ──────────────────────────────────────────────
 function renderLista() {
     var lista = document.getElementById('mapaLista');
     if (_visiveis.length === 0) {
@@ -317,51 +341,41 @@ function renderLista() {
     lista.innerHTML = html;
 }
 
-// ── Focar ponto ao clicar na lista ───────────────────────────
-function focarPonto(idx) {
-    var item = _visiveis.find(function(v) { return v.idx === idx; });
-    if (!item) return;
-
-    // Destaca item da lista
+function destacarLista(idx) {
     document.querySelectorAll('.mapa-item').forEach(function(el) { el.classList.remove('ativo'); });
     var el = document.querySelector('.mapa-item[data-idx="'+idx+'"]');
     if (el) { el.classList.add('ativo'); el.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
-
-    map.flyTo([parseFloat(item.p.latitude), parseFloat(item.p.longitude)], 17, { duration: 0.7 });
-    setTimeout(function() { item.marker.openPopup(); }, 750);
 }
 
-// ── Filtros ───────────────────────────────────────────────────
+// ── Focar ponto ao clicar na lista ────────────────────────────
+function focarPonto(idx) {
+    var item = _visiveis.find(function(v) { return v.idx === idx; });
+    if (!item) return;
+    destacarLista(idx);
+    map.panTo({ lat: parseFloat(item.p.latitude), lng: parseFloat(item.p.longitude) });
+    map.setZoom(17);
+    infoWindow.setContent(popupHtml(item.p));
+    infoWindow.open(map, item.marker);
+}
+
+// ── Filtros ────────────────────────────────────────────────────
 var debTimer;
 document.getElementById('mapaBusca').addEventListener('input', function() {
     clearTimeout(debTimer);
     var val = this.value;
     debTimer = setTimeout(function() { filtros.busca = val; renderizar(); }, 150);
 });
-
-document.getElementById('mapaFiltroSit').addEventListener('change', function() {
-    filtros.situacao = this.value;
-    this.className = 'mapa-select' + (this.value ? ' ativo' : '');
-    renderizar();
-});
-document.getElementById('mapaFiltroCidade').addEventListener('change', function() {
-    filtros.cidade = this.value;
-    this.className = 'mapa-select' + (this.value ? ' ativo' : '');
-    renderizar();
-});
-document.getElementById('mapaFiltroTipo').addEventListener('change', function() {
-    filtros.tipo = this.value;
-    this.className = 'mapa-select' + (this.value ? ' ativo' : '');
-    renderizar();
-});
-document.getElementById('mapaFiltroCliente').addEventListener('change', function() {
-    filtros.cliente = this.value;
-    this.className = 'mapa-select' + (this.value ? ' ativo' : '');
-    renderizar();
+['mapaFiltroSit','mapaFiltroCidade','mapaFiltroTipo','mapaFiltroCliente'].forEach(function(id) {
+    document.getElementById(id).addEventListener('change', function() {
+        var key = { mapaFiltroSit:'situacao', mapaFiltroCidade:'cidade', mapaFiltroTipo:'tipo', mapaFiltroCliente:'cliente' }[id];
+        filtros[key] = this.value;
+        this.className = 'mapa-select' + (this.value ? ' ativo' : '');
+        renderizar();
+    });
 });
 
 function limparFiltros() {
-    filtros = { busca: '', situacao: '', cidade: '', tipo: '', cliente: '' };
+    filtros = { busca:'', situacao:'', cidade:'', tipo:'', cliente:'' };
     document.getElementById('mapaBusca').value = '';
     ['mapaFiltroSit','mapaFiltroCidade','mapaFiltroTipo','mapaFiltroCliente'].forEach(function(id) {
         document.getElementById(id).value = '';
@@ -370,17 +384,17 @@ function limparFiltros() {
     renderizar();
 }
 
-// ── Altura do layout (viewport - header) ─────────────────────
+// ── Altura do layout ───────────────────────────────────────────
 function ajustarAltura() {
     var header = document.querySelector('.header');
     var h = window.innerHeight - (header ? header.offsetHeight : 60);
     document.getElementById('mapaLayout').style.height = h + 'px';
 }
-ajustarAltura();
-window.addEventListener('resize', function() { ajustarAltura(); if (map) map.invalidateSize(); });
-
-// ── Init ──────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', initMap);
+window.addEventListener('resize', ajustarAltura);
+</script>
+<script
+    src="https://maps.googleapis.com/maps/api/js?key=<?= htmlspecialchars(getenv('GOOGLE_MAPS_KEY')) ?>&callback=initMap&language=pt-BR&region=BR"
+    async defer>
 </script>
 
 </body>
