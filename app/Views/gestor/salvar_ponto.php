@@ -53,12 +53,6 @@ $params = [
     ':tipo'            => limpar($_POST['tipo']            ?? '',    45),
     ':formato'         => limpar($_POST['formato']         ?? '',    50),
     ':situacao'        => limpar($_POST['situacao']        ?? '',    50),
-    ':cliente'         => limpar($_POST['cliente']         ?? '',   255),
-    ':agencia'         => limpar($_POST['agencia']         ?? '',   255),
-    ':contato'         => limpar($_POST['contato']         ?? '',   100),
-    ':observacoes'     => limpar($_POST['observacoes']     ?? '', 65535),
-    ':inicio_contrato' => dataOuNull($_POST['inicio_contrato'] ?? ''),
-    ':fim_contrato'    => dataOuNull($_POST['fim_contrato']    ?? ''),
     ':latitude'        => coordOuNull($_POST['latitude']   ?? ''),
     ':longitude'       => coordOuNull($_POST['longitude']  ?? ''),
 ];
@@ -71,8 +65,7 @@ foreach ($rsCol->fetchAll(PDO::FETCH_ASSOC) as $col) {
 }
 
 // Remove do params qualquer coluna que ainda não existe no servidor
-$colunasOpcionais = ['bairro','sentido','corredor','contato','observacoes',
-                     'inicio_contrato','fim_contrato','latitude','longitude'];
+$colunasOpcionais = ['bairro','sentido','corredor','latitude','longitude'];
 foreach ($colunasOpcionais as $c) {
     if (!isset($colunasExistentes[$c])) unset($params[":$c"]);
 }
@@ -83,7 +76,6 @@ try {
             "numero = :numero", "logradouro = :logradouro", "descricao = :descricao",
             "cidade = :cidade", "regiao = :regiao", "tipo = :tipo",
             "formato = :formato", "situacao = :situacao",
-            "cliente = :cliente", "agencia = :agencia",
         ];
         // Adiciona colunas opcionais apenas se existirem
         foreach ($colunasOpcionais as $c) {
@@ -96,9 +88,9 @@ try {
         header("Location: /gestor/pontos/editar?id=$id&msg=salvo");
     } else {
         $cols = ['numero','logradouro','descricao','cidade','regiao',
-                 'tipo','formato','situacao','cliente','agencia','ativo'];
+                 'tipo','formato','situacao','ativo'];
         $vals = [':numero',':logradouro',':descricao',':cidade',':regiao',
-                 ':tipo',':formato',':situacao',':cliente',':agencia','1'];
+                 ':tipo',':formato',':situacao','1'];
         foreach ($colunasOpcionais as $c) {
             if (isset($colunasExistentes[$c])) { $cols[] = $c; $vals[] = ":$c"; }
         }

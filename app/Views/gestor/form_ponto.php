@@ -286,59 +286,13 @@ $listaAgencias = $pdo->query("
 
             </div>
 
-            <!-- ── Contrato ── -->
-            <p class="form-section-title">Contrato</p>
-            <div class="form-grid">
-
-                <div class="form-group">
-                    <label class="form-label">Início do Contrato</label>
-                    <input type="date" name="inicio_contrato" class="form-input"
-                           value="<?= v($ponto,'inicio_contrato') ?>">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Vencimento do Contrato</label>
-                    <input type="date" name="fim_contrato" class="form-input"
-                           value="<?= v($ponto,'fim_contrato') ?>">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Cliente</label>
-                    <input type="text" name="cliente" class="form-input"
-                           value="<?= v($ponto,'cliente') ?>" maxlength="255"
-                           list="lista-clientes" autocomplete="off" placeholder="Digite ou selecione...">
-                    <datalist id="lista-clientes">
-                        <?php foreach ($listaClientes as $c): ?>
-                        <option value="<?= htmlspecialchars($c) ?>">
-                        <?php endforeach; ?>
-                    </datalist>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Agência</label>
-                    <input type="text" name="agencia" class="form-input"
-                           value="<?= v($ponto,'agencia') ?>" maxlength="255"
-                           list="lista-agencias" autocomplete="off" placeholder="Digite ou selecione...">
-                    <datalist id="lista-agencias">
-                        <?php foreach ($listaAgencias as $a): ?>
-                        <option value="<?= htmlspecialchars($a) ?>">
-                        <?php endforeach; ?>
-                    </datalist>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Contato</label>
-                    <input type="text" name="contato" class="form-input"
-                           value="<?= v($ponto,'contato') ?>" maxlength="100" placeholder="Nome ou telefone">
-                </div>
-
-                <div class="form-group span2">
-                    <label class="form-label">Observações</label>
-                    <textarea name="observacoes" class="form-textarea" style="min-height:100px"
-                              placeholder="Informações adicionais sobre o ponto..."><?= v($ponto,'observacoes') ?></textarea>
-                </div>
-
-            </div><!-- /form-grid -->
+            <!-- Nota: cliente, agência e contrato são gerenciados via Campanhas -->
+            <?php if ($modo === 'editar' && !empty($ponto['id'])): ?>
+            <div class="form-note-camp">
+                📢 Cliente e contrato são gerenciados na aba
+                <a href="/gestor/pontos/detalhes?id=<?= (int)$ponto['id'] ?>" style="color:var(--color-accent-primary);font-weight:700">Detalhes do Ponto → Campanha</a>
+            </div>
+            <?php endif; ?>
 
             <div class="form-actions">
                 <button type="submit" class="btn-salvar">💾 Salvar dados</button>

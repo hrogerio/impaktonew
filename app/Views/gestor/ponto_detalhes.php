@@ -47,6 +47,28 @@ if (!$ponto) {
 }
 
 // Fotos
+// Campanha ativa
+$campAtiva = null;
+$historico  = [];
+try {
+    $sc = $pdo->prepare("SELECT * FROM campanhas WHERE ponto_id = ? AND ativo = 1 LIMIT 1");
+    $sc->execute([$ponto['id']]);
+    $campAtiva = $sc->fetch(PDO::FETCH_ASSOC) ?: null;
+
+    $sh = $pdo->prepare("SELECT * FROM campanhas WHERE ponto_id = ? ORDER BY criado_em DESC");
+    $sh->execute([$ponto['id']]);
+    $historico = $sh->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {}
+
+// Listas de autocomplete para o form de campanha
+$listaClientes = $listaAgencias = [];
+if (!$modoPublico) {
+    try {
+        $listaClientes = $pdo->query("SELECT DISTINCT cliente FROM campanhas WHERE cliente IS NOT NULL AND cliente != '' ORDER BY cliente")->fetchAll(PDO::FETCH_COLUMN);
+        $listaAgencias = $pdo->query("SELECT DISTINCT agencia FROM campanhas WHERE agencia IS NOT NULL AND agencia != '' ORDER BY agencia")->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {}
+}
+
 $stmtF = $pdo->prepare("SELECT * FROM ponto_fotos WHERE ponto_id = ? ORDER BY principal DESC, ordem ASC, id ASC");
 $stmtF->execute([$ponto['id']]);
 $fotos = $stmtF->fetchAll(PDO::FETCH_ASSOC);
@@ -186,41 +208,173 @@ $numFmt = str_pad($ponto['numero'] ?? '', 3, '0', STR_PAD_LEFT);
             </div>
         </div>
 
-        <!-- Comercial — admin only -->
+        <!-- Campanhas — admin only -->
         <?php if (!$modoPublico): ?>
-        <div class="det-card det-card-comercial">
-            <div class="det-card-head">💼 Comercial</div>
-            <div class="det-fields">
-                <div class="det-field"><span class="det-lbl">Situação</span>
-                    <span class="det-val">
-                        <span class="sit-badge" style="background:<?= $sitCor ?>"><?= htmlspecialchars($sitLabel ?: '—') ?></span>
-                    </span>
+
+        <!-- ── Campanha atual ──────────────────────────── -->
+        <div class="det-card det-card-comercial" id="cardCampanha">
+            <div class="det-card-head">
+                📢 Campanha
+                <?php if (!$campAtiva): ?>
+                <button class="det-btn-nova-camp" onclick="abrirFormCamp(null)">+ Registrar</button>
+                <?php else: ?>
+                <div style="margin-left:auto;display:flex;gap:0.4rem">
+                    <button class="det-btn-edit-camp" onclick="abrirFormCamp(<?= $campAtiva['id'] ?>)">✏️</button>
+                    <button class="det-btn-end-camp"  onclick="encerrarCampanha()">⏹ Encerrar</button>
                 </div>
-                <div class="det-field"><span class="det-lbl">Cliente</span><span class="det-val"><?= htmlspecialchars($ponto['cliente'] ?? '—') ?></span></div>
-                <div class="det-field"><span class="det-lbl">Agência</span><span class="det-val"><?= htmlspecialchars($ponto['agencia'] ?? '—') ?></span></div>
-                <div class="det-field"><span class="det-lbl">Início</span><span class="det-val"><?= fmtData($ponto['inicio_contrato']) ?></span></div>
-                <div class="det-field">
-                    <span class="det-lbl">Fim</span>
-                    <span class="det-val">
-                        <?php
-                        $fimStr = fmtData($ponto['fim_contrato']);
-                        if ($ponto['fim_contrato'] && $ponto['fim_contrato'] !== '0000-00-00') {
-                            $dias = (new DateTime($ponto['fim_contrato']))->diff(new DateTime())->days;
-                            $futuro = new DateTime($ponto['fim_contrato']) >= new DateTime();
-                            if ($futuro && $dias <= 7)        echo '<span class="prazo-badge prazo-urgente">' . $dias . 'd</span> ';
-                            elseif ($futuro && $dias <= 30)   echo '<span class="prazo-badge prazo-alerta">' . $dias . 'd</span> ';
-                        }
-                        echo htmlspecialchars($fimStr);
-                        ?>
-                    </span>
-                </div>
-                <div class="det-field"><span class="det-lbl">Contato</span><span class="det-val"><?= htmlspecialchars($ponto['contato'] ?? '—') ?></span></div>
-                <?php if (!empty($ponto['observacoes'])): ?>
-                <div class="det-field det-field-obs"><span class="det-lbl">Observações</span><span class="det-val"><?= nl2br(htmlspecialchars($ponto['observacoes'])) ?></span></div>
                 <?php endif; ?>
+            </div>
+
+            <?php if ($campAtiva): ?>
+            <div class="det-fields" id="campInfoView">
+                <div class="det-field">
+                    <span class="det-lbl">Situação</span>
+                    <span class="det-val"><span class="sit-badge" id="campSitBadge" style="background:<?= $sitCor ?>"><?= htmlspecialchars($sitLabel) ?></span></span>
+                </div>
+                <?php if ($campAtiva['cliente']): ?>
+                <div class="det-field"><span class="det-lbl">Cliente</span><span class="det-val" id="campCliente"><?= htmlspecialchars($campAtiva['cliente']) ?></span></div>
+                <?php endif; ?>
+                <?php if ($campAtiva['campanha']): ?>
+                <div class="det-field"><span class="det-lbl">Campanha</span><span class="det-val"><?= htmlspecialchars($campAtiva['campanha']) ?></span></div>
+                <?php endif; ?>
+                <?php if ($campAtiva['agencia']): ?>
+                <div class="det-field"><span class="det-lbl">Agência</span><span class="det-val"><?= htmlspecialchars($campAtiva['agencia']) ?></span></div>
+                <?php endif; ?>
+                <div class="det-field">
+                    <span class="det-lbl">Período</span>
+                    <span class="det-val">
+                        <?= $campAtiva['inicio'] ? fmtData($campAtiva['inicio']) : '—' ?>
+                        <?php if ($campAtiva['fim']): ?> → <?php
+                            $fimStr = fmtData($campAtiva['fim']);
+                            $dias = (new DateTime($campAtiva['fim']))->diff(new DateTime())->days;
+                            $futuro = new DateTime($campAtiva['fim']) >= new DateTime();
+                            if ($futuro && $dias <= 7)      echo '<span class="prazo-badge prazo-urgente">'.$dias.'d</span> ';
+                            elseif ($futuro && $dias <= 30) echo '<span class="prazo-badge prazo-alerta">'.$dias.'d</span> ';
+                            echo htmlspecialchars($fimStr);
+                        endif; ?>
+                    </span>
+                </div>
+                <?php if ($campAtiva['contato']): ?>
+                <div class="det-field"><span class="det-lbl">Contato</span><span class="det-val"><?= htmlspecialchars($campAtiva['contato']) ?></span></div>
+                <?php endif; ?>
+                <?php if ($campAtiva['observacoes']): ?>
+                <div class="det-field det-field-obs"><span class="det-lbl">Obs.</span><span class="det-val"><?= nl2br(htmlspecialchars($campAtiva['observacoes'])) ?></span></div>
+                <?php endif; ?>
+            </div>
+            <?php else: ?>
+            <div class="camp-vazio">
+                <div class="camp-vazio-icon">📋</div>
+                <div>Ponto disponível — sem campanha ativa</div>
+                <button class="det-btn-nova-camp" style="margin-top:0.75rem" onclick="abrirFormCamp(null)">+ Registrar campanha</button>
+            </div>
+            <?php endif; ?>
+
+            <!-- ── Formulário inline ───────────────────── -->
+            <div id="formCampWrap" style="display:none">
+                <div class="camp-form-sep"></div>
+                <div class="camp-form">
+                    <input type="hidden" id="fCampId" value="<?= (int)($campAtiva['id'] ?? 0) ?>">
+                    <div class="camp-form-grid">
+                        <div class="camp-fg">
+                            <label class="camp-lbl">Situação</label>
+                            <select id="fSituacao" class="camp-input">
+                                <?php foreach(['Ocupado','Reservado','Permuta','Bisemana','Vencido'] as $s): ?>
+                                <option value="<?= $s ?>" <?= ($campAtiva['situacao'] ?? 'Ocupado') === $s ? 'selected' : '' ?>><?= $s ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="camp-fg">
+                            <label class="camp-lbl">Cliente</label>
+                            <input type="text" id="fCliente" class="camp-input"
+                                   value="<?= htmlspecialchars($campAtiva['cliente'] ?? '') ?>"
+                                   list="dl-clientes" autocomplete="off" placeholder="Nome do cliente">
+                            <datalist id="dl-clientes">
+                                <?php foreach ($listaClientes as $c): ?>
+                                <option value="<?= htmlspecialchars($c) ?>">
+                                <?php endforeach; ?>
+                            </datalist>
+                        </div>
+                        <div class="camp-fg">
+                            <label class="camp-lbl">Campanha</label>
+                            <input type="text" id="fCampanha" class="camp-input"
+                                   value="<?= htmlspecialchars($campAtiva['campanha'] ?? '') ?>"
+                                   placeholder="Institucional, Dia das Mães...">
+                        </div>
+                        <div class="camp-fg">
+                            <label class="camp-lbl">Agência</label>
+                            <input type="text" id="fAgencia" class="camp-input"
+                                   value="<?= htmlspecialchars($campAtiva['agencia'] ?? '') ?>"
+                                   list="dl-agencias" autocomplete="off" placeholder="Agência (opcional)">
+                            <datalist id="dl-agencias">
+                                <?php foreach ($listaAgencias as $a): ?>
+                                <option value="<?= htmlspecialchars($a) ?>">
+                                <?php endforeach; ?>
+                            </datalist>
+                        </div>
+                        <div class="camp-fg">
+                            <label class="camp-lbl">Início</label>
+                            <input type="date" id="fInicio" class="camp-input"
+                                   value="<?= htmlspecialchars($campAtiva['inicio'] ?? '') ?>">
+                        </div>
+                        <div class="camp-fg">
+                            <label class="camp-lbl">Fim</label>
+                            <input type="date" id="fFim" class="camp-input"
+                                   value="<?= htmlspecialchars($campAtiva['fim'] ?? '') ?>">
+                        </div>
+                        <div class="camp-fg">
+                            <label class="camp-lbl">Contato</label>
+                            <input type="text" id="fContato" class="camp-input"
+                                   value="<?= htmlspecialchars($campAtiva['contato'] ?? '') ?>"
+                                   placeholder="Nome ou telefone">
+                        </div>
+                        <div class="camp-fg camp-fg-full">
+                            <label class="camp-lbl">Observações</label>
+                            <textarea id="fObs" class="camp-input camp-textarea" placeholder="Informações adicionais..."><?= htmlspecialchars($campAtiva['observacoes'] ?? '') ?></textarea>
+                        </div>
+                    </div>
+                    <div class="camp-form-actions">
+                        <button class="camp-btn-salvar" onclick="salvarCampanha()">💾 Salvar campanha</button>
+                        <button class="camp-btn-cancelar" onclick="fecharFormCamp()">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Histórico ───────────────────────────────── -->
+        <?php
+        $histEncerrado = array_filter($historico, fn($h) => !$h['ativo']);
+        if (!empty($histEncerrado)):
+        ?>
+        <div class="det-card">
+            <div class="det-card-head" style="cursor:pointer" onclick="toggleHistorico()">
+                📋 Histórico de Campanhas
+                <span class="det-count"><?= count($histEncerrado) ?></span>
+                <span id="histSeta" style="margin-left:auto;font-size:0.8rem">▼</span>
+            </div>
+            <div id="histLista" style="display:none">
+                <?php foreach ($histEncerrado as $h): ?>
+                <?php
+                    $hCor   = $SITUACOES[$h['situacao']]['color']   ?? '#888';
+                    $hLabel = $SITUACOES[$h['situacao']]['label']    ?? $h['situacao'];
+                    $hPer   = trim(($h['inicio'] ? fmtData($h['inicio']) : '') . ($h['fim'] ? ' – ' . fmtData($h['fim']) : ''));
+                ?>
+                <div class="hist-item">
+                    <div class="hist-dot" style="background:<?= $hCor ?>"></div>
+                    <div class="hist-info">
+                        <div class="hist-cliente">
+                            <?= htmlspecialchars($h['cliente'] ?: '—') ?>
+                            <?php if ($h['campanha']): ?><span class="hist-tag"><?= htmlspecialchars($h['campanha']) ?></span><?php endif; ?>
+                        </div>
+                        <?php if ($hPer): ?><div class="hist-per"><?= $hPer ?></div><?php endif; ?>
+                    </div>
+                    <span class="sit-badge" style="background:<?= $hCor ?>;font-size:0.6rem;padding:2px 7px"><?= htmlspecialchars($hLabel) ?></span>
+                </div>
+                <?php endforeach; ?>
             </div>
         </div>
         <?php endif; ?>
+
+        <?php endif; // !$modoPublico ?>
 
     </div><!-- /det-left -->
 
@@ -347,6 +501,93 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowLeft') navLb(-1);
     if (e.key === 'ArrowRight') navLb(1);
 });
+
+// ── Campanhas ────────────────────────────────────────────
+<?php if (!$modoPublico): ?>
+var CAMPANHA_ATIVA_ID = <?= (int)($campAtiva['id'] ?? 0) ?>;
+var PONTO_SITUACOES = {
+    'Ocupado':   '#dc3545', 'Reservado': '#fd7e14',
+    'Permuta':   '#51086e', 'Bisemana':  '#0284c7',
+    'Vencido':   '#6c757d', 'Disponível':'#1a9059'
+};
+
+function abrirFormCamp(campId) {
+    // Limpa form se nova campanha
+    if (!campId) {
+        document.getElementById('fCampId').value = '0';
+        document.getElementById('fCliente').value  = '';
+        document.getElementById('fCampanha').value = '';
+        document.getElementById('fAgencia').value  = '';
+        document.getElementById('fInicio').value   = '';
+        document.getElementById('fFim').value      = '';
+        document.getElementById('fContato').value  = '';
+        document.getElementById('fObs').value      = '';
+        document.getElementById('fSituacao').value = 'Ocupado';
+    } else {
+        document.getElementById('fCampId').value = campId;
+    }
+    document.getElementById('formCampWrap').style.display = 'block';
+    document.getElementById('formCampWrap').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+function fecharFormCamp() {
+    document.getElementById('formCampWrap').style.display = 'none';
+}
+function salvarCampanha() {
+    var campId = parseInt(document.getElementById('fCampId').value) || 0;
+    var payload = {
+        ponto_id:    PONTO_ID,
+        campanha_id: campId,
+        cliente:     document.getElementById('fCliente').value.trim(),
+        campanha:    document.getElementById('fCampanha').value.trim(),
+        agencia:     document.getElementById('fAgencia').value.trim(),
+        situacao:    document.getElementById('fSituacao').value,
+        inicio:      document.getElementById('fInicio').value,
+        fim:         document.getElementById('fFim').value,
+        contato:     document.getElementById('fContato').value.trim(),
+        observacoes: document.getElementById('fObs').value.trim()
+    };
+    fetch('/gestor/campanhas/salvar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            mostrarToast('✅ Campanha salva!');
+            setTimeout(function() { location.reload(); }, 900);
+        } else {
+            alert('Erro: ' + (data.erro || 'desconhecido'));
+        }
+    })
+    .catch(function() { alert('Erro de comunicação.'); });
+}
+function encerrarCampanha() {
+    if (!confirm('Encerrar campanha atual e marcar ponto como Disponível?')) return;
+    fetch('/gestor/campanhas/encerrar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ponto_id: PONTO_ID })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            mostrarToast('Campanha encerrada. Ponto disponível.');
+            setTimeout(function() { location.reload(); }, 900);
+        } else {
+            alert('Erro ao encerrar.');
+        }
+    });
+}
+function toggleHistorico() {
+    var lista = document.getElementById('histLista');
+    var seta  = document.getElementById('histSeta');
+    if (!lista) return;
+    var aberto = lista.style.display !== 'none';
+    lista.style.display = aberto ? 'none' : 'block';
+    seta.textContent = aberto ? '▼' : '▲';
+}
+<?php endif; ?>
 
 // ── Carrinho ─────────────────────────────────────────────
 <?php if (!$modoPublico): ?>

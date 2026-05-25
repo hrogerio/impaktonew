@@ -224,6 +224,18 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/mapa.php';
         break;
 
+    // ── CAMPANHAS: SALVAR (POST) ──────────────────────────
+    case 'gestor/campanhas/salvar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/salvar_campanha.php';
+        break;
+
+    // ── CAMPANHAS: ENCERRAR (POST) ────────────────────────
+    case 'gestor/campanhas/encerrar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/encerrar_campanha.php';
+        break;
+
     // ── 404 ─────────────────────────────────────────────────
     default:
         http_response_code(404);

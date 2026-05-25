@@ -301,6 +301,100 @@ body {
 }
 .lb-close:hover { background:rgba(255,255,255,0.3); }
 
+/* ── Campanhas ──────────────────────────────────────── */
+.det-btn-nova-camp {
+    margin-left:auto;
+    display:inline-flex; align-items:center; gap:0.3rem;
+    padding:3px 10px; background:var(--primary); color:white;
+    border:none; border-radius:6px; font-size:0.72rem; font-weight:700;
+    cursor:pointer; font-family:'Montserrat',sans-serif; transition:opacity 0.15s;
+}
+.det-btn-nova-camp:hover { opacity:0.88; }
+.det-btn-edit-camp {
+    padding:3px 8px; background:#f3f4f6; color:var(--text);
+    border:1px solid var(--border); border-radius:6px;
+    font-size:0.75rem; cursor:pointer; transition:background 0.15s;
+}
+.det-btn-edit-camp:hover { background:#e5e7eb; }
+.det-btn-end-camp {
+    padding:3px 9px; background:#fff3f3; color:var(--primary);
+    border:1px solid #fca5a5; border-radius:6px;
+    font-size:0.72rem; font-weight:700; cursor:pointer;
+    font-family:'Montserrat',sans-serif; transition:all 0.15s;
+}
+.det-btn-end-camp:hover { background:var(--primary); color:white; }
+
+/* Sem campanha */
+.camp-vazio {
+    padding:2rem 1rem; text-align:center;
+    color:var(--text-muted); font-size:0.83rem;
+}
+.camp-vazio-icon { font-size:2rem; margin-bottom:0.5rem; }
+
+/* Separador form */
+.camp-form-sep {
+    height:1px; background:var(--border); margin:0;
+}
+.camp-form {
+    padding:1rem;
+    background:#fafbfc;
+}
+.camp-form-grid {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:0.65rem;
+}
+.camp-fg { display:flex; flex-direction:column; gap:0.25rem; }
+.camp-fg-full { grid-column:1/-1; }
+.camp-lbl {
+    font-size:0.68rem; font-weight:800; text-transform:uppercase;
+    letter-spacing:0.4px; color:var(--text-muted);
+}
+.camp-input {
+    padding:0.4rem 0.6rem; border:1px solid var(--border); border-radius:6px;
+    font-family:'Montserrat',sans-serif; font-size:0.82rem; color:var(--text);
+    background:white; transition:border-color 0.15s;
+}
+.camp-input:focus { outline:none; border-color:var(--primary); }
+.camp-textarea { min-height:70px; resize:vertical; }
+.camp-form-actions {
+    display:flex; gap:0.5rem; margin-top:0.75rem;
+}
+.camp-btn-salvar {
+    padding:0.45rem 1rem; background:var(--primary); color:white;
+    border:none; border-radius:7px; font-family:'Montserrat',sans-serif;
+    font-size:0.82rem; font-weight:700; cursor:pointer; transition:opacity 0.15s;
+}
+.camp-btn-salvar:hover { opacity:0.88; }
+.camp-btn-cancelar {
+    padding:0.45rem 0.9rem; background:#f3f4f6; color:#555;
+    border:1px solid var(--border); border-radius:7px;
+    font-family:'Montserrat',sans-serif; font-size:0.82rem;
+    font-weight:600; cursor:pointer;
+}
+.camp-btn-cancelar:hover { background:#e5e7eb; }
+
+/* Histórico */
+#histLista { padding:0.25rem 0; }
+.hist-item {
+    display:flex; align-items:center; gap:0.75rem;
+    padding:0.55rem 1rem; border-bottom:1px solid #f5f5f7;
+}
+.hist-item:last-child { border-bottom:none; }
+.hist-dot {
+    width:10px; height:10px; border-radius:50%; flex-shrink:0;
+}
+.hist-info { flex:1; min-width:0; }
+.hist-cliente {
+    font-size:0.82rem; font-weight:700; color:var(--text);
+    display:flex; align-items:center; gap:0.4rem;
+}
+.hist-tag {
+    background:#f3f4f6; color:var(--text-muted);
+    font-size:0.65rem; font-weight:700;
+    padding:1px 7px; border-radius:8px;
+}
+.hist-per { font-size:0.72rem; color:var(--text-muted); margin-top:1px; }
+
 /* ── Toast ──────────────────────────────────────────── */
 .det-toast {
     position:fixed; bottom:1.5rem; right:1.5rem; z-index:9998;

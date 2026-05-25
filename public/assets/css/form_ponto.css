@@ -198,6 +198,14 @@
 .lb-overlay.aberto { display: flex; }
 .lb-img { max-width: 90vw; max-height: 88vh; border-radius: 10px; object-fit: contain; }
 
+/* ── Nota campanhas ─────────────────────────────────────── */
+.form-note-camp {
+    background:#fff8f0; border:1px solid #fed7aa;
+    border-radius:8px; padding:0.7rem 1rem;
+    font-size:0.82rem; font-weight:600; color:#9a3412;
+    margin-bottom:0.5rem;
+}
+
 /* ── Responsivo ───────────────────────────────────────────── */
 @media (max-width: 640px) {
     .form-grid { grid-template-columns: 1fr; }
