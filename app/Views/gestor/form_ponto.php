@@ -47,6 +47,19 @@ function v($arr, $campo, $default = '') {
 
 $situacoes = ['Disponivel','Ocupado','Reservado','Vencido','Permuta','Bisemana'];
 $tipos     = ['Painel','Outdoor','Frontlight','Painel LED'];
+
+// Autocomplete: clientes e agências já cadastrados
+$listaClientes = $pdo->query("
+    SELECT DISTINCT cliente FROM pontos
+    WHERE cliente IS NOT NULL AND cliente != '' AND (ativo=1 OR ativo IS NULL)
+    ORDER BY cliente
+")->fetchAll(PDO::FETCH_COLUMN);
+
+$listaAgencias = $pdo->query("
+    SELECT DISTINCT agencia FROM pontos
+    WHERE agencia IS NOT NULL AND agencia != '' AND (ativo=1 OR ativo IS NULL)
+    ORDER BY agencia
+")->fetchAll(PDO::FETCH_COLUMN);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -292,13 +305,25 @@ $tipos     = ['Painel','Outdoor','Frontlight','Painel LED'];
                 <div class="form-group">
                     <label class="form-label">Cliente</label>
                     <input type="text" name="cliente" class="form-input"
-                           value="<?= v($ponto,'cliente') ?>" maxlength="255">
+                           value="<?= v($ponto,'cliente') ?>" maxlength="255"
+                           list="lista-clientes" autocomplete="off" placeholder="Digite ou selecione...">
+                    <datalist id="lista-clientes">
+                        <?php foreach ($listaClientes as $c): ?>
+                        <option value="<?= htmlspecialchars($c) ?>">
+                        <?php endforeach; ?>
+                    </datalist>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Agência</label>
                     <input type="text" name="agencia" class="form-input"
-                           value="<?= v($ponto,'agencia') ?>" maxlength="255">
+                           value="<?= v($ponto,'agencia') ?>" maxlength="255"
+                           list="lista-agencias" autocomplete="off" placeholder="Digite ou selecione...">
+                    <datalist id="lista-agencias">
+                        <?php foreach ($listaAgencias as $a): ?>
+                        <option value="<?= htmlspecialchars($a) ?>">
+                        <?php endforeach; ?>
+                    </datalist>
                 </div>
 
                 <div class="form-group">
