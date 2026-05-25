@@ -1,40 +1,48 @@
 <?php
 /**
  * POST /gestor/campanhas/encerrar
- * Encerra a campanha ativa de um ponto e retorna o ponto a "Disponível".
- * Body JSON: { ponto_id }
+ * Encerra a campanha ativa de um ponto e retorna o ponto a "Disponivel".
  */
-if (session_status() === PHP_SESSION_NONE) session_start();
-if (!isset($_SESSION['usuario'])) { http_response_code(401); echo json_encode(['erro'=>'nao_logado']); exit; }
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
+ini_set('display_errors', 0);
+ob_start(); // captura qualquer saída acidental
 
-header('Content-Type: application/json');
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+// Garante JSON mesmo em caso de erro inesperado
+function responder($dados) {
+    ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($dados);
+    exit;
+}
+
+if (!isset($_SESSION['usuario']))          responder(['erro' => 'nao_logado']);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') responder(['erro' => 'metodo_invalido']);
 
 require_once __DIR__ . '/../../../config/database.php';
-$pdo = getDatabase();
-
-$body   = json_decode(file_get_contents('php://input'), true) ?? [];
-$pontoId = (int)($body['ponto_id'] ?? 0);
-
-if (!$pontoId) { echo json_encode(['erro'=>'ponto_id inválido']); exit; }
 
 try {
-    $pdo->beginTransaction();
+    $pdo = getDatabase();
+} catch (Exception $e) {
+    responder(['erro' => 'db_connection']);
+}
 
-    $pdo->prepare("
-        UPDATE campanhas SET ativo=0, encerrado_em=NOW()
-        WHERE ponto_id=? AND ativo=1
-    ")->execute([$pontoId]);
+$body    = json_decode(file_get_contents('php://input'), true) ?? [];
+$pontoId = (int)($body['ponto_id'] ?? 0);
 
-    $pdo->prepare("
-        UPDATE pontos SET situacao='Disponivel' WHERE id=?
-    ")->execute([$pontoId]);
+if (!$pontoId) responder(['erro' => 'ponto_id invalido']);
 
-    $pdo->commit();
+try {
+    // Encerra campanhas ativas do ponto
+    $stmt = $pdo->prepare("UPDATE campanhas SET ativo=0, encerrado_em=NOW() WHERE ponto_id=? AND ativo=1");
+    $stmt->execute([$pontoId]);
 
-    echo json_encode(['ok' => true]);
+    // Atualiza situação do ponto (sem acento — tabela latin1)
+    $pdo->prepare("UPDATE pontos SET situacao='Disponivel' WHERE id=?")->execute([$pontoId]);
+
+    responder(['ok' => true]);
+
 } catch (PDOException $e) {
-    $pdo->rollBack();
     error_log("encerrar_campanha ponto=$pontoId: " . $e->getMessage());
-    echo json_encode(['erro' => 'erro interno']);
+    responder(['erro' => 'db_error', 'msg' => $e->getMessage()]);
 }

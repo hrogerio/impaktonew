@@ -4,11 +4,20 @@
  * Cria ou atualiza uma campanha de um ponto.
  * Body JSON: { ponto_id, campanha_id?, cliente, agencia, campanha, situacao, inicio, fim, contato, observacoes }
  */
-if (session_status() === PHP_SESSION_NONE) session_start();
-if (!isset($_SESSION['usuario'])) { http_response_code(401); echo json_encode(['erro'=>'nao_logado']); exit; }
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
+ini_set('display_errors', 0);
+ob_start();
 
-header('Content-Type: application/json');
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+function responderSalvar($dados) {
+    ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($dados);
+    exit;
+}
+
+if (!isset($_SESSION['usuario']))          responderSalvar(['erro'=>'nao_logado']);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') responderSalvar(['erro'=>'metodo_invalido']);
 
 require_once __DIR__ . '/../../../config/database.php';
 $pdo = getDatabase();
@@ -30,13 +39,13 @@ $usuario    = $_SESSION['usuario'] ?? '';
 $situacoesValidas = ['Ocupado','Reservado','Permuta','Bisemana','Vencido'];
 if (!in_array($situacao, $situacoesValidas)) $situacao = 'Ocupado';
 
-if (!$pontoId) { echo json_encode(['erro'=>'ponto_id inválido']); exit; }
+if (!$pontoId) responderSalvar(['erro'=>'ponto_id invalido']);
 
 // Verifica se ponto existe
 $sp = $pdo->prepare("SELECT id, situacao FROM pontos WHERE id = ? AND (ativo=1 OR ativo IS NULL) LIMIT 1");
 $sp->execute([$pontoId]);
 $ponto = $sp->fetch(PDO::FETCH_ASSOC);
-if (!$ponto) { echo json_encode(['erro'=>'ponto não encontrado']); exit; }
+if (!$ponto) responderSalvar(['erro'=>'ponto nao encontrado']);
 
 try {
     $pdo->beginTransaction();
@@ -82,10 +91,9 @@ try {
     $pdo->prepare("UPDATE pontos SET situacao=? WHERE id=?")->execute([$situacao, $pontoId]);
 
     $pdo->commit();
-
-    echo json_encode(['ok' => true, 'campanha_id' => $campanhaId, 'situacao' => $situacao]);
+    responderSalvar(['ok' => true, 'campanha_id' => $campanhaId, 'situacao' => $situacao]);
 } catch (PDOException $e) {
-    $pdo->rollBack();
+    try { $pdo->rollBack(); } catch (Exception $ex) {}
     error_log("salvar_campanha ponto=$pontoId: " . $e->getMessage());
-    echo json_encode(['erro' => 'erro interno']);
+    responderSalvar(['erro' => 'db_error', 'msg' => $e->getMessage()]);
 }
