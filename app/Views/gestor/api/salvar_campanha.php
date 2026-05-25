@@ -19,7 +19,7 @@ function responderSalvar($dados) {
 if (!isset($_SESSION['usuario']))          responderSalvar(['erro'=>'nao_logado']);
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') responderSalvar(['erro'=>'metodo_invalido']);
 
-require_once __DIR__ . '/../../../config/database.php';
+require_once __DIR__ . '/../../../../config/database.php';
 $pdo = getDatabase();
 
 $body = json_decode(file_get_contents('php://input'), true) ?? [];

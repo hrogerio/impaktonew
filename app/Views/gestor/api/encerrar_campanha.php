@@ -4,45 +4,47 @@
  * Encerra a campanha ativa de um ponto e retorna o ponto a "Disponivel".
  */
 ini_set('display_errors', 0);
-ob_start(); // captura qualquer saída acidental
+ini_set('log_errors', 1);
+ob_start();
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-// Garante JSON mesmo em caso de erro inesperado
-function responder($dados) {
-    ob_clean();
+function respEnc($dados) {
+    ob_end_clean();
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($dados);
     exit;
 }
 
-if (!isset($_SESSION['usuario']))          responder(['erro' => 'nao_logado']);
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') responder(['erro' => 'metodo_invalido']);
+if (!isset($_SESSION['usuario']))          respEnc(['erro' => 'nao_logado']);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') respEnc(['erro' => 'metodo_invalido']);
 
-require_once __DIR__ . '/../../../config/database.php';
+$cfgPath = __DIR__ . '/../../../../config/database.php';
+if (!file_exists($cfgPath)) {
+    error_log("encerrar_campanha: database.php nao encontrado em $cfgPath");
+    respEnc(['erro' => 'config_nao_encontrada', 'path' => $cfgPath]);
+}
+require_once $cfgPath;
 
 try {
     $pdo = getDatabase();
 } catch (Exception $e) {
-    responder(['erro' => 'db_connection']);
+    error_log("encerrar_campanha: db_connection " . $e->getMessage());
+    respEnc(['erro' => 'db_connection', 'msg' => $e->getMessage()]);
 }
 
 $body    = json_decode(file_get_contents('php://input'), true) ?? [];
 $pontoId = (int)($body['ponto_id'] ?? 0);
 
-if (!$pontoId) responder(['erro' => 'ponto_id invalido']);
+if (!$pontoId) respEnc(['erro' => 'ponto_id invalido']);
 
 try {
-    // Encerra campanhas ativas do ponto
-    $stmt = $pdo->prepare("UPDATE campanhas SET ativo=0, encerrado_em=NOW() WHERE ponto_id=? AND ativo=1");
-    $stmt->execute([$pontoId]);
-
-    // Atualiza situação do ponto (sem acento — tabela latin1)
-    $pdo->prepare("UPDATE pontos SET situacao='Disponivel' WHERE id=?")->execute([$pontoId]);
-
-    responder(['ok' => true]);
-
+    $pdo->prepare("UPDATE campanhas SET ativo=0, encerrado_em=NOW() WHERE ponto_id=? AND ativo=1")
+        ->execute([$pontoId]);
+    $pdo->prepare("UPDATE pontos SET situacao='Disponivel' WHERE id=?")
+        ->execute([$pontoId]);
+    respEnc(['ok' => true]);
 } catch (PDOException $e) {
     error_log("encerrar_campanha ponto=$pontoId: " . $e->getMessage());
-    responder(['erro' => 'db_error', 'msg' => $e->getMessage()]);
+    respEnc(['erro' => 'db_error', 'msg' => $e->getMessage()]);
 }

@@ -28,16 +28,19 @@ if (!$ps) {
     die('Reserva não encontrada.');
 }
 
-// Pontos da pré-seleção
+// Pontos da pré-seleção (com situação atual + campanha ativa vinculada)
 $stmt2 = $pdo->prepare("
     SELECT p.id, p.numero, p.logradouro, p.descricao, p.cidade, p.regiao,
            p.tipo, p.situacao, p.formato, p.cliente AS ponto_cliente,
            COALESCE(
                (SELECT pf.caminho FROM ponto_fotos pf WHERE pf.ponto_id = p.id AND pf.principal = 1 LIMIT 1),
                p.foto
-           ) AS foto
+           ) AS foto,
+           c.cliente AS camp_cliente,
+           c.pre_selecao_id AS camp_ps_id
     FROM pre_selecao_pontos psp
     JOIN pontos p ON p.id = psp.ponto_id
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1
     WHERE psp.pre_selecao_id = ?
     ORDER BY psp.ordem ASC, p.numero ASC
 ");
@@ -320,7 +323,16 @@ function badgeSit($sit) {
                     <?php endif; ?>
                 </td>
                 <td><?= htmlspecialchars($p['cidade'] ?? '—') ?></td>
-                <td><?= badgeSit($p['situacao']) ?></td>
+                <td>
+                    <?= badgeSit($p['situacao']) ?>
+                    <?php
+                    $sit = strtolower(trim($p['situacao'] ?? ''));
+                    if (($sit === 'reservado') && $p['camp_ps_id'] && $p['camp_ps_id'] != $ps['id']): ?>
+                    <div style="font-size:0.65rem;color:#9a3412;font-weight:700;margin-top:2px">⚠️ Outra reserva</div>
+                    <?php elseif ($sit === 'ocupado'): ?>
+                    <div style="font-size:0.65rem;color:#991b1b;font-weight:700;margin-top:2px">Confirmado</div>
+                    <?php endif; ?>
+                </td>
                 <td class="no-print">
                     <a href="/gestor/pontos/detalhes?id=<?= $p['id'] ?>" style="font-size:0.75rem;font-weight:700;color:var(--color-accent-primary);text-decoration:none">Ver →</a>
                 </td>

@@ -199,7 +199,8 @@ $numFmt = str_pad($ponto['numero'] ?? '', 3, '0', STR_PAD_LEFT);
             </div>
         </div>
 
-        <!-- Técnico -->
+        <!-- Técnico (apenas gestor) -->
+        <?php if (!$modoPublico): ?>
         <div class="det-card">
             <div class="det-card-head">📐 Técnico</div>
             <div class="det-fields">
@@ -207,6 +208,7 @@ $numFmt = str_pad($ponto['numero'] ?? '', 3, '0', STR_PAD_LEFT);
                 <div class="det-field"><span class="det-lbl">Formato</span><span class="det-val"><?= htmlspecialchars($ponto['formato'] ?? '—') ?></span></div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Campanhas — admin only -->
         <?php if (!$modoPublico): ?>
@@ -342,7 +344,7 @@ $numFmt = str_pad($ponto['numero'] ?? '', 3, '0', STR_PAD_LEFT);
 
         <!-- ── Histórico ───────────────────────────────── -->
         <?php
-        $histEncerrado = array_filter($historico, fn($h) => !$h['ativo']);
+        $histEncerrado = array_filter($historico, function($h) { return !$h['ativo']; });
         if (!empty($histEncerrado)):
         ?>
         <div class="det-card">

@@ -15,16 +15,19 @@ try {
 
 $sql = "
     SELECT p.id, p.numero, p.logradouro, p.descricao, p.cidade, p.regiao,
-           p.cliente, p.agencia, p.tipo, p.situacao, p.corredor, p.formato,
+           COALESCE(c.cliente, p.cliente) AS cliente,
+           COALESCE(c.agencia, p.agencia) AS agencia,
+           p.tipo, p.situacao, p.corredor, p.formato,
            COALESCE(
                (SELECT pf.caminho FROM ponto_fotos pf WHERE pf.ponto_id = p.id AND pf.principal = 1 LIMIT 1),
                p.foto
            ) AS foto,
            CASE
-               WHEN p.fim_contrato IS NULL OR p.fim_contrato = '0000-00-00' OR p.fim_contrato = ''
-               THEN NULL ELSE DATE(p.fim_contrato)
+               WHEN c.fim IS NULL OR c.fim = '0000-00-00'
+               THEN NULL ELSE DATE(c.fim)
            END AS fim_contrato
     FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1
     WHERE p.ativo = 1 OR p.ativo IS NULL
     ORDER BY p.id DESC
 ";
@@ -32,7 +35,7 @@ $pontos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
 $regioes    = $pdo->query("SELECT DISTINCT regiao   FROM pontos WHERE regiao   IS NOT NULL AND regiao   != '' AND (ativo=1 OR ativo IS NULL) ORDER BY regiao"  )->fetchAll(PDO::FETCH_COLUMN);
 $cidades    = $pdo->query("SELECT DISTINCT cidade   FROM pontos WHERE cidade   IS NOT NULL AND cidade   != '' AND (ativo=1 OR ativo IS NULL) ORDER BY cidade"  )->fetchAll(PDO::FETCH_COLUMN);
-$clientes   = $pdo->query("SELECT DISTINCT cliente  FROM pontos WHERE cliente  IS NOT NULL AND cliente  != '' AND (ativo=1 OR ativo IS NULL) ORDER BY cliente" )->fetchAll(PDO::FETCH_COLUMN);
+$clientes   = $pdo->query("SELECT DISTINCT cliente FROM campanhas WHERE cliente IS NOT NULL AND cliente != '' AND ativo=1 ORDER BY cliente")->fetchAll(PDO::FETCH_COLUMN);
 $corredores = $pdo->query("SELECT DISTINCT corredor FROM pontos WHERE corredor IS NOT NULL AND corredor != '' AND (ativo=1 OR ativo IS NULL) ORDER BY corredor")->fetchAll(PDO::FETCH_COLUMN);
 
 // Garante UTF-8 válido em todos os campos antes do json_encode

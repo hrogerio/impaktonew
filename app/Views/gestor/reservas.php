@@ -16,7 +16,7 @@ try {
 // Busca todas as pré-seleções, mais recentes primeiro
 $lista = $pdo->query("
     SELECT id, cliente, agencia, periodo_ini, periodo_fim, sem_periodo,
-           total_pontos, criado_em, criado_por
+           total_pontos, status, criado_em, criado_por
     FROM pre_selecoes
     ORDER BY criado_em DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
