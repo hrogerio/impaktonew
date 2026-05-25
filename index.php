@@ -182,6 +182,18 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/excluir_reserva.php';
         break;
 
+    // ── API: ATUALIZAR STATUS DA RESERVA (POST) ───────────────
+    case 'gestor/reservas/status':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/atualizar_status_reserva.php';
+        break;
+
+    // ── PDF DA RESERVA ────────────────────────────────────────
+    case 'gestor/reservas/pdf':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/reserva_pdf.php';
+        break;
+
     // ── API: DADOS DOS PONTOS (AJAX pré-seleção) ─────────────
     case 'gestor/pontos/dados':
         auth_required();

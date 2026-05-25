@@ -124,6 +124,35 @@ function badgeSit($sit) {
         .btn-reabrir-ps:hover { background:var(--color-accent-primary); color:white; border-color:var(--color-accent-primary); }
         .btn-imprimir-ps { background:#ebf5fb; border-color:#a9cce3; color:#2980b9; }
         .btn-imprimir-ps:hover { background:#2980b9; color:white; border-color:#2980b9; }
+        .btn-pdf-ps { background:#fff8f0; border-color:#f0a070; color:#c0612b; }
+        .btn-pdf-ps:hover { background:#c0612b; color:white; border-color:#c0612b; }
+
+        /* Status badge */
+        .status-badge {
+            display:inline-flex; align-items:center; gap:0.3rem;
+            padding:0.2rem 0.75rem; border-radius:20px;
+            font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.4px;
+        }
+        .status-rascunho  { background:#f1f5f9; color:#475569; }
+        .status-enviada   { background:#dbeafe; color:#1e40af; }
+        .status-aprovada  { background:#dcfce7; color:#166534; }
+        .status-recusada  { background:#fee2e2; color:#991b1b; }
+
+        /* Botões de status */
+        .status-acoes { display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center; margin-top:0.5rem; }
+        .btn-status {
+            padding:0.25rem 0.75rem; border-radius:6px; border:1.5px solid;
+            font-family:'Montserrat',sans-serif; font-size:0.72rem; font-weight:700;
+            cursor:pointer; transition:all 0.15s;
+        }
+        .btn-status-enviada  { background:#eff6ff; border-color:#93c5fd; color:#1e40af; }
+        .btn-status-enviada:hover  { background:#1e40af; color:white; border-color:#1e40af; }
+        .btn-status-aprovada { background:#f0fdf4; border-color:#86efac; color:#166534; }
+        .btn-status-aprovada:hover { background:#166534; color:white; border-color:#166534; }
+        .btn-status-recusada { background:#fff1f2; border-color:#fca5a5; color:#991b1b; }
+        .btn-status-recusada:hover { background:#991b1b; color:white; border-color:#991b1b; }
+        .btn-status-rascunho { background:#f8fafc; border-color:#cbd5e1; color:#475569; }
+        .btn-status-rascunho:hover { background:#475569; color:white; border-color:#475569; }
 
         /* Grupos e tabela */
         .pv-grupo-header {
@@ -218,12 +247,34 @@ function badgeSit($sit) {
             <div class="pv-meta-val"><?= htmlspecialchars($ps['criado_por']) ?></div>
         </div>
         <?php endif; ?>
+        <div class="pv-meta-item no-print">
+            <div class="pv-meta-label">Status</div>
+            <?php
+            $statusAtual = $ps['status'] ?? 'rascunho';
+            $statusLabels = ['rascunho'=>'📝 Rascunho','enviada'=>'📤 Enviada','aprovada'=>'✅ Aprovada','recusada'=>'❌ Recusada'];
+            ?>
+            <div class="pv-meta-val">
+                <span class="status-badge status-<?= $statusAtual ?>" id="statusBadge">
+                    <?= $statusLabels[$statusAtual] ?? $statusAtual ?>
+                </span>
+                <div class="status-acoes">
+                    <?php foreach (['enviada'=>'📤 Enviada','aprovada'=>'✅ Aprovada','recusada'=>'❌ Recusada','rascunho'=>'📝 Rascunho'] as $s => $label): ?>
+                    <?php if ($s !== $statusAtual): ?>
+                    <button class="btn-status btn-status-<?= $s ?>"
+                            onclick="mudarStatus('<?= $s ?>')">
+                        <?= $label ?>
+                    </button>
+                    <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Ações -->
     <div class="pv-acoes no-print">
         <button class="btn-acao-sec btn-reabrir-ps" onclick="reabrir(<?= $ps['id'] ?>)">↩ Reabrir no carrinho</button>
-        <button class="btn-acao-sec btn-imprimir-ps" onclick="window.print()">🖨️ Imprimir</button>
+        <a href="/gestor/reservas/pdf?id=<?= $ps['id'] ?>" target="_blank" class="btn-acao-sec btn-pdf-ps">📄 Gerar PDF</a>
     </div>
 
     <!-- Pontos agrupados -->
@@ -288,6 +339,34 @@ function badgeSit($sit) {
 <div class="toast" id="toast"></div>
 
 <script>
+var STATUS_LABELS = {
+    rascunho: '📝 Rascunho', enviada: '📤 Enviada',
+    aprovada: '✅ Aprovada', recusada: '❌ Recusada'
+};
+
+function mudarStatus(novoStatus) {
+    fetch('/gestor/reservas/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: <?= $ps['id'] ?>, status: novoStatus })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            // Atualiza badge
+            var badge = document.getElementById('statusBadge');
+            badge.textContent = STATUS_LABELS[novoStatus] || novoStatus;
+            badge.className = 'status-badge status-' + novoStatus;
+            // Recarrega para atualizar botões
+            mostrarToast('✅ Status atualizado para ' + (STATUS_LABELS[novoStatus] || novoStatus));
+            setTimeout(function() { location.reload(); }, 1200);
+        } else {
+            alert('Erro ao atualizar status.');
+        }
+    })
+    .catch(function() { alert('Erro de comunicação.'); });
+}
+
 function reabrir(id) {
     fetch('/gestor/pre-selecao/dados?id=' + id)
         .then(function(r) { return r.json(); })

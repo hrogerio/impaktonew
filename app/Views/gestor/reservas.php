@@ -116,6 +116,13 @@ $lista = $pdo->query("
         .prop-empty .icon { font-size:2.5rem; margin-bottom:0.75rem; }
         .prop-empty p { font-size:0.9rem; margin-bottom:1rem; }
 
+        /* Status */
+        .status-badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:0.3px; white-space:nowrap; }
+        .status-rascunho { background:#f1f5f9; color:#475569; }
+        .status-enviada  { background:#dbeafe; color:#1e40af; }
+        .status-aprovada { background:#dcfce7; color:#166534; }
+        .status-recusada { background:#fee2e2; color:#991b1b; }
+
         /* Toast */
         .toast {
             position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999;
@@ -162,8 +169,9 @@ $lista = $pdo->query("
                     <th>Cliente / Agência</th>
                     <th style="width:160px">Período</th>
                     <th style="width:60px;text-align:center">Pontos</th>
+                    <th style="width:90px">Status</th>
                     <th style="width:120px">Data</th>
-                    <th style="width:140px"></th>
+                    <th style="width:155px"></th>
                 </tr>
             </thead>
             <tbody id="propTbody">
@@ -180,6 +188,8 @@ $lista = $pdo->query("
                 }
                 $dataFmt = date('d/m/Y H:i', strtotime($ps['criado_em']));
                 $buscarStr = strtolower($ps['cliente'] . ' ' . $ps['agencia']);
+                $statusAtual = $ps['status'] ?? 'rascunho';
+                $statusLabels = ['rascunho'=>'📝 Rascunho','enviada'=>'📤 Enviada','aprovada'=>'✅ Aprovada','recusada'=>'❌ Recusada'];
             ?>
             <tr class="prop-row" data-busca="<?= htmlspecialchars($buscarStr) ?>">
                 <td class="prop-id"><?= $ps['id'] ?></td>
@@ -191,6 +201,7 @@ $lista = $pdo->query("
                 </td>
                 <td class="prop-per"><?= htmlspecialchars($periodo ?: '—') ?></td>
                 <td class="prop-num"><?= $ps['total_pontos'] ?></td>
+                <td><span class="status-badge status-<?= $statusAtual ?>"><?= $statusLabels[$statusAtual] ?? $statusAtual ?></span></td>
                 <td>
                     <div class="prop-data"><?= $dataFmt ?></div>
                     <?php if ($ps['criado_por']): ?>
@@ -200,6 +211,7 @@ $lista = $pdo->query("
                 <td>
                     <div class="prop-acoes">
                         <a href="/gestor/reservas/ver?id=<?= $ps['id'] ?>" class="btn-ver">👁 Ver</a>
+                        <a href="/gestor/reservas/pdf?id=<?= $ps['id'] ?>" target="_blank" class="btn-ver" title="Gerar PDF">📄</a>
                         <button class="btn-reabrir" onclick="reabrir(<?= $ps['id'] ?>)">↩ Reabrir</button>
                         <button class="btn-excluir" onclick="excluir(<?= $ps['id'] ?>, this)" title="Excluir reserva">🗑</button>
                     </div>
