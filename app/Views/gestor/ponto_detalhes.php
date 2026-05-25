@@ -154,7 +154,9 @@ $numFmt = str_pad($ponto['numero'] ?? '', 3, '0', STR_PAD_LEFT);
                 <?php if (!empty($ponto['descricao'])): ?>
                 <div class="det-field"><span class="det-lbl">Descrição</span><span class="det-val"><?= htmlspecialchars($ponto['descricao']) ?></span></div>
                 <?php endif; ?>
-                <div class="det-field"><span class="det-lbl">Bairro</span><span class="det-val"><?= htmlspecialchars($ponto['bairro'] ?? '—') ?></span></div>
+                <?php if (!empty($ponto['bairro'])): ?>
+                <div class="det-field"><span class="det-lbl">Bairro</span><span class="det-val"><?= htmlspecialchars($ponto['bairro']) ?></span></div>
+                <?php endif; ?>
                 <div class="det-field"><span class="det-lbl">Cidade</span><span class="det-val"><?= htmlspecialchars($ponto['cidade'] ?? '—') ?></span></div>
                 <div class="det-field"><span class="det-lbl">Região</span><span class="det-val"><?= htmlspecialchars($ponto['regiao'] ?? '—') ?></span></div>
                 <?php if (!empty($ponto['sentido'])): ?>
