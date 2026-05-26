@@ -649,12 +649,12 @@ function initMapPonto() {
     var map = new google.maps.Map(document.getElementById('map'), {
         center: pos,
         zoom: 18,
-        mapTypeId: 'hybrid',
+        mapTypeId: 'roadmap',
         mapTypeControl: true,
         mapTypeControlOptions: {
             style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
             position: google.maps.ControlPosition.TOP_RIGHT,
-            mapTypeIds: ['hybrid', 'roadmap', 'satellite']
+            mapTypeIds: ['roadmap', 'hybrid', 'satellite']
         },
         streetViewControl: true,
         fullscreenControl: true,
