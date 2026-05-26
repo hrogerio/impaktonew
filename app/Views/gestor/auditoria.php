@@ -232,7 +232,15 @@ function badgeSit($s) {
         ['id'=>'semfoto',   'icone'=>'📷', 'titulo'=>'Pontos sem foto',             'dados'=>$semFoto,              'cor'=>count($semFoto)>0?'warn':'ok'],
         ['id'=>'semcoord',  'icone'=>'📍', 'titulo'=>'Pontos sem coordenadas',       'dados'=>$semCoord,             'cor'=>count($semCoord)>0?'warn':'ok'],
         ['id'=>'semcli',    'icone'=>'👤', 'titulo'=>'Pontos sem cliente cadastrado', 'dados'=>$semCliente,           'cor'=>count($semCliente)>0?'warn':'ok'],
-        ['id'=>'vencidos',  'icone'=>'⏰', 'titulo'=>'Contratos vencidos sem atualização de situação', 'dados'=>$vencidosSemAtualizar, 'cor'=>count($vencidosSemAtualizar)>0?'danger':'ok'],
+        ['id'=>'vencidos',  'icone'=>'⏰',
+         'titulo'=>'Contratos vencidos sem atualização de situação'
+             . (count($vencidosSemAtualizar) > 0
+                 ? ' <button onclick="event.stopPropagation();processarVencidos()" id="btnProcessarTodos"
+                       style="margin-left:0.75rem;background:#1a9059;color:white;border:none;border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:inherit;">
+                       ⚡ Liberar todos (' . count($vencidosSemAtualizar) . ')
+                   </button>'
+                 : ''),
+         'dados'=>$vencidosSemAtualizar, 'cor'=>count($vencidosSemAtualizar)>0?'danger':'ok'],
         ['id'=>'incompl',   'icone'=>'📝', 'titulo'=>'Dados incompletos (logradouro / cidade)', 'dados'=>$incompletos, 'cor'=>count($incompletos)>0?'danger':'ok'],
     ];
     ?>
@@ -266,6 +274,7 @@ function badgeSit($s) {
                         <th>Cliente</th>
                         <th>Venceu em</th>
                         <th>Dias</th>
+                        <th></th>
                         <?php endif; ?>
                         <?php if ($s['id']==='semcli'): ?>
                         <th>Vencimento</th>
@@ -284,6 +293,13 @@ function badgeSit($s) {
                         <td><?= htmlspecialchars($p['cliente'] ?? '-') ?></td>
                         <td><?= fmtData($p['fim_contrato']) ?></td>
                         <td><span style="font-weight:700;color:#991b1b"><?= $p['dias_vencido'] ?>d</span></td>
+                        <td>
+                            <button class="audit-link"
+                                    style="background:#fee2e2;border:1px solid #fca5a5;border-radius:5px;padding:2px 8px;color:#991b1b;cursor:pointer;font-size:0.72rem;font-weight:700;font-family:inherit;"
+                                    onclick="liberarPonto(<?= (int)$p['id'] ?>, '<?= addslashes($p['numero']) ?>', this)">
+                                🔓 Liberar
+                            </button>
+                        </td>
                         <?php endif; ?>
                         <?php if ($s['id']==='semcli'): ?>
                         <td style="font-size:0.78rem;color:var(--color-text-muted)"><?= fmtData($p['fim_contrato'] ?? '') ?></td>
@@ -311,6 +327,88 @@ function toggleSecao(id) {
     var aberto = body.style.display !== 'none';
     body.style.display   = aberto ? 'none' : 'block';
     toggle.classList.toggle('fechado', aberto);
+}
+
+// ── Liberar um ponto individualmente ─────────────────────────
+function liberarPonto(pontoId, numero, btn) {
+    if (!confirm('Encerrar contrato do ponto ' + numero + ' e marcá-lo como Disponível?')) return;
+    btn.disabled = true;
+    btn.textContent = '⏳...';
+    fetch('/gestor/campanhas/encerrar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ponto_id: pontoId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            var tr = btn.closest('tr');
+            if (tr) {
+                tr.style.transition = 'opacity 0.4s';
+                tr.style.opacity = '0';
+                setTimeout(function() { tr.remove(); }, 400);
+            }
+            mostrarToastAudit('✅ Ponto ' + numero + ' liberado com sucesso!', 'ok');
+        } else {
+            btn.disabled = false;
+            btn.textContent = '🔓 Liberar';
+            mostrarToastAudit('❌ Erro ao liberar ponto ' + numero, 'err');
+        }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.textContent = '🔓 Liberar';
+        mostrarToastAudit('❌ Erro de comunicação', 'err');
+    });
+}
+
+// ── Processar todos os vencidos de uma vez ────────────────────
+function processarVencidos() {
+    var btn = document.getElementById('btnProcessarTodos');
+    if (!confirm('Encerrar TODOS os contratos vencidos e marcar os pontos como Disponível?\n\nEsta ação não pode ser desfeita.')) return;
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Processando...'; }
+    fetch('/gestor/campanhas/processar-vencidos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            mostrarToastAudit('✅ ' + data.processados + ' ponto(s) liberado(s)! Recarregando...', 'ok');
+            setTimeout(function() { location.reload(); }, 1800);
+        } else {
+            if (btn) { btn.disabled = false; btn.textContent = '⚡ Liberar todos'; }
+            mostrarToastAudit('❌ Erro: ' + (data.msg || 'desconhecido'), 'err');
+        }
+    })
+    .catch(function() {
+        if (btn) { btn.disabled = false; btn.textContent = '⚡ Liberar todos'; }
+        mostrarToastAudit('❌ Erro de comunicação', 'err');
+    });
+}
+
+function mostrarToastAudit(msg, tipo) {
+    var t = document.getElementById('auditToast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'auditToast';
+        t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;'
+            + 'padding:0.75rem 1.25rem;border-radius:8px;font-size:0.83rem;font-weight:700;'
+            + 'box-shadow:0 4px 16px rgba(0,0,0,0.2);transition:all 0.3s ease;'
+            + 'transform:translateY(80px);opacity:0;';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.background = tipo === 'ok' ? '#1a9059' : '#dc3545';
+    t.style.color = 'white';
+    t.style.transform = 'translateY(0)';
+    t.style.opacity = '1';
+    clearTimeout(t._tmr);
+    t._tmr = setTimeout(function() {
+        t.style.transform = 'translateY(80px)';
+        t.style.opacity = '0';
+    }, 3500);
 }
 </script>
 

@@ -242,6 +242,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/encerrar_campanha.php';
         break;
 
+    // ── CAMPANHAS: PROCESSAR VENCIDOS (POST) ─────────────
+    case 'gestor/campanhas/processar-vencidos':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/processar_vencidos.php';
+        break;
+
     // ── 404 ─────────────────────────────────────────────────
     default:
         http_response_code(404);
