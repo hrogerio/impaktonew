@@ -390,7 +390,7 @@ function diasR($fim) {
     <?php
         $campIds  = array_column($g['rows'], 'id');
         $pontoIds = array_column($g['rows'], 'ponto_id');
-        $dataCard = json_encode([
+        $dataCard = htmlspecialchars(json_encode([
             'campIds'  => $campIds,
             'pontoIds' => $pontoIds,
             'cliente'  => $g['cliente'],
@@ -399,7 +399,7 @@ function diasR($fim) {
             'situacao' => $g['situacao'],
             'inicio'   => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
             'fim'      => $g['fim']    ? substr($g['fim'],    0, 10) : '',
-        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS);
+        ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
     ?>
     <div class="cp-card <?= !$g['ativo'] ? 'encerrada' : '' ?>"
          data-busca="<?= htmlspecialchars($buscaStr) ?>"
@@ -581,7 +581,20 @@ function limparFiltros() {
 var _modalCard = null; // card DOM atualmente no modal
 
 function abrirEdicao(card) {
-    var dados = JSON.parse(card.dataset.campanha || '{}');
+    var raw = card.dataset.campanha || '';
+    var dados;
+    try {
+        dados = JSON.parse(raw);
+    } catch(e) {
+        console.error('abrirEdicao: falha ao parsear data-campanha', e, raw);
+        alert('Erro ao abrir o editor. Recarregue a página e tente novamente.');
+        return;
+    }
+    if (!dados || !Array.isArray(dados.campIds) || !Array.isArray(dados.pontoIds)) {
+        console.error('abrirEdicao: dados incompletos', dados);
+        alert('Dados da campanha inválidos. Recarregue a página.');
+        return;
+    }
     _modalCard = card;
 
     document.getElementById('cpModalTitulo').textContent = 'Editar Campanha';
@@ -618,39 +631,51 @@ function salvarEdicao() {
     btn.textContent = '⏳ Salvando...';
 
     // Envia um request por ponto do grupo
-    var promises = dados.pontoIds.map(function(pontoId, i) {
-        return fetch('/gestor/campanhas/salvar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                ponto_id:    pontoId,
-                campanha_id: dados.campIds[i] || 0,
-                cliente:     cliente,
-                agencia:     agencia,
-                campanha:    nome,
-                situacao:    dados.situacao,
-                inicio:      inicio || null,
-                fim:         fim    || null,
-            })
-        }).then(function(r) { return r.json(); });
-    });
+    var promises;
+    try {
+        promises = dados.pontoIds.map(function(pontoId, i) {
+            return fetch('/gestor/campanhas/salvar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ponto_id:    pontoId,
+                    campanha_id: dados.campIds[i] || 0,
+                    cliente:     cliente,
+                    agencia:     agencia,
+                    campanha:    nome,
+                    situacao:    dados.situacao,
+                    inicio:      inicio || null,
+                    fim:         fim    || null,
+                })
+            }).then(function(r) {
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            });
+        });
+    } catch(e) {
+        console.error('salvarEdicao: erro ao montar requests', e);
+        btn.disabled = false;
+        btn.textContent = '💾 Salvar alterações';
+        mostrarToast('❌ Erro interno: ' + e.message, 'err');
+        return;
+    }
 
     Promise.all(promises).then(function(results) {
         var erros = results.filter(function(r) { return r.erro; });
         if (erros.length > 0) {
             btn.disabled = false;
             btn.textContent = '💾 Salvar alterações';
-            mostrarToast('❌ Erro ao salvar: ' + (erros[0].erro || 'desconhecido'), 'err');
+            mostrarToast('❌ Erro ao salvar: ' + (erros[0].msg || erros[0].erro || 'desconhecido'), 'err');
             return;
         }
         fecharModal();
         mostrarToast('✅ Campanha atualizada com sucesso!', 'ok');
-        // Recarrega a página para refletir as mudanças
         setTimeout(function() { location.reload(); }, 1200);
-    }).catch(function() {
+    }).catch(function(e) {
+        console.error('salvarEdicao: erro na requisição', e);
         btn.disabled = false;
         btn.textContent = '💾 Salvar alterações';
-        mostrarToast('❌ Erro de comunicação', 'err');
+        mostrarToast('❌ Erro de comunicação: ' + (e.message || 'verifique o console'), 'err');
     });
 }
 
