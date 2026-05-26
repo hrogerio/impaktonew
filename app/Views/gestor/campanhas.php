@@ -232,13 +232,69 @@ function diasR($fim) {
         }
         .cp-painel-link:hover { text-decoration:underline; }
 
-        /* Rodapé do card: contagem de painéis */
+        /* Rodapé do card: contagem + ações */
         .cp-card-footer {
-            padding:0.4rem 1rem;
+            padding:0.45rem 0.75rem 0.45rem 1rem;
             background:#fafbfc;
             border-top:1px solid #f0f2f5;
             font-size:0.68rem; font-weight:700; color:var(--color-text-muted);
+            display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
         }
+        .cp-acoes { display:flex; gap:0.35rem; }
+        .cp-btn {
+            padding:3px 9px; border-radius:5px; font-size:0.7rem; font-weight:700;
+            cursor:pointer; border:none; font-family:'Montserrat',sans-serif;
+            transition:all 0.15s; white-space:nowrap; text-decoration:none;
+            display:inline-flex; align-items:center; gap:0.25rem;
+        }
+        .cp-btn-editar { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+        .cp-btn-editar:hover { background:#dbeafe; }
+        .cp-btn-encerrar { background:#fff1f0; color:#c0392b; border:1px solid #fca5a5; }
+        .cp-btn-encerrar:hover { background:#fee2e2; }
+
+        /* ── Modal de edição ── */
+        .cp-modal-overlay {
+            display:none; position:fixed; inset:0;
+            background:rgba(0,0,0,0.45); z-index:1000;
+            align-items:center; justify-content:center;
+        }
+        .cp-modal-overlay.aberto { display:flex; }
+        .cp-modal {
+            background:white; border-radius:14px; padding:1.5rem;
+            width:480px; max-width:95vw; max-height:90vh; overflow-y:auto;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3);
+        }
+        .cp-modal-title { font-size:1rem; font-weight:800; color:var(--color-text-dark); margin-bottom:0.25rem; }
+        .cp-modal-sub   { font-size:0.78rem; color:var(--color-text-muted); margin-bottom:1.25rem; }
+        .cp-modal-field { margin-bottom:0.9rem; }
+        .cp-modal-label {
+            display:block; font-size:0.65rem; font-weight:800;
+            color:var(--color-text-muted); text-transform:uppercase;
+            letter-spacing:0.4px; margin-bottom:0.3rem;
+        }
+        .cp-modal-input {
+            width:100%; padding:0.45rem 0.65rem;
+            border:1px solid var(--color-border); border-radius:7px;
+            font-family:'Montserrat',sans-serif; font-size:0.85rem;
+            color:var(--color-text-dark); box-sizing:border-box;
+        }
+        .cp-modal-input:focus { outline:none; border-color:var(--color-accent-primary); }
+        .cp-modal-row { display:flex; gap:0.75rem; }
+        .cp-modal-row .cp-modal-field { flex:1; }
+        .cp-modal-actions { display:flex; gap:0.75rem; justify-content:flex-end; margin-top:1.25rem; }
+        .cp-btn-salvar {
+            padding:0.55rem 1.4rem; background:var(--color-accent-primary); color:white;
+            border:none; border-radius:8px; font-family:'Montserrat',sans-serif;
+            font-size:0.85rem; font-weight:700; cursor:pointer; transition:opacity 0.15s;
+        }
+        .cp-btn-salvar:hover { opacity:0.9; }
+        .cp-btn-salvar:disabled { opacity:0.45; cursor:not-allowed; }
+        .cp-btn-cancelar {
+            padding:0.55rem 1rem; background:none; color:#666;
+            border:1px solid var(--color-border); border-radius:8px;
+            font-family:'Montserrat',sans-serif; font-size:0.85rem; cursor:pointer;
+        }
+        .cp-modal-divider { height:1px; background:var(--color-border); margin:1rem 0; }
 
         .cp-empty { padding:3rem; text-align:center; color:var(--color-text-muted); font-size:0.85rem; }
 
@@ -331,11 +387,26 @@ function diasR($fim) {
             . ' ' . implode(' ', array_column($g['rows'], 'cidade'))
         );
     ?>
+    <?php
+        $campIds  = array_column($g['rows'], 'id');
+        $pontoIds = array_column($g['rows'], 'ponto_id');
+        $dataCard = json_encode([
+            'campIds'  => $campIds,
+            'pontoIds' => $pontoIds,
+            'cliente'  => $g['cliente'],
+            'agencia'  => $g['agencia'],
+            'nome'     => $g['nome'],
+            'situacao' => $g['situacao'],
+            'inicio'   => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
+            'fim'      => $g['fim']    ? substr($g['fim'],    0, 10) : '',
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_APOS);
+    ?>
     <div class="cp-card <?= !$g['ativo'] ? 'encerrada' : '' ?>"
          data-busca="<?= htmlspecialchars($buscaStr) ?>"
          data-situacao="<?= htmlspecialchars($g['situacao']) ?>"
          data-status="<?= $g['ativo'] ?>"
-         data-cliente="<?= htmlspecialchars(strtolower($g['cliente'])) ?>">
+         data-cliente="<?= htmlspecialchars(strtolower($g['cliente'])) ?>"
+         data-campanha="<?= $dataCard ?>">
 
         <div class="cp-card-faixa" style="background:<?= $cor ?>"></div>
 
@@ -378,7 +449,17 @@ function diasR($fim) {
         </div>
 
         <div class="cp-card-footer">
-            <?= $nPain ?> ponto<?= $nPain > 1 ? 's' : '' ?>
+            <span><?= $nPain ?> ponto<?= $nPain > 1 ? 's' : '' ?></span>
+            <?php if ($g['ativo']): ?>
+            <div class="cp-acoes">
+                <button class="cp-btn cp-btn-editar"
+                        onclick="abrirEdicao(this.closest('.cp-card'))"
+                        title="Editar datas e dados da campanha">✏️ Editar</button>
+                <button class="cp-btn cp-btn-encerrar"
+                        onclick="encerrarGrupo(this.closest('.cp-card'), this)"
+                        title="Encerrar campanha e liberar pontos">🔒 Encerrar</button>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
     <?php endforeach; ?>
@@ -390,7 +471,60 @@ function diasR($fim) {
 
 </div>
 
+<!-- ── Modal de edição de campanha ── -->
+<div class="cp-modal-overlay" id="cpModalOverlay">
+    <div class="cp-modal">
+        <div class="cp-modal-title" id="cpModalTitulo">Editar Campanha</div>
+        <div class="cp-modal-sub" id="cpModalSub"></div>
+
+        <div class="cp-modal-row">
+            <div class="cp-modal-field">
+                <label class="cp-modal-label">Cliente</label>
+                <input type="text" id="cpModalCliente" class="cp-modal-input" placeholder="Nome do cliente">
+            </div>
+            <div class="cp-modal-field">
+                <label class="cp-modal-label">Agência</label>
+                <input type="text" id="cpModalAgencia" class="cp-modal-input" placeholder="Agência (opcional)">
+            </div>
+        </div>
+
+        <div class="cp-modal-field">
+            <label class="cp-modal-label">Nome da campanha</label>
+            <input type="text" id="cpModalNome" class="cp-modal-input" placeholder="Ex: São João 2025">
+        </div>
+
+        <div class="cp-modal-divider"></div>
+
+        <div class="cp-modal-row">
+            <div class="cp-modal-field">
+                <label class="cp-modal-label">Início</label>
+                <input type="date" id="cpModalInicio" class="cp-modal-input">
+            </div>
+            <div class="cp-modal-field">
+                <label class="cp-modal-label">Fim do contrato</label>
+                <input type="date" id="cpModalFim" class="cp-modal-input">
+            </div>
+        </div>
+
+        <div class="cp-modal-actions">
+            <button class="cp-btn-cancelar" onclick="fecharModal()">Cancelar</button>
+            <button class="cp-btn-salvar" id="cpBtnSalvar" onclick="salvarEdicao()">💾 Salvar alterações</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="cpToast" style="
+    position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;
+    background:#1a9059;color:white;padding:0.7rem 1.25rem;
+    border-radius:8px;font-size:0.83rem;font-weight:700;
+    box-shadow:0 4px 16px rgba(0,0,0,0.2);
+    transform:translateY(80px);opacity:0;transition:all 0.3s ease;
+    pointer-events:none;max-width:340px;
+"></div>
+
 <script>
+// ── Filtros ───────────────────────────────────────────────────
 var filtros = { busca:'', cliente:'', situacao:'', status:'' };
 
 function filtrar() {
@@ -442,6 +576,142 @@ function limparFiltros() {
     });
     filtrar();
 }
+
+// ── Modal de edição ───────────────────────────────────────────
+var _modalCard = null; // card DOM atualmente no modal
+
+function abrirEdicao(card) {
+    var dados = JSON.parse(card.dataset.campanha || '{}');
+    _modalCard = card;
+
+    document.getElementById('cpModalTitulo').textContent = 'Editar Campanha';
+    document.getElementById('cpModalSub').textContent    =
+        dados.campIds.length + ' ponto' + (dados.campIds.length > 1 ? 's' : '') + ' nesta campanha';
+    document.getElementById('cpModalCliente').value  = dados.cliente || '';
+    document.getElementById('cpModalAgencia').value  = dados.agencia || '';
+    document.getElementById('cpModalNome').value     = dados.nome    || '';
+    document.getElementById('cpModalInicio').value   = dados.inicio  || '';
+    document.getElementById('cpModalFim').value      = dados.fim     || '';
+    document.getElementById('cpBtnSalvar').disabled  = false;
+    document.getElementById('cpBtnSalvar').textContent = '💾 Salvar alterações';
+    document.getElementById('cpModalOverlay').classList.add('aberto');
+}
+
+function fecharModal() {
+    document.getElementById('cpModalOverlay').classList.remove('aberto');
+    _modalCard = null;
+}
+
+function salvarEdicao() {
+    if (!_modalCard) return;
+    var dados   = JSON.parse(_modalCard.dataset.campanha || '{}');
+    var cliente = document.getElementById('cpModalCliente').value.trim();
+    var agencia = document.getElementById('cpModalAgencia').value.trim();
+    var nome    = document.getElementById('cpModalNome').value.trim();
+    var inicio  = document.getElementById('cpModalInicio').value;
+    var fim     = document.getElementById('cpModalFim').value;
+
+    if (!cliente) { alert('Informe o nome do cliente.'); return; }
+
+    var btn = document.getElementById('cpBtnSalvar');
+    btn.disabled = true;
+    btn.textContent = '⏳ Salvando...';
+
+    // Envia um request por ponto do grupo
+    var promises = dados.pontoIds.map(function(pontoId, i) {
+        return fetch('/gestor/campanhas/salvar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ponto_id:    pontoId,
+                campanha_id: dados.campIds[i] || 0,
+                cliente:     cliente,
+                agencia:     agencia,
+                campanha:    nome,
+                situacao:    dados.situacao,
+                inicio:      inicio || null,
+                fim:         fim    || null,
+            })
+        }).then(function(r) { return r.json(); });
+    });
+
+    Promise.all(promises).then(function(results) {
+        var erros = results.filter(function(r) { return r.erro; });
+        if (erros.length > 0) {
+            btn.disabled = false;
+            btn.textContent = '💾 Salvar alterações';
+            mostrarToast('❌ Erro ao salvar: ' + (erros[0].erro || 'desconhecido'), 'err');
+            return;
+        }
+        fecharModal();
+        mostrarToast('✅ Campanha atualizada com sucesso!', 'ok');
+        // Recarrega a página para refletir as mudanças
+        setTimeout(function() { location.reload(); }, 1200);
+    }).catch(function() {
+        btn.disabled = false;
+        btn.textContent = '💾 Salvar alterações';
+        mostrarToast('❌ Erro de comunicação', 'err');
+    });
+}
+
+// ── Encerrar grupo de campanhas ───────────────────────────────
+function encerrarGrupo(card, btn) {
+    var dados = JSON.parse(card.dataset.campanha || '{}');
+    var nomes = dados.pontoIds.length;
+    var cli   = dados.cliente;
+    if (!confirm('Encerrar a campanha de ' + cli + ' (' + nomes + ' ponto' + (nomes > 1 ? 's' : '') + ')?\n\nOs pontos voltarão a ficar Disponíveis.')) return;
+
+    btn.disabled = true;
+    btn.textContent = '⏳';
+
+    var promises = dados.pontoIds.map(function(pontoId) {
+        return fetch('/gestor/campanhas/encerrar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ponto_id: pontoId })
+        }).then(function(r) { return r.json(); });
+    });
+
+    Promise.all(promises).then(function(results) {
+        var erros = results.filter(function(r) { return r.erro; });
+        if (erros.length > 0) {
+            btn.disabled = false;
+            btn.textContent = '🔒 Encerrar';
+            mostrarToast('❌ Erro ao encerrar: ' + (erros[0].erro || 'desconhecido'), 'err');
+            return;
+        }
+        // Anima o card para "encerrada"
+        card.classList.add('encerrada');
+        card.querySelector('.cp-acoes').innerHTML = '<span style="font-size:0.68rem;color:#6c757d;font-weight:700">Encerrada</span>';
+        mostrarToast('✅ Campanha de ' + cli + ' encerrada. ' + nomes + ' ponto' + (nomes > 1 ? 's' : '') + ' liberado' + (nomes > 1 ? 's' : '') + '!', 'ok');
+    }).catch(function() {
+        btn.disabled = false;
+        btn.textContent = '🔒 Encerrar';
+        mostrarToast('❌ Erro de comunicação', 'err');
+    });
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+function mostrarToast(msg, tipo) {
+    var t = document.getElementById('cpToast');
+    t.textContent = msg;
+    t.style.background = tipo === 'err' ? '#dc3545' : '#1a9059';
+    t.style.transform  = 'translateY(0)';
+    t.style.opacity    = '1';
+    clearTimeout(t._tmr);
+    t._tmr = setTimeout(function() {
+        t.style.transform = 'translateY(80px)';
+        t.style.opacity   = '0';
+    }, 3500);
+}
+
+// ── Fechar modal com ESC ou clique fora ───────────────────────
+document.getElementById('cpModalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharModal();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') fecharModal();
+});
 
 filtrar();
 </script>
