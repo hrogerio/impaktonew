@@ -106,7 +106,7 @@ class PontoModel {
         return cache()->remember('estatisticas_dashboard', function() {
             $sql = "SELECT 
                         COUNT(*) as total,
-                        COUNT(CASE WHEN situacao = 'Disponível' THEN 1 END) as disponiveis,
+                        COUNT(CASE WHEN situacao = 'Disponivel' THEN 1 END) as disponiveis,
                         COUNT(CASE WHEN situacao = 'Ocupado' THEN 1 END) as ocupados,
                         COUNT(CASE WHEN situacao = 'Reservado' THEN 1 END) as reservados,
                         COUNT(CASE WHEN situacao = 'Vencido' THEN 1 END) as vencidos

@@ -19,6 +19,7 @@ $kpi = $pdo->query("
         SUM(ativo = 1 AND fim IS NOT NULL
             AND fim BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)) AS vencendo
     FROM campanhas
+    WHERE situacao != 'Reservado'
 ")->fetch(PDO::FETCH_ASSOC);
 
 // ── Todas as campanhas com dados do ponto ─────────────────────
@@ -28,7 +29,8 @@ $rows = $pdo->query("
         c.situacao, c.inicio, c.fim, c.ativo, c.encerrado_em, c.criado_em,
         p.numero, p.logradouro, p.cidade, p.regiao
     FROM campanhas c
-    JOIN pontos p ON p.id = c.ponto_id
+    JOIN pontos p ON p.id = c.ponto_id AND (p.ativo = 1 OR p.ativo IS NULL)
+    WHERE c.situacao != 'Reservado'
     ORDER BY
         c.ativo DESC,
         COALESCE(NULLIF(TRIM(c.cliente),''), 'ZZZZ') ASC,
@@ -40,7 +42,7 @@ $grupos = [];
 foreach ($rows as $r) {
     $cli  = trim($r['cliente']  ?? '') ?: '— Sem cliente —';
     $camp = trim($r['campanha'] ?? '') ?: '—';
-    $campKey = md5($camp . '|' . $r['situacao'] . '|' . ($r['inicio'] ?? '') . '|' . ($r['fim'] ?? '') . '|' . $r['ativo']);
+    $campKey = md5($cli . '|' . $camp . '|' . $r['situacao'] . '|' . ($r['inicio'] ?? '') . '|' . ($r['fim'] ?? '') . '|' . $r['ativo']);
 
     if (!isset($grupos[$campKey])) {
         $grupos[$campKey] = [
@@ -301,7 +303,7 @@ function diasR($fim) {
         </select>
         <select id="cpFiltroSit" class="cp-sel">
             <option value="">Todas situações</option>
-            <?php foreach(['Ocupado','Reservado','Permuta','Bisemana','Vencido'] as $s): ?>
+            <?php foreach(['Ocupado','Permuta','Bisemana','Vencido'] as $s): ?>
             <option value="<?= $s ?>"><?= $s ?></option>
             <?php endforeach; ?>
         </select>
@@ -376,7 +378,7 @@ function diasR($fim) {
         </div>
 
         <div class="cp-card-footer">
-            <?= $nPain ?> painel<?= $nPain > 1 ? 'is' : '' ?>
+            <?= $nPain ?> ponto<?= $nPain > 1 ? 's' : '' ?>
         </div>
     </div>
     <?php endforeach; ?>

@@ -44,7 +44,18 @@ $sql = "
            COALESCE(
                (SELECT pf.caminho FROM ponto_fotos pf WHERE pf.ponto_id = p.id AND pf.principal = 1 LIMIT 1),
                p.foto
-           ) AS foto
+           ) AS foto,
+           -- Cliente que tem reserva ativa (Reservado ou Ocupado) na campanha
+           (SELECT c.cliente FROM campanhas c
+            WHERE c.ponto_id = p.id AND c.ativo = 1
+              AND c.situacao IN ('Reservado','Ocupado')
+            ORDER BY c.id DESC LIMIT 1
+           ) AS campanha_cliente,
+           (SELECT c.situacao FROM campanhas c
+            WHERE c.ponto_id = p.id AND c.ativo = 1
+              AND c.situacao IN ('Reservado','Ocupado')
+            ORDER BY c.id DESC LIMIT 1
+           ) AS campanha_situacao
     FROM pontos p
     WHERE p.id IN ($placeholders)
       AND (p.ativo = 1 OR p.ativo IS NULL)

@@ -508,30 +508,56 @@ function renderLista() {
         return;
     }
 
+    // Verificar pontos com conflito
+    var conflitos = selecao.filter(function(id) {
+        var p = pontosData[id];
+        return p && (p.campanha_situacao === 'Reservado' || p.campanha_situacao === 'Ocupado' || p.situacao === 'Ocupado');
+    });
+
+    var avisoHtml = '';
+    if (conflitos.length > 0) {
+        avisoHtml = '<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.65rem 1rem;margin-bottom:0.75rem;font-size:0.8rem;color:#92400e;">'
+            + '<strong>⚠️ Atenção:</strong> '
+            + conflitos.length + ' ponto' + (conflitos.length > 1 ? 's' : '')
+            + ' desta seleção já ' + (conflitos.length > 1 ? 'estão' : 'está') + ' ocupado(s) ou reservado(s).'
+            + ' Verifique a disponibilidade antes de enviar ao cliente.'
+            + '</div>';
+    }
+
     var html = '<table class="ps-table"><thead><tr>'
         +'<th class="no-print" style="width:72px"></th>'
         +'<th style="width:50px">Nº</th>'
         +'<th>Logradouro</th>'
         +'<th style="width:160px">Cidade / Região</th>'
-        +'<th style="width:90px">Situação</th>'
+        +'<th style="width:110px">Situação</th>'
         +'<th class="no-print" style="width:44px"></th>'
         +'</tr></thead><tbody>';
     selecao.forEach(function(id) {
         var p = pontosData[id] || { id:id, numero:'#'+id, logradouro:'Carregando...', cidade:'', regiao:'', situacao:'', foto:'' };
+        var temConflito = p.campanha_situacao === 'Reservado' || p.campanha_situacao === 'Ocupado' || p.situacao === 'Ocupado';
+        var rowStyle = temConflito ? ' style="background:#fffbeb"' : '';
         var fotoHtml = p.foto
             ? '<div class="ps-thumb" onclick="psAbrirLb(\''+esc(p.foto)+'\')"><img src="/'+esc(p.foto)+'" loading="lazy" onerror="this.parentElement.innerHTML=\'<span class=\\\'ps-thumb-vazio\\\'>📷</span>\'"></div>'
             : '<div class="ps-thumb" style="cursor:default"><span class="ps-thumb-vazio">📷</span></div>';
-        html += '<tr>';
+        var conflictoInfo = '';
+        if (p.campanha_situacao === 'Reservado' && p.campanha_cliente) {
+            conflictoInfo = '<div style="font-size:0.68rem;color:#92400e;margin-top:2px;">⚠️ Reservado: <strong>'+esc(p.campanha_cliente)+'</strong></div>';
+        } else if (p.campanha_situacao === 'Ocupado' && p.campanha_cliente) {
+            conflictoInfo = '<div style="font-size:0.68rem;color:#991b1b;margin-top:2px;">🔴 Ocupado: <strong>'+esc(p.campanha_cliente)+'</strong></div>';
+        } else if (p.situacao === 'Ocupado') {
+            conflictoInfo = '<div style="font-size:0.68rem;color:#991b1b;margin-top:2px;">🔴 Ponto ocupado</div>';
+        }
+        html += '<tr'+rowStyle+'>';
         html += '<td class="ps-td-foto no-print">'+fotoHtml+'</td>';
         html += '<td class="ps-num">'+esc(p.numero)+'</td>';
-        html += '<td><div class="ps-local">'+esc(p.logradouro)+'</div>'+(p.descricao?'<div class="ps-sub">'+esc(p.descricao)+'</div>':'')+'</td>';
+        html += '<td><div class="ps-local">'+esc(p.logradouro)+'</div>'+(p.descricao?'<div class="ps-sub">'+esc(p.descricao)+'</div>':'')+conflictoInfo+'</td>';
         html += '<td><div>'+esc(p.cidade||'—')+'</div>'+(p.regiao?'<div class="ps-sub">'+esc(p.regiao)+'</div>':'')+'</td>';
         html += '<td>'+badgeSit(p.situacao)+'</td>';
         html += '<td class="no-print" style="text-align:center"><button class="ps-remove" onclick="remover(\''+id+'\')" title="Remover ponto">✕</button></td>';
         html += '</tr>';
     });
     html += '</tbody></table>';
-    lista.innerHTML = html;
+    lista.innerHTML = avisoHtml + html;
 }
 
 function remover(id) {

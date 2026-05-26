@@ -35,7 +35,14 @@ $pontos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
 $regioes    = $pdo->query("SELECT DISTINCT regiao   FROM pontos WHERE regiao   IS NOT NULL AND regiao   != '' AND (ativo=1 OR ativo IS NULL) ORDER BY regiao"  )->fetchAll(PDO::FETCH_COLUMN);
 $cidades    = $pdo->query("SELECT DISTINCT cidade   FROM pontos WHERE cidade   IS NOT NULL AND cidade   != '' AND (ativo=1 OR ativo IS NULL) ORDER BY cidade"  )->fetchAll(PDO::FETCH_COLUMN);
-$clientes   = $pdo->query("SELECT DISTINCT cliente FROM campanhas WHERE cliente IS NOT NULL AND cliente != '' AND ativo=1 ORDER BY cliente")->fetchAll(PDO::FETCH_COLUMN);
+$clientes   = $pdo->query("
+    SELECT DISTINCT COALESCE(c.cliente, p.cliente) AS cliente
+    FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1
+    WHERE (p.ativo = 1 OR p.ativo IS NULL)
+    HAVING cliente IS NOT NULL AND cliente != ''
+    ORDER BY cliente
+")->fetchAll(PDO::FETCH_COLUMN);
 $corredores = $pdo->query("SELECT DISTINCT corredor FROM pontos WHERE corredor IS NOT NULL AND corredor != '' AND (ativo=1 OR ativo IS NULL) ORDER BY corredor")->fetchAll(PDO::FETCH_COLUMN);
 
 // Garante UTF-8 válido em todos os campos antes do json_encode
@@ -477,6 +484,7 @@ function toggleRow(e, id) {
     toggleSel(id);
 }
 function toggleSel(id) {
+    var adicionando = !selecao.has(id);
     if (selecao.has(id)) selecao.delete(id);
     else selecao.add(id);
     localStorage.setItem(CART_KEY, JSON.stringify(Array.from(selecao)));
@@ -487,6 +495,44 @@ function toggleSel(id) {
         if (cb) cb.checked = selecao.has(id);
     }
     atualizarCart();
+
+    // ── Aviso de conflito ao adicionar ponto não-disponível ──
+    if (adicionando) {
+        var ponto = PONTOS.find(function(p){ return String(p.id) === String(id); });
+        if (ponto) {
+            var sit = (ponto.situacao||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+            if (sit === 'ocupado') {
+                mostrarAviso('⚠️ Ponto ' + (ponto.numero||id) + ' está <strong>Ocupado</strong> por ' + esc(ponto.cliente||'outro cliente') + '. Considere remover da seleção.', 'laranja');
+            } else if (sit === 'reservado') {
+                mostrarAviso('⚠️ Ponto ' + (ponto.numero||id) + ' está <strong>Reservado</strong>. Pode haver conflito com outra proposta.', 'laranja');
+            }
+        }
+    }
+}
+
+function mostrarAviso(html, tipo) {
+    var t = document.getElementById('pontoAviso');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'pontoAviso';
+        t.style.cssText = 'position:fixed;bottom:5.5rem;right:1.5rem;z-index:9998;'
+            +'max-width:340px;padding:0.7rem 1rem;border-radius:8px;'
+            +'font-size:0.8rem;font-weight:600;line-height:1.4;'
+            +'box-shadow:0 4px 16px rgba(0,0,0,0.18);'
+            +'transform:translateY(80px);opacity:0;transition:all 0.3s ease;pointer-events:none;';
+        document.body.appendChild(t);
+    }
+    t.innerHTML = html;
+    t.style.background = tipo === 'laranja' ? '#fff3cd' : '#d4edda';
+    t.style.border = tipo === 'laranja' ? '1px solid #ffc107' : '1px solid #28a745';
+    t.style.color = tipo === 'laranja' ? '#856404' : '#155724';
+    t.style.transform = 'translateY(0)';
+    t.style.opacity = '1';
+    clearTimeout(t._tmr);
+    t._tmr = setTimeout(function() {
+        t.style.transform = 'translateY(80px)';
+        t.style.opacity = '0';
+    }, 4500);
 }
 function toggleTodos(marcar) {
     var visiveis = ordenar(filtrar(PONTOS));

@@ -157,6 +157,15 @@ function corSit($sit, $cores) { return $cores[$sit] ?? '#888'; }
             font-size:0.85rem; font-weight:800; text-align:right;
         }
 
+        /* ── Aviso de prazo ── */
+        .aviso-prazo {
+            margin-top:1rem;
+            font-size:0.65rem; color:#999;
+            border-top:1px dashed #ddd;
+            padding-top:0.5rem;
+            line-height:1.6;
+        }
+
         /* ── Rodapé ── */
         .rodape {
             margin-top:2rem; font-size:0.65rem; color:#bbb;
@@ -264,6 +273,12 @@ function corSit($sit, $cores) { return $cores[$sit] ?? '#888'; }
     <?php endforeach; ?>
 
     <div class="total">TOTAL: <?= count($pontos) ?> ponto<?= count($pontos) > 1 ? 's' : '' ?></div>
+
+    <?php $prazo72h = date('d/m/Y \à\s H:i', strtotime('+72 hours')); ?>
+    <div class="aviso-prazo">
+        ⚠ Esta proposta é válida por 72 horas a partir da emissão. Os pontos listados estão reservados até <strong><?= $prazo72h ?></strong>.
+        Após esse prazo, sem confirmação, retornam à disponibilidade e poderão ser negociados com outros clientes.
+    </div>
 
     <div class="rodape">
         <span>Impakto Mídia · impaktomidia.com.br</span>

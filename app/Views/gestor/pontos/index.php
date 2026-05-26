@@ -83,7 +83,7 @@ $clientes = $controller->obterClientesAtivos();
 
         <select name="situacao" onchange="this.form.submit()">
             <option value="">Situação</option>
-            <option value="Disponível" <?= ($filtros['situacao'] ?? '') === 'Disponível' ? 'selected' : '' ?>>Disponível</option>
+            <option value="Disponivel" <?= ($filtros['situacao'] ?? '') === 'Disponivel' ? 'selected' : '' ?>>Disponível</option>
             <option value="Ocupado" <?= ($filtros['situacao'] ?? '') === 'Ocupado' ? 'selected' : '' ?>>Ocupado</option>
             <option value="Reservado" <?= ($filtros['situacao'] ?? '') === 'Reservado' ? 'selected' : '' ?>>Reservado</option>
         </select>

@@ -47,18 +47,38 @@ $stmtReg = $pdo->query("
 ");
 $regioes = $stmtReg->fetchAll(PDO::FETCH_ASSOC);
 
-// ── Vencimentos próximos 30 dias ──────────────────────────────
+// ── Vencimentos próximos 30 dias (campanhas ativas) ──────────
 $stmtVenc = $pdo->query("
-    SELECT id, numero, logradouro, cidade, cliente, fim_contrato,
-           DATEDIFF(fim_contrato, CURDATE()) AS dias_restantes
-    FROM pontos
-    WHERE (ativo=1 OR ativo IS NULL)
-      AND fim_contrato IS NOT NULL AND fim_contrato != ''
-      AND fim_contrato BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+    SELECT p.id, p.numero, p.logradouro, p.cidade,
+           COALESCE(c.cliente, p.cliente) AS cliente,
+           COALESCE(DATE(c.fim), p.fim_contrato) AS fim_contrato,
+           DATEDIFF(COALESCE(DATE(c.fim), p.fim_contrato), CURDATE()) AS dias_restantes
+    FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+    WHERE (p.ativo=1 OR p.ativo IS NULL)
+      AND COALESCE(DATE(c.fim), p.fim_contrato) IS NOT NULL
+      AND COALESCE(DATE(c.fim), p.fim_contrato) != ''
+      AND COALESCE(DATE(c.fim), p.fim_contrato) != '0000-00-00'
+      AND COALESCE(DATE(c.fim), p.fim_contrato) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
     ORDER BY fim_contrato ASC
-    LIMIT 10
+    LIMIT 15
 ");
-$vencimentos = $stmtVenc->fetchAll(PDO::FETCH_ASSOC);
+$vencimentos  = $stmtVenc->fetchAll(PDO::FETCH_ASSOC);
+$venc7dias    = array_filter($vencimentos, function($v) { return (int)$v['dias_restantes'] <= 7; });
+$venc7count   = count($venc7dias);
+
+// ── Reservas pendentes (pre_selecoes aguardando confirmação) ──
+try {
+    $stmtPend = $pdo->query("
+        SELECT id, cliente, agencia, total_pontos, criado_em
+        FROM pre_selecoes
+        WHERE status = 'enviada'
+        ORDER BY criado_em ASC
+    ");
+    $reservasPendentes = $stmtPend->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $reservasPendentes = [];
+}
 
 // ── Reservas recentes ─────────────────────────────────────────
 try {
@@ -202,6 +222,23 @@ $CORES_SIT = [
         .atalho-sub   { font-size:0.68rem; color:var(--color-text-muted); }
 
         .db-empty { padding:1.5rem; text-align:center; color:var(--color-text-muted); font-size:0.82rem; }
+
+        /* ── Banners de alerta urgente ── */
+        .db-alertas { display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.25rem; }
+        .db-alerta-banner {
+            border-radius:9px; padding:0.75rem 1rem;
+            display:flex; align-items:center; gap:0.75rem;
+            font-size:0.82rem; font-weight:600;
+        }
+        .db-alerta-banner a { font-weight:800; text-decoration:underline; }
+        .alerta-urgente { background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; }
+        .alerta-urgente a { color:#7f1d1d; }
+        .alerta-pendente { background:#fffbeb; border:1px solid #fcd34d; color:#92400e; }
+        .alerta-pendente a { color:#78350f; }
+        .alerta-icon { font-size:1.15rem; flex-shrink:0; }
+
+        /* ── KPI: reservas pendentes ── */
+        .kpi-pendente { border-top-color:#d97706; }  .kpi-pendente .kpi-valor { color:#d97706; }
     </style>
 </head>
 <body>
@@ -218,6 +255,33 @@ $CORES_SIT = [
         <h1>Dashboard</h1>
         <p>Visão geral do inventário — atualizado agora</p>
     </div>
+
+    <!-- ── Alertas urgentes ── -->
+    <?php if ($venc7count > 0 || !empty($reservasPendentes)): ?>
+    <div class="db-alertas">
+        <?php if ($venc7count > 0): ?>
+        <div class="db-alerta-banner alerta-urgente">
+            <span class="alerta-icon">🔴</span>
+            <span>
+                <strong><?= $venc7count ?> contrato<?= $venc7count > 1 ? 's' : '' ?></strong>
+                <?= $venc7count > 1 ? 'vencem' : 'vence' ?> nos próximos <strong>7 dias</strong>!
+                <a href="#vencimentos">Ver detalhes ↓</a>
+            </span>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($reservasPendentes)): ?>
+        <?php $nPend = count($reservasPendentes); ?>
+        <div class="db-alerta-banner alerta-pendente">
+            <span class="alerta-icon">⏳</span>
+            <span>
+                <strong><?= $nPend ?> pré-seleção<?= $nPend > 1 ? 'ões' : '' ?></strong>
+                aguardando confirmação do cliente.
+                <a href="/gestor/reservas">Ver reservas →</a>
+            </span>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <!-- ── KPIs ── -->
     <div class="db-kpis">
@@ -241,15 +305,21 @@ $CORES_SIT = [
             <div class="kpi-valor"><?= $reservado ?></div>
             <div class="kpi-sub"><?= $totalPontos > 0 ? round($reservado/$totalPontos*100) : 0 ?>% do total</div>
         </div>
-        <div class="kpi kpi-vencido">
+        <div class="kpi kpi-vencido" style="<?= $venc7count > 0 ? 'border-top-color:#dc3545' : '' ?>">
             <div class="kpi-label">Vencendo em 30d</div>
-            <div class="kpi-valor"><?= count($vencimentos) ?></div>
-            <div class="kpi-sub">contratos a vencer</div>
+            <div class="kpi-valor" style="<?= $venc7count > 0 ? 'color:#dc3545' : '' ?>"><?= count($vencimentos) ?></div>
+            <div class="kpi-sub">
+                <?php if ($venc7count > 0): ?>
+                    <span style="color:#dc3545;font-weight:700"><?= $venc7count ?> urgente<?= $venc7count > 1 ? 's' : '' ?> (≤7d)</span>
+                <?php else: ?>
+                    contratos a vencer
+                <?php endif; ?>
+            </div>
         </div>
-        <div class="kpi kpi-ocup-pct">
-            <div class="kpi-label">Ocupação geral</div>
-            <div class="kpi-valor"><?= $ocupacaoTotal ?>%</div>
-            <div class="kpi-sub">pontos em uso</div>
+        <div class="kpi kpi-pendente">
+            <div class="kpi-label">Aguard. confirmação</div>
+            <div class="kpi-valor"><?= count($reservasPendentes) ?></div>
+            <div class="kpi-sub"><?= count($reservasPendentes) > 0 ? 'pré-seleções enviadas' : 'nenhuma pendente' ?></div>
         </div>
     </div>
 
@@ -311,18 +381,53 @@ $CORES_SIT = [
             </div>
         </div>
 
-        <!-- Reservas recentes -->
+        <!-- Reservas / Pendentes -->
         <div class="db-card">
             <div class="db-card-header">
-                <span class="db-card-title">📋 Reservas Recentes</span>
+                <span class="db-card-title">
+                    📋 Pré-Seleções
+                    <?php if (!empty($reservasPendentes)): ?>
+                    <span style="margin-left:0.4rem;background:#fef3c7;color:#92400e;border-radius:10px;padding:1px 7px;font-size:0.62rem;font-weight:800">
+                        <?= count($reservasPendentes) ?> pendente<?= count($reservasPendentes) > 1 ? 's' : '' ?>
+                    </span>
+                    <?php endif; ?>
+                </span>
                 <a href="/gestor/reservas" class="db-card-link">Ver todas →</a>
             </div>
             <div class="db-card-body">
-                <?php if (empty($reservasRecentes)): ?>
+                <?php if (!empty($reservasPendentes)): ?>
+                <!-- pendentes primeiro, destacadas -->
+                <div style="font-size:0.63rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;padding-bottom:0.3rem;border-bottom:1px dashed #fcd34d;">⏳ Aguardando confirmação</div>
+                <?php foreach ($reservasPendentes as $res): ?>
+                <div class="res-item" style="background:#fffbeb;margin:0 -1rem;padding:0.55rem 1rem;border-bottom:1px solid #fef3c7;">
+                    <div class="res-info">
+                        <div class="res-cli"><?= htmlspecialchars($res['cliente']) ?></div>
+                        <div class="res-sub">
+                            Enviada <?= date('d/m/Y', strtotime($res['criado_em'])) ?>
+                            <?php
+                                $diasEsperando = (int)floor((time() - strtotime($res['criado_em'])) / 86400);
+                            ?>
+                            <?php if ($diasEsperando >= 3): ?>
+                            · <span style="color:#dc3545;font-weight:700"><?= $diasEsperando ?>d aguardando</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="res-pts"><?= $res['total_pontos'] ?> pt<?= $res['total_pontos'] != 1 ? 's' : '' ?></div>
+                    <a href="/gestor/reservas/ver?id=<?= $res['id'] ?>"
+                       style="font-size:0.75rem;font-weight:700;color:var(--color-accent-primary);text-decoration:none">Ver →</a>
+                </div>
+                <?php endforeach; ?>
+                <?php if (!empty($reservasRecentes)): ?>
+                <div style="font-size:0.63rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:0.7rem 0 0.4rem;padding-bottom:0.3rem;border-bottom:1px solid var(--color-border);">Histórico recente</div>
+                <?php endif; ?>
+                <?php endif; ?>
+
+                <?php if (empty($reservasRecentes) && empty($reservasPendentes)): ?>
                 <div class="db-empty">Nenhuma reserva gerada ainda.</div>
                 <?php else: foreach ($reservasRecentes as $res):
                     $status = $res['status'] ?? 'rascunho';
-                    $statusLabel = ['rascunho'=>'Rascunho','enviada'=>'Enviada','aprovada'=>'Aprovada','recusada'=>'Recusada'][$status] ?? $status;
+                    if ($status === 'enviada') continue; // já listadas acima
+                    $statusLabel = ['rascunho'=>'Rascunho','aprovada'=>'Aprovada','recusada'=>'Recusada'][$status] ?? $status;
                 ?>
                 <div class="res-item">
                     <div class="res-info">
@@ -345,9 +450,17 @@ $CORES_SIT = [
 
     <!-- ── Vencimentos próximos ── -->
     <?php if (!empty($vencimentos)): ?>
-    <div class="db-card">
+    <div class="db-card" id="vencimentos">
         <div class="db-card-header">
-            <span class="db-card-title">⚠️ Contratos vencendo nos próximos 30 dias</span>
+            <span class="db-card-title">
+                <?= $venc7count > 0 ? '🔴' : '⚠️' ?>
+                Contratos vencendo nos próximos 30 dias
+                <?php if ($venc7count > 0): ?>
+                    <span style="margin-left:0.5rem;background:#fee2e2;color:#991b1b;border-radius:10px;padding:1px 8px;font-size:0.68rem;font-weight:800">
+                        <?= $venc7count ?> URGENTE<?= $venc7count > 1 ? 'S' : '' ?>
+                    </span>
+                <?php endif; ?>
+            </span>
             <a href="/gestor/pontos?situacao=Ocupado" class="db-card-link">Ver pontos →</a>
         </div>
         <table class="venc-table">
@@ -366,15 +479,10 @@ $CORES_SIT = [
                 $dias = (int)$v['dias_restantes'];
                 $cls  = $dias <= 7 ? 'dias-urgente' : ($dias <= 15 ? 'dias-atencao' : 'dias-ok');
             ?>
-            <tr>
+            <tr <?= $dias <= 7 ? 'style="background:#fff8f8"' : '' ?>>
                 <td><a href="/gestor/pontos/detalhes?id=<?= $v['id'] ?>"
                        class="venc-num" style="text-decoration:none"><?= htmlspecialchars($v['numero']) ?></a></td>
-                <td>
-                    <?= htmlspecialchars($v['logradouro']) ?>
-                    <?php if ($v['cliente']): ?>
-                    <div class="venc-cli"><?= htmlspecialchars($v['cliente']) ?></div>
-                    <?php endif; ?>
-                </td>
+                <td><?= htmlspecialchars($v['logradouro']) ?></td>
                 <td><?= htmlspecialchars($v['cidade'] ?? '—') ?></td>
                 <td><?= htmlspecialchars($v['cliente'] ?? '—') ?></td>
                 <td><?= date('d/m/Y', strtotime($v['fim_contrato'])) ?></td>
@@ -394,6 +502,7 @@ $CORES_SIT = [
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Remove parâmetro logado da URL após 3s
     if (window.location.search.includes('logado=1')) {
         setTimeout(function() {
             var url = new URL(window.location);
@@ -401,6 +510,17 @@ document.addEventListener('DOMContentLoaded', function() {
             window.history.replaceState({}, '', url);
         }, 3000);
     }
+
+    // Scroll suave para âncoras internas
+    document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+            var target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
 });
 </script>
 
