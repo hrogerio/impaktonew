@@ -277,6 +277,14 @@ $recentes = $pdo->query(
                 <option value="<?= htmlspecialchars($c) ?>"><?= htmlspecialchars($c) ?></option>
                 <?php endforeach; ?>
             </select>
+            <select class="filtro-select" id="filtroVencimento">
+                <option value="">Todos os prazos</option>
+                <option value="7">⚠️ Vencendo em 7 dias</option>
+                <option value="15">Vencendo em 15 dias</option>
+                <option value="30">Vencendo em 30 dias</option>
+                <option value="vencido">🔴 Já vencidos</option>
+                <option value="sem_prazo">Sem prazo definido</option>
+            </select>
             <button class="btn-limpar-filtros" id="btnLimpar">✕ Limpar filtros</button>
         </div>
         <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.3rem;">
@@ -327,7 +335,7 @@ if (!Array.isArray(PONTOS)) PONTOS = [];
 var CART_KEY = 'impakto_cart';
 var selecao  = new Set(JSON.parse(localStorage.getItem(CART_KEY) || '[]'));
 var sortCol  = 'numero', sortDir = 'asc';
-var filtros  = { busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'' };
+var filtros  = { busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', vencimento:'' };
 var pontosMap = {};
 PONTOS.forEach(function(p) { pontosMap[String(p.id)] = p; });
 
@@ -377,6 +385,19 @@ function filtrar(lista) {
         if (filtros.cliente  && (p.cliente ||'').trim() !== filtros.cliente)  return false;
         if (filtros.situacao && (p.situacao||'').trim() !== filtros.situacao) return false;
         if (filtros.corredor && (p.corredor||'').trim() !== filtros.corredor) return false;
+        if (filtros.vencimento) {
+            var hoje = new Date(); hoje.setHours(0,0,0,0);
+            var fim  = p.fim_contrato ? new Date(p.fim_contrato) : null;
+            if (filtros.vencimento === 'sem_prazo') {
+                if (fim) return false;
+            } else if (filtros.vencimento === 'vencido') {
+                if (!fim || fim >= hoje) return false;
+            } else {
+                var dias = parseInt(filtros.vencimento, 10);
+                var limite = new Date(hoje); limite.setDate(hoje.getDate() + dias);
+                if (!fim || fim < hoje || fim > limite) return false;
+            }
+        }
         if (busca) {
             var campos = [p.numero,p.logradouro,p.descricao,p.cidade,p.regiao,p.cliente,p.agencia,p.corredor];
             return campos.some(function(c){ return normalizar(c).indexOf(busca) !== -1; });
@@ -577,7 +598,7 @@ document.getElementById('searchClear').addEventListener('click', function() {
     document.getElementById('searchInput').focus();
 });
 
-var mapaFiltros = { filtroRegiao:'regiao', filtroCidade:'cidade', filtroCliente:'cliente', filtroSituacao:'situacao', filtroCorredor:'corredor' };
+var mapaFiltros = { filtroRegiao:'regiao', filtroCidade:'cidade', filtroCliente:'cliente', filtroSituacao:'situacao', filtroCorredor:'corredor', filtroVencimento:'vencimento' };
 Object.keys(mapaFiltros).forEach(function(id) {
     document.getElementById(id).addEventListener('change', function() {
         filtros[mapaFiltros[id]] = this.value;
@@ -586,7 +607,7 @@ Object.keys(mapaFiltros).forEach(function(id) {
     });
 });
 document.getElementById('btnLimpar').addEventListener('click', function() {
-    filtros = { busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'' };
+    filtros = { busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', vencimento:'' };
     document.getElementById('searchInput').value = '';
     document.getElementById('searchClear').className = 'search-clear';
     Object.keys(mapaFiltros).forEach(function(id) {
