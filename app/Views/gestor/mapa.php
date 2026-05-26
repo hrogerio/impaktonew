@@ -17,7 +17,8 @@ try {
 // Pontos com coordenadas cadastradas
 $pontos = $pdo->query("
     SELECT p.id, p.numero, p.logradouro, p.bairro, p.cidade, p.regiao,
-           p.tipo, p.situacao, p.formato, p.cliente,
+           p.tipo, p.situacao, p.formato,
+           COALESCE(c.cliente, p.cliente) AS cliente,
            p.latitude  + 0 AS latitude,
            p.longitude + 0 AS longitude,
            COALESCE(
@@ -25,6 +26,7 @@ $pontos = $pdo->query("
                p.foto
            ) AS foto
     FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE (p.ativo = 1 OR p.ativo IS NULL)
       AND p.latitude  IS NOT NULL AND p.latitude  != 0
       AND p.longitude IS NOT NULL AND p.longitude != 0
@@ -54,9 +56,13 @@ $tipos = $pdo->query("
 ")->fetchAll(PDO::FETCH_COLUMN);
 
 $clientes = $pdo->query("
-    SELECT DISTINCT cliente FROM pontos
-    WHERE (ativo=1 OR ativo IS NULL) AND latitude IS NOT NULL AND latitude != 0
-      AND cliente IS NOT NULL AND cliente != ''
+    SELECT DISTINCT COALESCE(c.cliente, p.cliente) AS cliente
+    FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+    WHERE (p.ativo=1 OR p.ativo IS NULL)
+      AND p.latitude IS NOT NULL AND p.latitude != 0
+      AND COALESCE(c.cliente, p.cliente) IS NOT NULL
+      AND COALESCE(c.cliente, p.cliente) != ''
     ORDER BY cliente
 ")->fetchAll(PDO::FETCH_COLUMN);
 

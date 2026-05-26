@@ -88,16 +88,19 @@ if ($periodoMeses === '15d') {
 
 $sqlContratosVencendo = "
     SELECT
-        numero, logradouro, cidade, regiao, cliente, agencia, contato, tipo, situacao,
-        DATE(fim_contrato) AS fim_contrato,
-        DATEDIFF(fim_contrato, CURDATE()) AS dias_restantes
-    FROM pontos
+        p.numero, p.logradouro, p.cidade, p.regiao, p.contato, p.tipo, p.situacao,
+        COALESCE(c.cliente, p.cliente) AS cliente,
+        COALESCE(c.agencia, p.agencia) AS agencia,
+        COALESCE(DATE(c.fim), DATE(p.fim_contrato)) AS fim_contrato,
+        DATEDIFF(COALESCE(DATE(c.fim), DATE(p.fim_contrato)), CURDATE()) AS dias_restantes
+    FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE
-        fim_contrato IS NOT NULL
-        AND fim_contrato != '0000-00-00'
-        AND fim_contrato >= CURDATE()
-        AND fim_contrato <= DATE_ADD(CURDATE(), $intervalSQL)
-        AND (ativo = 1 OR ativo IS NULL)
+        COALESCE(DATE(c.fim), DATE(p.fim_contrato)) IS NOT NULL
+        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) != '0000-00-00'
+        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) >= CURDATE()
+        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) <= DATE_ADD(CURDATE(), $intervalSQL)
+        AND (p.ativo = 1 OR p.ativo IS NULL)
     ORDER BY fim_contrato ASC
 ";
 $contratosVencendo = $pdo->query($sqlContratosVencendo)->fetchAll(PDO::FETCH_ASSOC);
@@ -105,15 +108,18 @@ $contratosVencendo = $pdo->query($sqlContratosVencendo)->fetchAll(PDO::FETCH_ASS
 // TODOS os contratos vencidos, sem LIMIT
 $sqlVencidos = "
     SELECT
-        numero, logradouro, cidade, regiao, cliente, agencia, contato,
-        DATE(fim_contrato) AS fim_contrato,
-        DATEDIFF(CURDATE(), fim_contrato) AS dias_vencido
-    FROM pontos
+        p.numero, p.logradouro, p.cidade, p.regiao, p.contato,
+        COALESCE(c.cliente, p.cliente) AS cliente,
+        COALESCE(c.agencia, p.agencia) AS agencia,
+        COALESCE(DATE(c.fim), DATE(p.fim_contrato)) AS fim_contrato,
+        DATEDIFF(CURDATE(), COALESCE(DATE(c.fim), DATE(p.fim_contrato))) AS dias_vencido
+    FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE
-        fim_contrato IS NOT NULL
-        AND fim_contrato != '0000-00-00'
-        AND fim_contrato < CURDATE()
-        AND (ativo = 1 OR ativo IS NULL)
+        COALESCE(DATE(c.fim), DATE(p.fim_contrato)) IS NOT NULL
+        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) != '0000-00-00'
+        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) < CURDATE()
+        AND (p.ativo = 1 OR p.ativo IS NULL)
     ORDER BY fim_contrato DESC
 ";
 $contratosVencidos = $pdo->query($sqlVencidos)->fetchAll(PDO::FETCH_ASSOC);
@@ -134,25 +140,30 @@ ksort($vencendoPorMes);
 // ============================================================
 $sqlClientes = "
     SELECT
-        TRIM(cliente) AS cliente,
+        TRIM(COALESCE(c.cliente, p.cliente)) AS cliente,
         CASE
-            WHEN agencia IS NULL OR TRIM(agencia) = '' OR TRIM(agencia) = '-'
+            WHEN COALESCE(NULLIF(TRIM(c.agencia),''), NULLIF(TRIM(p.agencia),'')) IS NULL
+              OR COALESCE(NULLIF(TRIM(c.agencia),''), NULLIF(TRIM(p.agencia),'')) = '-'
             THEN 'Cliente direto'
-            ELSE TRIM(agencia)
+            ELSE TRIM(COALESCE(c.agencia, p.agencia))
         END AS agencia,
         COUNT(*) AS total_pontos,
-        SUM(CASE WHEN LOWER(situacao) = 'ocupado' THEN 1 ELSE 0 END) AS ocupados,
-        MIN(DATE(inicio_contrato)) AS inicio_mais_antigo,
-        MAX(DATE(fim_contrato)) AS fim_mais_recente
-    FROM pontos
+        SUM(CASE WHEN LOWER(p.situacao) = 'ocupado' THEN 1 ELSE 0 END) AS ocupados,
+        MIN(COALESCE(DATE(c.inicio), DATE(p.inicio_contrato))) AS inicio_mais_antigo,
+        MAX(COALESCE(DATE(c.fim), DATE(p.fim_contrato))) AS fim_mais_recente
+    FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE
-        cliente IS NOT NULL AND TRIM(cliente) != '' AND TRIM(cliente) != '-'
-        AND (ativo = 1 OR ativo IS NULL)
-    GROUP BY TRIM(cliente),
+        COALESCE(NULLIF(TRIM(c.cliente),''), NULLIF(TRIM(p.cliente),'')) IS NOT NULL
+        AND COALESCE(NULLIF(TRIM(c.cliente),''), NULLIF(TRIM(p.cliente),'')) != '-'
+        AND (p.ativo = 1 OR p.ativo IS NULL)
+    GROUP BY
+        TRIM(COALESCE(c.cliente, p.cliente)),
         CASE
-            WHEN agencia IS NULL OR TRIM(agencia) = '' OR TRIM(agencia) = '-'
+            WHEN COALESCE(NULLIF(TRIM(c.agencia),''), NULLIF(TRIM(p.agencia),'')) IS NULL
+              OR COALESCE(NULLIF(TRIM(c.agencia),''), NULLIF(TRIM(p.agencia),'')) = '-'
             THEN 'Cliente direto'
-            ELSE TRIM(agencia)
+            ELSE TRIM(COALESCE(c.agencia, p.agencia))
         END
     ORDER BY cliente ASC, agencia ASC
 ";
@@ -162,21 +173,25 @@ $clientesData = $pdo->query($sqlClientes)->fetchAll(PDO::FETCH_ASSOC);
 $sqlAgencias = "
     SELECT
         CASE
-            WHEN agencia IS NULL OR TRIM(agencia) = '' OR TRIM(agencia) = '-'
+            WHEN COALESCE(NULLIF(TRIM(c.agencia),''), NULLIF(TRIM(p.agencia),'')) IS NULL
+              OR COALESCE(NULLIF(TRIM(c.agencia),''), NULLIF(TRIM(p.agencia),'')) = '-'
             THEN 'Cliente direto'
-            ELSE TRIM(agencia)
+            ELSE TRIM(COALESCE(c.agencia, p.agencia))
         END AS agencia,
-        COUNT(DISTINCT NULLIF(TRIM(cliente),'')) AS total_clientes,
+        COUNT(DISTINCT NULLIF(TRIM(COALESCE(c.cliente, p.cliente)),'')) AS total_clientes,
         COUNT(*) AS total_pontos
-    FROM pontos
+    FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE
-        cliente IS NOT NULL AND TRIM(cliente) != '' AND TRIM(cliente) != '-'
-        AND (ativo = 1 OR ativo IS NULL)
+        COALESCE(NULLIF(TRIM(c.cliente),''), NULLIF(TRIM(p.cliente),'')) IS NOT NULL
+        AND COALESCE(NULLIF(TRIM(c.cliente),''), NULLIF(TRIM(p.cliente),'')) != '-'
+        AND (p.ativo = 1 OR p.ativo IS NULL)
     GROUP BY
         CASE
-            WHEN agencia IS NULL OR TRIM(agencia) = '' OR TRIM(agencia) = '-'
+            WHEN COALESCE(NULLIF(TRIM(c.agencia),''), NULLIF(TRIM(p.agencia),'')) IS NULL
+              OR COALESCE(NULLIF(TRIM(c.agencia),''), NULLIF(TRIM(p.agencia),'')) = '-'
             THEN 'Cliente direto'
-            ELSE TRIM(agencia)
+            ELSE TRIM(COALESCE(c.agencia, p.agencia))
         END
     ORDER BY total_pontos DESC
 ";

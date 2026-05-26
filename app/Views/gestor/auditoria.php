@@ -37,25 +37,31 @@ $semCoord = $pdo->query("
     ORDER BY numero ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-// ── Sem cliente (disponíveis sem histórico) ───────────────────
+// ── Sem cliente (nem pontos nem campanha ativa têm cliente) ──
 $semCliente = $pdo->query("
-    SELECT id, numero, logradouro, cidade, situacao, fim_contrato
-    FROM pontos
-    WHERE (ativo=1 OR ativo IS NULL)
-      AND (cliente IS NULL OR TRIM(cliente)='' OR TRIM(cliente)='-')
-    ORDER BY numero ASC
+    SELECT p.id, p.numero, p.logradouro, p.cidade, p.situacao,
+           COALESCE(DATE(c.fim), DATE(p.fim_contrato)) AS fim_contrato
+    FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1
+    WHERE (p.ativo=1 OR p.ativo IS NULL)
+      AND COALESCE(NULLIF(TRIM(c.cliente),''), NULLIF(TRIM(p.cliente),'')) IS NULL
+    GROUP BY p.id
+    ORDER BY p.numero ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 // ── Contratos vencidos sem atualização de situação ────────────
 $vencidosSemAtualizar = $pdo->query("
-    SELECT id, numero, logradouro, cidade, cliente, situacao,
-           DATE(fim_contrato) AS fim_contrato,
-           DATEDIFF(CURDATE(), fim_contrato) AS dias_vencido
-    FROM pontos
-    WHERE (ativo=1 OR ativo IS NULL)
-      AND fim_contrato IS NOT NULL AND fim_contrato != '0000-00-00'
-      AND fim_contrato < CURDATE()
-      AND LOWER(situacao) NOT IN ('disponivel','disponível','vencido')
+    SELECT p.id, p.numero, p.logradouro, p.cidade, p.situacao,
+           COALESCE(c.cliente, p.cliente) AS cliente,
+           COALESCE(DATE(c.fim), DATE(p.fim_contrato)) AS fim_contrato,
+           DATEDIFF(CURDATE(), COALESCE(DATE(c.fim), DATE(p.fim_contrato))) AS dias_vencido
+    FROM pontos p
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+    WHERE (p.ativo=1 OR p.ativo IS NULL)
+      AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) IS NOT NULL
+      AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) != '0000-00-00'
+      AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) < CURDATE()
+      AND LOWER(p.situacao) NOT IN ('disponivel','disponível','vencido')
     ORDER BY fim_contrato ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
