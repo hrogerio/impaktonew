@@ -96,7 +96,8 @@ $sqlContratosVencendo = "
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE
-        COALESCE(DATE(c.fim), DATE(p.fim_contrato)) IS NOT NULL
+        p.situacao NOT IN ('Disponivel','Disponível')
+        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) IS NOT NULL
         AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) != '0000-00-00'
         AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) >= CURDATE()
         AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) <= DATE_ADD(CURDATE(), $intervalSQL)
@@ -116,7 +117,8 @@ $sqlVencidos = "
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE
-        COALESCE(DATE(c.fim), DATE(p.fim_contrato)) IS NOT NULL
+        p.situacao NOT IN ('Disponivel','Disponível')
+        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) IS NOT NULL
         AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) != '0000-00-00'
         AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) < CURDATE()
         AND (p.ativo = 1 OR p.ativo IS NULL)

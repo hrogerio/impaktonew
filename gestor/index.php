@@ -56,6 +56,7 @@ $stmtVenc = $pdo->query("
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE (p.ativo=1 OR p.ativo IS NULL)
+      AND p.situacao NOT IN ('Disponivel','Disponível')
       AND COALESCE(DATE(c.fim), p.fim_contrato) IS NOT NULL
       AND COALESCE(DATE(c.fim), p.fim_contrato) != ''
       AND COALESCE(DATE(c.fim), p.fim_contrato) != '0000-00-00'
