@@ -23,21 +23,25 @@ try {
         WHERE c.ativo = 1 AND c.situacao = 'Ocupado'
           AND c.fim IS NOT NULL AND DATE(c.fim) < CURDATE()
     ");
-    $paraProcessar = $stVenc->fetchAll(PDO::FETCH_ASSOC);
-    if ($paraProcessar) {
-        $pdo->beginTransaction();
-        foreach ($paraProcessar as $v) {
-            $pdo->prepare("UPDATE campanhas SET ativo=0, encerrado_em=NOW() WHERE id=?")
-                ->execute([$v['camp_id']]);
-            $pdo->prepare("UPDATE pontos SET situacao='Disponivel' WHERE id=?")
-                ->execute([$v['ponto_id']]);
+    $paraProcessar = $stVenc ? $stVenc->fetchAll(PDO::FETCH_ASSOC) : [];
+    if (!empty($paraProcessar)) {
+        try {
+            $pdo->beginTransaction();
+            foreach ($paraProcessar as $v) {
+                $pdo->prepare("UPDATE campanhas SET ativo=0, encerrado_em=NOW() WHERE id=?")
+                    ->execute([$v['camp_id']]);
+                $pdo->prepare("UPDATE pontos SET situacao='Disponivel' WHERE id=?")
+                    ->execute([$v['ponto_id']]);
+            }
+            $pdo->commit();
+            $autoProcessados = count($paraProcessar);
+        } catch (Exception $e) {
+            try { $pdo->rollBack(); } catch(Exception $ex) {}
+            error_log("dashboard auto-processar vencidos (tx): " . $e->getMessage());
         }
-        $pdo->commit();
-        $autoProcessados = count($paraProcessar);
     }
-} catch (PDOException $e) {
-    try { $pdo->rollBack(); } catch(Exception $ex) {}
-    error_log("dashboard auto-processar vencidos: " . $e->getMessage());
+} catch (Exception $e) {
+    error_log("dashboard auto-processar vencidos (query): " . $e->getMessage());
 }
 
 // ── Totais por situação ───────────────────────────────────────
