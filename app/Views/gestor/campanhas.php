@@ -477,8 +477,8 @@ function diasR($fim) {
 
         <div class="cp-card-footer">
             <span><?= $nPain ?> ponto<?= $nPain > 1 ? 's' : '' ?></span>
-            <?php if ($g['ativo']): ?>
             <div class="cp-acoes">
+            <?php if ($g['ativo']): ?>
                 <?php if ($isVencida): ?>
                 <button class="cp-btn cp-btn-renovar"
                         onclick="abrirRenovacao(this.closest('.cp-card'))"
@@ -491,8 +491,12 @@ function diasR($fim) {
                 <button class="cp-btn cp-btn-encerrar"
                         onclick="encerrarGrupo(this.closest('.cp-card'), this)"
                         title="Encerrar campanha e liberar pontos">🔒 Encerrar</button>
-            </div>
+            <?php else: ?>
+                <button class="cp-btn cp-btn-renovar"
+                        onclick="abrirRenovacao(this.closest('.cp-card'))"
+                        title="Criar nova campanha com estes dados">🔄 Renovar</button>
             <?php endif; ?>
+            </div>
         </div>
     </div>
     <?php endforeach; ?>
