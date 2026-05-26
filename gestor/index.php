@@ -14,6 +14,32 @@ try {
     die("Erro na conexão com o banco de dados.");
 }
 
+// ── Auto-processar contratos vencidos (silencioso) ────────────
+$autoProcessados = 0;
+try {
+    $stVenc = $pdo->query("
+        SELECT c.id AS camp_id, c.ponto_id
+        FROM campanhas c
+        WHERE c.ativo = 1 AND c.situacao = 'Ocupado'
+          AND c.fim IS NOT NULL AND DATE(c.fim) < CURDATE()
+    ");
+    $paraProcessar = $stVenc->fetchAll(PDO::FETCH_ASSOC);
+    if ($paraProcessar) {
+        $pdo->beginTransaction();
+        foreach ($paraProcessar as $v) {
+            $pdo->prepare("UPDATE campanhas SET ativo=0, encerrado_em=NOW() WHERE id=?")
+                ->execute([$v['camp_id']]);
+            $pdo->prepare("UPDATE pontos SET situacao='Disponivel' WHERE id=?")
+                ->execute([$v['ponto_id']]);
+        }
+        $pdo->commit();
+        $autoProcessados = count($paraProcessar);
+    }
+} catch (PDOException $e) {
+    try { $pdo->rollBack(); } catch(Exception $ex) {}
+    error_log("dashboard auto-processar vencidos: " . $e->getMessage());
+}
+
 // ── Totais por situação ───────────────────────────────────────
 $stmtSit = $pdo->query("
     SELECT situacao, COUNT(*) as n
@@ -250,6 +276,13 @@ $CORES_SIT = [
 
     <?php if ($loginSucesso): ?>
     <div class="db-alert">✅ Login realizado com sucesso! Bem-vindo ao sistema de gestão.</div>
+    <?php endif; ?>
+
+    <?php if ($autoProcessados > 0): ?>
+    <div class="db-alert" style="background:#f0fdf4;border-color:#86efac;color:#166534">
+        🔓 <strong><?= $autoProcessados ?> contrato<?= $autoProcessados > 1 ? 's' : '' ?> vencido<?= $autoProcessados > 1 ? 's' : '' ?></strong>
+        <?= $autoProcessados > 1 ? 'foram liberados' : 'foi liberado' ?> automaticamente — pontos voltaram a ficar Disponíveis.
+    </div>
     <?php endif; ?>
 
     <div class="db-header">

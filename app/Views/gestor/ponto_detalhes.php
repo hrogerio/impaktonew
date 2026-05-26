@@ -97,6 +97,13 @@ $sitLabel = $SITUACOES[$sit]['label']   ?? $sit;
 
 $paginaAtual = 'pontos'; // nav active
 $numFmt = str_pad($ponto['numero'] ?? '', 3, '0', STR_PAD_LEFT);
+
+// Detecta se campanha ativa está vencida
+$campVencida = $campAtiva && !empty($campAtiva['fim'])
+    && $campAtiva['fim'] !== '0000-00-00'
+    && substr($campAtiva['fim'], 0, 10) < date('Y-m-d');
+// Override visual: mostrar como Vencido se contrato passou
+if ($campVencida) { $sitCor = '#6c757d'; $sitLabel = 'Vencido'; }
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -220,9 +227,14 @@ $numFmt = str_pad($ponto['numero'] ?? '', 3, '0', STR_PAD_LEFT);
                 <?php if (!$campAtiva): ?>
                 <button class="det-btn-nova-camp" onclick="abrirFormCamp(null)">+ Registrar</button>
                 <?php else: ?>
-                <div style="margin-left:auto;display:flex;gap:0.4rem">
+                <div style="margin-left:auto;display:flex;gap:0.4rem;align-items:center">
+                    <?php if ($campVencida): ?>
+                    <span style="background:#fee2e2;color:#991b1b;font-size:0.6rem;font-weight:800;padding:2px 7px;border-radius:8px;text-transform:uppercase">Vencida</span>
+                    <button class="det-btn-edit-camp" style="background:#f0fdf4;color:#166534;border-color:#86efac" onclick="abrirRenovar()" title="Renovar contrato com novas datas">🔄 Renovar</button>
+                    <?php else: ?>
                     <button class="det-btn-edit-camp" onclick="abrirFormCamp(<?= $campAtiva['id'] ?>)">✏️</button>
-                    <button class="det-btn-end-camp"  onclick="encerrarCampanha()">⏹ Encerrar</button>
+                    <?php endif; ?>
+                    <button class="det-btn-end-camp" onclick="encerrarCampanha()">⏹ Encerrar</button>
                 </div>
                 <?php endif; ?>
             </div>
@@ -563,6 +575,18 @@ function salvarCampanha() {
         }
     })
     .catch(function() { alert('Erro de comunicação.'); });
+}
+function abrirRenovar() {
+    // Abre o form de nova campanha pré-preenchido com os dados do cliente atual
+    document.getElementById('fCampId').value   = '0';          // 0 = nova campanha
+    // Mantém cliente/agência/nome/situação/contato já preenchidos pelo PHP
+    // Limpa apenas as datas para forçar nova escolha
+    document.getElementById('fInicio').value = '';
+    document.getElementById('fFim').value    = '';
+    document.getElementById('formCampWrap').style.display = 'block';
+    document.getElementById('formCampWrap').scrollIntoView({ behavior:'smooth', block:'nearest' });
+    // Destaca os campos de data
+    setTimeout(function() { document.getElementById('fInicio').focus(); }, 300);
 }
 function encerrarCampanha() {
     if (!confirm('Encerrar campanha atual e marcar ponto como Disponível?')) return;

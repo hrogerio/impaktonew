@@ -73,6 +73,13 @@ foreach ($grupos as $g) {
 ksort($listaClientes);
 $listaClientes = array_keys($listaClientes);
 
+// Hoje para detectar grupos vencidos
+$hoje = date('Y-m-d');
+$totalVencidos = 0;
+foreach ($grupos as $g) {
+    if ($g['ativo'] && $g['fim'] && substr($g['fim'], 0, 10) < $hoje) $totalVencidos++;
+}
+
 $CORES = [
     'Ocupado'   => '#dc3545', 'Reservado' => '#fd7e14',
     'Permuta'   => '#51086e', 'Bisemana'  => '#0284c7',
@@ -165,6 +172,7 @@ function diasR($fim) {
         }
         .cp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
         .cp-card.encerrada { opacity: 0.65; }
+        .cp-card.vencida   { border-color: #fca5a5; box-shadow: 0 0 0 2px #fee2e2; }
 
         /* Faixa colorida topo */
         .cp-card-faixa {
@@ -247,8 +255,10 @@ function diasR($fim) {
             transition:all 0.15s; white-space:nowrap; text-decoration:none;
             display:inline-flex; align-items:center; gap:0.25rem;
         }
-        .cp-btn-editar { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
-        .cp-btn-editar:hover { background:#dbeafe; }
+        .cp-btn-editar  { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+        .cp-btn-editar:hover  { background:#dbeafe; }
+        .cp-btn-renovar { background:#f0fdf4; color:#166534; border:1px solid #86efac; }
+        .cp-btn-renovar:hover { background:#dcfce7; }
         .cp-btn-encerrar { background:#fff1f0; color:#c0392b; border:1px solid #fca5a5; }
         .cp-btn-encerrar:hover { background:#fee2e2; }
 
@@ -321,6 +331,21 @@ function diasR($fim) {
         </span>
     </div>
 
+    <!-- ── Alerta de vencidos ── -->
+    <?php if ($totalVencidos > 0): ?>
+    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:0.75rem 1rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <span style="font-size:0.85rem;color:#991b1b;font-weight:700">
+            🔴 <strong><?= $totalVencidos ?> campanha<?= $totalVencidos > 1 ? 's' : '' ?></strong>
+            com contrato vencido ainda marcada<?= $totalVencidos > 1 ? 's' : '' ?> como ativa<?= $totalVencidos > 1 ? 's' : '' ?>.
+            Renove ou libere os pontos.
+        </span>
+        <button onclick="liberarTodosVencidos(this)"
+                style="background:#dc3545;color:white;border:none;border-radius:7px;padding:0.4rem 1rem;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:'Montserrat',sans-serif;white-space:nowrap">
+            ⚡ Liberar todos (<?= $totalVencidos ?>)
+        </button>
+    </div>
+    <?php endif; ?>
+
     <!-- ── KPIs ── -->
     <div class="cp-kpis">
         <div class="cp-kpi">
@@ -390,18 +415,20 @@ function diasR($fim) {
     <?php
         $campIds  = array_column($g['rows'], 'id');
         $pontoIds = array_column($g['rows'], 'ponto_id');
+        $isVencida = $g['ativo'] && $g['fim'] && substr($g['fim'], 0, 10) < $hoje;
         $dataCard = htmlspecialchars(json_encode([
-            'campIds'  => $campIds,
-            'pontoIds' => $pontoIds,
-            'cliente'  => $g['cliente'],
-            'agencia'  => $g['agencia'],
-            'nome'     => $g['nome'],
-            'situacao' => $g['situacao'],
-            'inicio'   => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
-            'fim'      => $g['fim']    ? substr($g['fim'],    0, 10) : '',
+            'campIds'   => $campIds,
+            'pontoIds'  => $pontoIds,
+            'cliente'   => $g['cliente'],
+            'agencia'   => $g['agencia'],
+            'nome'      => $g['nome'],
+            'situacao'  => $g['situacao'],
+            'inicio'    => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
+            'fim'       => $g['fim']    ? substr($g['fim'],    0, 10) : '',
+            'isVencida' => (bool)$isVencida,
         ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
     ?>
-    <div class="cp-card <?= !$g['ativo'] ? 'encerrada' : '' ?>"
+    <div class="cp-card <?= !$g['ativo'] ? 'encerrada' : ($isVencida ? 'vencida' : '') ?>"
          data-busca="<?= htmlspecialchars($buscaStr) ?>"
          data-situacao="<?= htmlspecialchars($g['situacao']) ?>"
          data-status="<?= $g['ativo'] ?>"
@@ -452,9 +479,15 @@ function diasR($fim) {
             <span><?= $nPain ?> ponto<?= $nPain > 1 ? 's' : '' ?></span>
             <?php if ($g['ativo']): ?>
             <div class="cp-acoes">
+                <?php if ($isVencida): ?>
+                <button class="cp-btn cp-btn-renovar"
+                        onclick="abrirRenovacao(this.closest('.cp-card'))"
+                        title="Renovar contrato com novas datas">🔄 Renovar</button>
+                <?php else: ?>
                 <button class="cp-btn cp-btn-editar"
                         onclick="abrirEdicao(this.closest('.cp-card'))"
                         title="Editar datas e dados da campanha">✏️ Editar</button>
+                <?php endif; ?>
                 <button class="cp-btn cp-btn-encerrar"
                         onclick="encerrarGrupo(this.closest('.cp-card'), this)"
                         title="Encerrar campanha e liberar pontos">🔒 Encerrar</button>
@@ -469,6 +502,35 @@ function diasR($fim) {
         Nenhuma campanha encontrada para os filtros aplicados.
     </div>
 
+</div>
+
+<!-- ── Modal de renovação de campanha ── -->
+<div class="cp-modal-overlay" id="cpRenovarOverlay">
+    <div class="cp-modal">
+        <div class="cp-modal-title">🔄 Renovar Campanha</div>
+        <div style="font-size:0.85rem;font-weight:700;color:var(--color-text-dark);margin-bottom:0.15rem" id="cpRenovarCliente"></div>
+        <div class="cp-modal-sub" id="cpRenovarSub"></div>
+
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:0.6rem 0.85rem;margin-bottom:1rem;font-size:0.78rem;color:#166534;font-weight:600">
+            ✅ Cliente, agência e nome da campanha serão mantidos. Informe apenas as novas datas.
+        </div>
+
+        <div class="cp-modal-row">
+            <div class="cp-modal-field">
+                <label class="cp-modal-label">Novo início</label>
+                <input type="date" id="cpRenovarInicio" class="cp-modal-input">
+            </div>
+            <div class="cp-modal-field">
+                <label class="cp-modal-label">Novo fim do contrato *</label>
+                <input type="date" id="cpRenovarFim" class="cp-modal-input">
+            </div>
+        </div>
+
+        <div class="cp-modal-actions">
+            <button class="cp-btn-cancelar" onclick="document.getElementById('cpRenovarOverlay').classList.remove('aberto')">Cancelar</button>
+            <button class="cp-btn-salvar" id="cpBtnRenovar" onclick="salvarRenovacao()" style="background:#1a9059">🔄 Renovar contrato</button>
+        </div>
+    </div>
 </div>
 
 <!-- ── Modal de edição de campanha ── -->
@@ -734,9 +796,122 @@ function mostrarToast(msg, tipo) {
 document.getElementById('cpModalOverlay').addEventListener('click', function(e) {
     if (e.target === this) fecharModal();
 });
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') fecharModal();
+document.getElementById('cpRenovarOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('aberto');
 });
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        fecharModal();
+        document.getElementById('cpRenovarOverlay').classList.remove('aberto');
+    }
+});
+
+// ── Renovar campanha ──────────────────────────────────────────
+var _renovarCard = null;
+
+function abrirRenovacao(card) {
+    var dados;
+    try { dados = JSON.parse(card.dataset.campanha || '{}'); } catch(e) {
+        alert('Erro ao abrir renovação. Recarregue a página.'); return;
+    }
+    if (!dados || !Array.isArray(dados.pontoIds)) { alert('Dados inválidos.'); return; }
+    _renovarCard = card;
+
+    document.getElementById('cpRenovarCliente').textContent = dados.cliente || '—';
+    document.getElementById('cpRenovarSub').textContent =
+        dados.campIds.length + ' ponto' + (dados.campIds.length > 1 ? 's' : '') +
+        (dados.nome && dados.nome !== '—' ? ' · ' + dados.nome : '');
+    document.getElementById('cpRenovarInicio').value = '';
+    document.getElementById('cpRenovarFim').value    = '';
+    document.getElementById('cpBtnRenovar').disabled = false;
+    document.getElementById('cpBtnRenovar').textContent = '🔄 Renovar contrato';
+    document.getElementById('cpRenovarOverlay').classList.add('aberto');
+}
+
+function salvarRenovacao() {
+    if (!_renovarCard) return;
+    var dados;
+    try { dados = JSON.parse(_renovarCard.dataset.campanha || '{}'); } catch(e) {
+        mostrarToast('❌ Erro interno.', 'err'); return;
+    }
+    var inicio = document.getElementById('cpRenovarInicio').value;
+    var fim    = document.getElementById('cpRenovarFim').value;
+    if (!fim) { alert('Informe a data de fim do novo contrato.'); return; }
+
+    var btn = document.getElementById('cpBtnRenovar');
+    btn.disabled = true;
+    btn.textContent = '⏳ Renovando...';
+
+    var promises;
+    try {
+        promises = dados.pontoIds.map(function(pontoId, i) {
+            return fetch('/gestor/campanhas/salvar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ponto_id:    pontoId,
+                    campanha_id: 0,              // 0 = nova campanha (encerra a atual)
+                    cliente:     dados.cliente,
+                    agencia:     dados.agencia,
+                    campanha:    dados.nome,
+                    situacao:    dados.situacao,
+                    inicio:      inicio || null,
+                    fim:         fim,
+                })
+            }).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+        });
+    } catch(e) {
+        btn.disabled = false;
+        btn.textContent = '🔄 Renovar contrato';
+        mostrarToast('❌ Erro: ' + e.message, 'err');
+        return;
+    }
+
+    Promise.all(promises).then(function(results) {
+        var erros = results.filter(function(r) { return r.erro; });
+        if (erros.length > 0) {
+            btn.disabled = false;
+            btn.textContent = '🔄 Renovar contrato';
+            mostrarToast('❌ Erro: ' + (erros[0].msg || erros[0].erro), 'err');
+            return;
+        }
+        document.getElementById('cpRenovarOverlay').classList.remove('aberto');
+        mostrarToast('✅ Contrato renovado com sucesso!', 'ok');
+        setTimeout(function() { location.reload(); }, 1200);
+    }).catch(function(e) {
+        btn.disabled = false;
+        btn.textContent = '🔄 Renovar contrato';
+        mostrarToast('❌ Erro de comunicação: ' + (e.message || ''), 'err');
+    });
+}
+
+// ── Liberar todos os vencidos ─────────────────────────────────
+function liberarTodosVencidos(btn) {
+    if (!confirm('Liberar todos os contratos vencidos?\nOs pontos voltarão a ficar Disponíveis.')) return;
+    btn.disabled = true;
+    btn.textContent = '⏳ Processando...';
+    fetch('/gestor/campanhas/processar-vencidos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            mostrarToast('✅ ' + data.processados + ' contrato' + (data.processados !== 1 ? 's' : '') + ' liberado' + (data.processados !== 1 ? 's' : '') + '!', 'ok');
+            setTimeout(function() { location.reload(); }, 1200);
+        } else {
+            btn.disabled = false;
+            btn.textContent = '⚡ Liberar todos';
+            mostrarToast('❌ Erro: ' + (data.msg || data.erro || 'desconhecido'), 'err');
+        }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        btn.textContent = '⚡ Liberar todos';
+        mostrarToast('❌ Erro de comunicação', 'err');
+    });
+}
 
 filtrar();
 </script>
