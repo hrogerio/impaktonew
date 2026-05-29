@@ -1,0 +1,36 @@
+name: 🚀 Deploy para Produção
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Upload via FTP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # necessário para detectar apenas arquivos alterados
+
+      - name: 📤 Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server:     ${{ secrets.FTP_HOST }}
+          username:   ${{ secrets.FTP_USER }}
+          password:   ${{ secrets.FTP_PASS }}
+          server-dir: /impaktomidia.com.br/web/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.claude/**
+            .env
+            fotos/**
+            storage/**
+            database/**
+            .env.example
+            CHANGELOG.md
+            README.md
