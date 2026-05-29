@@ -22,6 +22,8 @@ jobs:
           server:     ${{ secrets.FTP_HOST }}
           username:   ${{ secrets.FTP_USER }}
           password:   ${{ secrets.FTP_PASS }}
+          protocol:   ftps
+          port:       21
           server-dir: /impaktomidia.com.br/web/
           exclude: |
             **/.git*
