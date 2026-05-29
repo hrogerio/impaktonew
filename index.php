@@ -242,6 +242,30 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/encerrar_campanha.php';
         break;
 
+    // ── CAMPANHAS: CHECKING (interface de upload) ────────
+    case 'gestor/campanhas/checking':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/campanhas/checking.php';
+        break;
+
+    // ── CAMPANHAS: CHECKING UPLOAD (API, POST) ───────────
+    case 'gestor/campanhas/checking/upload':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/checking_upload.php';
+        break;
+
+    // ── CAMPANHAS: CHECKING PDF (download) ───────────────
+    case 'gestor/campanhas/checking/pdf':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/campanhas/checking_pdf.php';
+        break;
+
+    // ── CAMPANHAS: RENOVAR (POST) ────────────────────────
+    case 'gestor/campanhas/renovar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/renovar_campanha.php';
+        break;
+
     // ── CAMPANHAS: PROCESSAR VENCIDOS (POST) ─────────────
     case 'gestor/campanhas/processar-vencidos':
         auth_required();

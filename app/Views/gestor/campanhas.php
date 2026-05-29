@@ -255,12 +255,14 @@ function diasR($fim) {
             transition:all 0.15s; white-space:nowrap; text-decoration:none;
             display:inline-flex; align-items:center; gap:0.25rem;
         }
-        .cp-btn-editar  { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
-        .cp-btn-editar:hover  { background:#dbeafe; }
-        .cp-btn-renovar { background:#f0fdf4; color:#166534; border:1px solid #86efac; }
-        .cp-btn-renovar:hover { background:#dcfce7; }
+        .cp-btn-editar   { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+        .cp-btn-editar:hover   { background:#dbeafe; }
+        .cp-btn-renovar  { background:#f0fdf4; color:#166534; border:1px solid #86efac; }
+        .cp-btn-renovar:hover  { background:#dcfce7; }
         .cp-btn-encerrar { background:#fff1f0; color:#c0392b; border:1px solid #fca5a5; }
         .cp-btn-encerrar:hover { background:#fee2e2; }
+        .cp-btn-checking { background:#fdf4ff; color:#7e22ce; border:1px solid #d8b4fe; text-decoration:none; }
+        .cp-btn-checking:hover { background:#f3e8ff; }
 
         /* ── Modal de edição ── */
         .cp-modal-overlay {
@@ -439,7 +441,13 @@ function diasR($fim) {
 
         <div class="cp-card-head">
             <div class="cp-card-top">
+                <?php if (!$g['ativo']): ?>
+                <span class="sit-badge" style="background:#6b7280">Encerrada</span>
+                <?php elseif ($isVencida): ?>
+                <span class="sit-badge" style="background:#dc2626"><?= htmlspecialchars($g['situacao']) ?></span>
+                <?php else: ?>
                 <span class="sit-badge" style="background:<?= $cor ?>"><?= htmlspecialchars($g['situacao']) ?></span>
+                <?php endif; ?>
                 <span class="cp-card-nome"><?= htmlspecialchars($g['nome'] !== '—' ? $g['nome'] : 'Sem nome') ?></span>
             </div>
             <div class="cp-card-cliente"><?= htmlspecialchars($g['cliente']) ?></div>
@@ -478,6 +486,22 @@ function diasR($fim) {
         <div class="cp-card-footer">
             <span><?= $nPain ?> ponto<?= $nPain > 1 ? 's' : '' ?></span>
             <div class="cp-acoes">
+            <?php
+                // URL do checking para este grupo
+                $ckQ = http_build_query([
+                    'cliente'  => $g['cliente'],
+                    'agencia'  => $g['agencia'],
+                    'campanha' => $g['nome'],
+                    'situacao' => $g['situacao'],
+                    'inicio'   => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
+                    'fim'      => $g['fim']    ? substr($g['fim'],    0, 10) : '',
+                ]);
+                foreach ($pontoIds as $pid) { $ckQ .= '&pontoIds[]=' . (int)$pid; }
+                $checkUrl = '/gestor/campanhas/checking?' . $ckQ;
+            ?>
+                <a href="<?= htmlspecialchars($checkUrl) ?>"
+                   class="cp-btn cp-btn-checking"
+                   title="Checking fotográfico desta campanha">📸 Checking</a>
             <?php if ($g['ativo']): ?>
                 <?php if ($isVencida): ?>
                 <button class="cp-btn cp-btn-renovar"
@@ -849,16 +873,12 @@ function salvarRenovacao() {
     var promises;
     try {
         promises = dados.pontoIds.map(function(pontoId, i) {
-            return fetch('/gestor/campanhas/salvar', {
+            return fetch('/gestor/campanhas/renovar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    campanha_id: dados.campIds ? (dados.campIds[i] || 0) : 0,
                     ponto_id:    pontoId,
-                    campanha_id: 0,              // 0 = nova campanha (encerra a atual)
-                    cliente:     dados.cliente,
-                    agencia:     dados.agencia,
-                    campanha:    dados.nome,
-                    situacao:    dados.situacao,
                     inicio:      inicio || null,
                     fim:         fim,
                 })

@@ -1,5 +1,7 @@
 <?php
-// ==VERSAO-2025-05-25==
+// ==VERSAO-2025-05-27==
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 $modoPublico = isset($_GET['view']) && $_GET['view'] === 'publico';
