@@ -20,13 +20,14 @@ $ponto = [];
 $fotos = [];
 
 if ($modo === 'editar') {
-    $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ? AND (ativo = 1 OR ativo IS NULL)");
+    $stmt = $pdo->prepare("SELECT * FROM pontos WHERE id = ?");
     $stmt->execute([$id]);
     $ponto = $stmt->fetch();
     if (!$ponto) {
         header("Location: /gestor/pontos");
         exit;
     }
+    $pontoAtivo = (int)($ponto['ativo'] ?? 1) !== 0;
     $stmtF = $pdo->prepare("SELECT * FROM ponto_fotos WHERE ponto_id = ? ORDER BY ordem ASC, id ASC");
     $stmtF->execute([$id]);
     $fotos = $stmtF->fetchAll();
@@ -111,20 +112,38 @@ sort($listaAgencias);
             <?php endif; ?>
         </h2>
         <?php if ($modo === 'editar'): ?>
-        <form method="post" action="/gestor/pontos/excluir"
-              onsubmit="return confirm('Excluir o ponto #<?= htmlspecialchars($ponto['numero'], ENT_QUOTES) ?>? Esta ação não pode ser desfeita.')">
+        <?php if ($pontoAtivo): ?>
+        <form method="post" action="/gestor/pontos/desativar"
+              onsubmit="return confirm('Desativar o ponto #<?= htmlspecialchars($ponto['numero'], ENT_QUOTES) ?>? O ponto ficará inativo mas poderá ser reativado depois.')">
             <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
             <input type="hidden" name="id" value="<?= (int)$ponto['id'] ?>">
-            <button type="submit" class="btn-excluir-ponto">🗑 Excluir ponto</button>
+            <button type="submit" class="btn-excluir-ponto" style="background:#f59e0b;border-color:#d97706">⏸ Desativar ponto</button>
+        </form>
+        <?php else: ?>
+        <form method="post" action="/gestor/pontos/reativar"
+              onsubmit="return confirm('Reativar o ponto #<?= htmlspecialchars($ponto['numero'], ENT_QUOTES) ?>?')">
+            <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
+            <input type="hidden" name="id" value="<?= (int)$ponto['id'] ?>">
+            <button type="submit" class="btn-excluir-ponto" style="background:#16a34a;border-color:#15803d">✅ Reativar ponto</button>
         </form>
         <?php endif; ?>
+        <?php endif; ?>
     </div>
+
+    <!-- ── Aviso ponto inativo ──────────────────────────────── -->
+    <?php if ($modo === 'editar' && !$pontoAtivo): ?>
+        <div class="form-msg" style="background:#fef3c7;border:1px solid #f59e0b;color:#92400e;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem">
+            ⚠️ Este ponto está <strong>inativo</strong>. Use o botão "Reativar ponto" para ativá-lo novamente.
+        </div>
+    <?php endif; ?>
 
     <!-- ── Mensagens ────────────────────────────────────────── -->
     <?php if ($msg === 'salvo'): ?>
         <div class="form-msg ok">✅ Dados salvos com sucesso.</div>
     <?php elseif ($msg === 'criado'): ?>
         <div class="form-msg ok">✅ Ponto criado! Agora adicione as fotos abaixo.</div>
+    <?php elseif ($msg === 'reativado'): ?>
+        <div class="form-msg ok">✅ Ponto reativado com sucesso!</div>
     <?php elseif ($msg === 'erro'): ?>
         <div class="form-msg erro">⚠️ Verifique os campos obrigatórios (Número, Logradouro, Cidade).</div>
     <?php endif; ?>

@@ -128,10 +128,17 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/salvar_ponto.php';
         break;
 
-    // ── EXCLUIR PONTO (POST: soft delete) ────────────────────
-    case 'gestor/pontos/excluir':
+    // ── DESATIVAR PONTO (POST: soft delete) ──────────────────
+    case 'gestor/pontos/excluir':   // compatibilidade com links antigos
+    case 'gestor/pontos/desativar':
         auth_required();
         require __DIR__ . '/app/Views/gestor/excluir_ponto.php';
+        break;
+
+    // ── REATIVAR PONTO (POST) ─────────────────────────────────
+    case 'gestor/pontos/reativar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/reativar_ponto.php';
         break;
 
     // ── API: FOTOS (AJAX: upload / principal / excluir) ───────
