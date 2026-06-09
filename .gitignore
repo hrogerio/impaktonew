@@ -25,6 +25,11 @@ detalhes_ponto_WRAPPER.php
 # Arquivos de projeto/backup
 *.rar
 *.zip
+/BACK/
+
+# Cache de fontes gerado pelo tFPDF
+lib/fpdf/font/unifont/*.cw.dat
+lib/fpdf/font/unifont/*.cw127.php
 
 # Uploads e fotos
 /fotos

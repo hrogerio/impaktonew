@@ -88,7 +88,7 @@ $stmtVenc = $pdo->query("
     WHERE (p.ativo=1 OR p.ativo IS NULL)
       AND p.situacao NOT IN ('Disponivel','Disponível')
       AND COALESCE(DATE(c.fim), p.fim_contrato) IS NOT NULL
-      AND COALESCE(DATE(c.fim), p.fim_contrato) != ''
+      AND COALESCE(DATE(c.fim), p.fim_contrato) IS NOT NULL
       AND COALESCE(DATE(c.fim), p.fim_contrato) != '0000-00-00'
       AND COALESCE(DATE(c.fim), p.fim_contrato) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
     ORDER BY fim_contrato ASC
