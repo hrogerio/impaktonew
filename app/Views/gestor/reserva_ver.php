@@ -277,7 +277,8 @@ function badgeSit($sit) {
     <!-- Ações -->
     <div class="pv-acoes no-print">
         <button class="btn-acao-sec btn-reabrir-ps" onclick="reabrir(<?= $ps['id'] ?>)">↩ Reabrir no carrinho</button>
-        <a href="/gestor/reservas/pdf?id=<?= $ps['id'] ?>" target="_blank" class="btn-acao-sec btn-pdf-ps">📄 Gerar PDF</a>
+        <a href="/gestor/reservas/pdf?id=<?= $ps['id'] ?>" target="_blank" class="btn-acao-sec btn-pdf-ps">📄 PDF sem fotos</a>
+        <a href="/gestor/pre-selecao/pdf?id=<?= $ps['id'] ?>" target="_blank" class="btn-acao-sec btn-pdf-ps" style="background:#fff3f3;border-color:#fca5a5;">📷 PDF com Fotos</a>
     </div>
 
     <!-- Pontos agrupados -->

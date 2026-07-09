@@ -165,6 +165,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/pre_selecao_dados.php';
         break;
 
+    // ── PDF DE PRÉ-SELEÇÃO COM FOTOS (download) ───────────────
+    case 'gestor/pre-selecao/pdf':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/campanhas/pre_selecao_pdf.php';
+        break;
+
     // ── RESERVAS (histórico de pré-seleções) ─────────────────
     case 'gestor/reservas':
         auth_required();
@@ -265,6 +271,12 @@ switch ($uri) {
     case 'gestor/campanhas/checking/pdf':
         auth_required();
         require __DIR__ . '/app/Views/gestor/campanhas/checking_pdf.php';
+        break;
+
+    // ── CAMPANHAS: ESPELHO DE COLAGEM PDF (download) ─────
+    case 'gestor/campanhas/espelho/pdf':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/campanhas/espelho_pdf.php';
         break;
 
     // ── CAMPANHAS: RENOVAR (POST) ────────────────────────

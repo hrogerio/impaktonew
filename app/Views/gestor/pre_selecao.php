@@ -156,6 +156,8 @@ try {
         .btn-csv:hover { background:#eafaf1; }
         .btn-email    { color:#6c3483; }
         .btn-email:hover { background:#f5eef8; }
+        .btn-pdf-foto { color:#c0392b; }
+        .btn-pdf-foto:hover { background:#fff0ee; }
 
         /* ── Modal E-mail ── */
         .email-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
@@ -368,6 +370,7 @@ try {
                         <button class="btn-acao btn-imprimir" onclick="window.print()">🖨️ Imprimir</button>
                         <button class="btn-acao btn-csv"      onclick="exportarCSV()">📊 CSV</button>
                         <button class="btn-acao btn-email"    onclick="abrirEmail()">✉️ E-mail</button>
+                        <button class="btn-acao btn-pdf-foto" onclick="gerarPDFFotos()">📷 PDF c/ Fotos</button>
                         <a class="btn-acao" href="/gestor/reservas" style="color:#555">📋 Reservas</a>
                     </div>
                 </div>
@@ -670,6 +673,26 @@ function gerarPreSelecao() {
     });
     html += '<div class="pv-total">TOTAL: '+lista.length+' ponto'+(lista.length>1?'s':'')+'</div>';
     document.getElementById('pvConteudo').innerHTML = html;
+}
+
+// ── PDF com Fotos ─────────────────────────────────────────────
+function gerarPDFFotos() {
+    if (selecao.length === 0) return;
+    var cliente = document.getElementById('psCliente').value.trim() || 'Proposta';
+    var agencia = document.getElementById('clienteDireto').checked ? '' : document.getElementById('psAgencia').value.trim();
+    var semPer  = document.getElementById('semPeriodo').checked;
+    var inicio  = semPer ? '' : (document.getElementById('psDataInicio').value || '');
+    var fim     = semPer ? '' : (document.getElementById('psDataFim').value || '');
+
+    var params = new URLSearchParams();
+    params.set('cliente', cliente);
+    if (agencia) params.set('agencia', agencia);
+    if (inicio)  params.set('inicio', inicio);
+    if (fim)     params.set('fim', fim);
+    if (semPer)  params.set('sem_periodo', '1');
+    selecao.forEach(function(id) { params.append('pontoIds[]', id); });
+
+    window.open('/gestor/pre-selecao/pdf?' + params.toString(), '_blank');
 }
 
 // ── CSV ───────────────────────────────────────────────────────
