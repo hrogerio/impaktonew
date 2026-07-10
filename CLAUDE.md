@@ -135,22 +135,31 @@ SESSION_SECURE=
 
 ## Deploy
 
+O deploy é automático via **GitHub Actions + FTP** (`.github/workflows/deploy.yml`), não via cPanel Git — o `.cpanel.yml` na raiz não é usado nesse fluxo.
+
 ### Fluxo normal
 ```bash
 git add .
 git commit -m "tipo: descrição"
 git push origin main
-# cPanel detecta e faz deploy automático
+# GitHub Actions ("🚀 Deploy para Produção") envia via FTP pra public_html automaticamente
 ```
+Acompanhar em: https://github.com/hrogerio/impaktonew/actions (leva ~1-3 min; primeira execução após uma mudança nos secrets/config pode ser mais lenta por ser sync completo).
 
-### Se o cPanel divergir (erro 128)
-Editar arquivos manualmente via Gerenciador de Arquivos do cPanel.
+**Credenciais de FTP** ficam em Settings → Secrets and variables → Actions do repositório (`FTP_HOST`, `FTP_USER`, `FTP_PASS`). Conta atual: `deploy@impaktomidia.com.br`.
+
+**Atenção ao host de FTP:** `ftp.impaktomidia.com.br` tem um DNS desatualizado (aponta pra um servidor antigo, ProFTPD, que não tem as contas atuais). O servidor real responde em `impaktomidia.com.br` (ou `a16-asgard8.hospedagemuolhost.com.br`), rodando Pure-FTPd — é esse host que deve estar em `FTP_HOST`.
+
+O workflow ignora `.git*`, `.env`, `fotos/`, `storage/`, `database/`, `.claude/` (não sobrescreve uploads nem configs sensíveis).
+
+### Se o deploy falhar
+Ver o log da execução em Actions. Erros comuns: secret ausente/errado, ou host de FTP errado (ver aviso acima).
 
 ### Rollback de emergência
 ```bash
-git reset --hard <hash-do-commit>
-git push origin main --force
-# Depois editar .env no servidor via cPanel
+git revert <hash-do-commit>
+git push origin main
+# Isso gera um novo commit que desfaz a mudança e dispara um novo deploy automático
 ```
 
 ---

@@ -30,6 +30,7 @@ jobs:
             **/.git*/**
             **/.claude/**
             .env
+            .cpanel.yml
             fotos/**
             storage/**
             database/**
