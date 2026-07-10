@@ -305,6 +305,40 @@ sort($listaAgencias);
 
             </div>
 
+            <!-- ── Exclusividade ── -->
+            <p class="form-section-title">Exclusividade</p>
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label class="form-label" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                        <input type="checkbox" id="chkExclusivo" name="exclusivo" value="1"
+                               <?= v($ponto,'exclusivo') === '1' ? 'checked' : '' ?>
+                               onchange="document.getElementById('clienteExclusivoWrap').style.display = this.checked ? '' : 'none';">
+                        Painel exclusivo (não comercializável para outros clientes)
+                    </label>
+                </div>
+
+                <div class="form-group" id="clienteExclusivoWrap" style="<?= v($ponto,'exclusivo') === '1' ? '' : 'display:none;' ?>">
+                    <label class="form-label">Cliente exclusivo</label>
+                    <input type="text" name="cliente_exclusivo" class="form-input" list="listaClientesExclusivo"
+                           value="<?= v($ponto,'cliente_exclusivo') ?>" placeholder="Nome do cliente dono da exclusividade">
+                    <datalist id="listaClientesExclusivo">
+                        <?php foreach ($listaClientes as $c): ?>
+                        <option value="<?= htmlspecialchars($c, ENT_QUOTES) ?>">
+                        <?php endforeach; ?>
+                    </datalist>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                        <input type="checkbox" name="liberado_comercializacao" value="1"
+                               <?= v($ponto,'liberado_comercializacao') === '1' ? 'checked' : '' ?>>
+                        Liberado para comercialização (mesmo sendo exclusivo)
+                    </label>
+                </div>
+
+            </div>
+
             <!-- Nota: cliente, agência e contrato são gerenciados via Campanhas -->
             <?php if ($modo === 'editar' && !empty($ponto['id'])): ?>
             <div class="form-note-camp">

@@ -59,6 +59,7 @@ $sql = "
     FROM pontos p
     WHERE p.id IN ($placeholders)
       AND (p.ativo = 1 OR p.ativo IS NULL)
+      AND (p.exclusivo = 0 OR p.exclusivo IS NULL OR p.liberado_comercializacao = 1)
     ORDER BY p.numero ASC
 ";
 

@@ -18,6 +18,7 @@ $sql = "
            COALESCE(c.cliente, p.cliente) AS cliente,
            COALESCE(c.agencia, p.agencia) AS agencia,
            p.tipo, p.situacao, p.corredor, p.formato,
+           p.exclusivo, p.cliente_exclusivo, p.liberado_comercializacao,
            COALESCE(
                (SELECT pf.caminho FROM ponto_fotos pf WHERE pf.ponto_id = p.id AND pf.principal = 1 LIMIT 1),
                p.foto
@@ -140,6 +141,18 @@ $recentes = $pdo->query(
         .sit-permuta    { background:#ede9fe; color:#4c1d95; }
         .sit-bisemana   { background:#cffafe; color:#164e63; }
         .sit-outro      { background:#f1f5f9; color:#475569; }
+        .col-sit        { max-width:0; }
+        .sit-badges     { display:flex; flex-wrap:wrap; gap:3px; align-items:center; }
+        .badge-excl-wrap { margin-top:3px; }
+        .badge-excl     { display:inline-block; padding:2px 7px; border-radius:20px; font-size:0.62rem; font-weight:700; white-space:nowrap; background:#1e293b; color:#f8fafc; }
+        .badge-excl.liberado { background:#78350f; color:#fef3c7; }
+        .btn-relatorio-excl {
+            display:inline-flex; align-items:center; gap:0.25rem;
+            background:none; border:none; color:var(--color-text-muted);
+            font-family:'Montserrat', sans-serif; font-size:0.75rem; font-weight:600;
+            cursor:pointer; white-space:nowrap; text-decoration:underline; padding:0.4rem 0.2rem;
+        }
+        .btn-relatorio-excl:hover { color:var(--color-text-dark); }
         .badge-contrato { display:inline-block; padding:1px 6px; border-radius:10px; font-size:0.62rem; font-weight:600; white-space:nowrap; }
         .ctr-vencido { background:#fde8e8; color:#c0392b; }
         .ctr-critico { background:#fee2e2; color:#991b1b; }
@@ -270,6 +283,7 @@ $recentes = $pdo->query(
                 <option value="Vencido">Vencido</option>
                 <option value="Permuta">Permuta</option>
                 <option value="Bisemana">Bisemana</option>
+                <option value="__exclusivo__">🔒 Exclusivo</option>
             </select>
             <select class="filtro-select" id="filtroCorredor">
                 <option value="">Todos os corredores</option>
@@ -290,7 +304,8 @@ $recentes = $pdo->query(
         <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.3rem;">
             <span id="resultCount"></span>
             <span id="selCount" style="font-size:0.75rem;color:var(--color-accent-primary);font-weight:700;"></span>
-            <a href="/gestor/pontos/novo" class="btn-novo-ponto" style="margin-left:auto">+ Novo Ponto</a>
+            <button type="button" class="btn-relatorio-excl" id="btnRelatorioExclusivos" onclick="gerarRelatorioExclusivos()" style="margin-left:auto">📋 Relatório de Exclusivos</button>
+            <a href="/gestor/pontos/novo" class="btn-novo-ponto">+ Novo Ponto</a>
         </div>
     </div>
 
@@ -351,9 +366,13 @@ function highlight(text, termo) {
 function normalizar(str) {
     return String(str||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 }
-function badgeSit(sit) {
+function estaAVenda(p) {
+    return !(parseInt(p.exclusivo) === 1 && parseInt(p.liberado_comercializacao) !== 1);
+}
+function badgeSit(sit, p) {
     if (!sit) return '<span class="badge-sit sit-outro">—</span>';
     var s = normalizar(sit);
+    if ((s==='disponivel'||s==='disponível') && p && !estaAVenda(p)) return '';
     var cls = (s==='disponivel'||s==='disponível') ? 'sit-disponivel'
             : s==='ocupado'   ? 'sit-ocupado'
             : s==='reservado' ? 'sit-reservado'
@@ -363,7 +382,7 @@ function badgeSit(sit) {
     return '<span class="badge-sit '+cls+'">'+esc(sit)+'</span>';
 }
 function badgeContrato(data) {
-    if (!data) return '<span class="badge-contrato ctr-sem">Sem prazo</span>';
+    if (!data) return '';
     var fim = new Date(data), hoje = new Date();
     hoje.setHours(0,0,0,0); fim.setHours(0,0,0,0);
     var dias = Math.round((fim-hoje)/86400000);
@@ -375,6 +394,56 @@ function badgeContrato(data) {
     if (dias <= 90) return lbl+'<span class="badge-contrato ctr-atencao">'+Math.floor(dias/30)+'m</span>';
     return lbl+'<span class="badge-contrato ctr-ok">'+Math.floor(dias/30)+'m</span>';
 }
+function badgeExclusivo(p) {
+    if (!p.exclusivo || parseInt(p.exclusivo) !== 1) return '';
+    var titulo = p.cliente_exclusivo ? 'Exclusivo de ' + p.cliente_exclusivo : 'Exclusivo';
+    if (parseInt(p.liberado_comercializacao) === 1) {
+        return '<div class="badge-excl-wrap"><span class="badge-excl liberado" title="'+esc(titulo)+', mas liberado para comercialização">🔓 Liberado p/ comerc.</span></div>';
+    }
+    return '<div class="badge-excl-wrap"><span class="badge-excl" title="'+esc(titulo)+'">🔒 Exclusivo</span></div>';
+}
+
+// ── Relatório interno de painéis exclusivos (não é o fluxo de comercialização) ──
+function gerarRelatorioExclusivos() {
+    var exclusivos = filtrar(PONTOS).filter(function(p){ return parseInt(p.exclusivo) === 1; });
+    if (exclusivos.length === 0) {
+        alert('Nenhum painel exclusivo encontrado com os filtros atuais.');
+        return;
+    }
+    exclusivos = ordenar(exclusivos);
+    var linhas = exclusivos.map(function(p) {
+        var comerc = parseInt(p.liberado_comercializacao) === 1
+            ? '<span class="tag tag-liberado">🔓 Liberado p/ comercialização</span>'
+            : '<span class="tag tag-preso">🔒 Bloqueado</span>';
+        return '<tr><td>'+esc(p.numero)+'</td><td>'+esc(p.logradouro)+'</td><td>'+esc(p.cidade)+'</td>'
+            + '<td>'+esc(p.cliente_exclusivo||'—')+'</td><td>'+esc(p.situacao||'—')+'</td><td>'+comerc+'</td></tr>';
+    }).join('');
+    var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
+        + '<title>Relatório de Painéis Exclusivos — Impakto Mídia</title><style>'
+        + 'body{font-family:Arial,Helvetica,sans-serif;padding:28px;color:#111}'
+        + 'h1{font-size:1.15rem;margin:0 0 2px}'
+        + '.sub{color:#666;font-size:0.78rem;margin:0 0 4px}'
+        + '.aviso{background:#fef3c7;border:1px solid #fcd34d;color:#78350f;font-size:0.78rem;padding:8px 12px;border-radius:6px;margin:12px 0}'
+        + 'table{width:100%;border-collapse:collapse;margin-top:10px}'
+        + 'th,td{border:1px solid #ddd;padding:6px 8px;font-size:0.78rem;text-align:left}'
+        + 'th{background:#f1f5f9}'
+        + '.tag{display:inline-block;padding:2px 7px;border-radius:20px;font-size:0.65rem;font-weight:700;white-space:nowrap}'
+        + '.tag-liberado{background:#78350f;color:#fef3c7}.tag-preso{background:#1e293b;color:#f8fafc}'
+        + '@media print{ .no-print{display:none} }'
+        + '</style></head><body>'
+        + '<h1>🔒 Relatório Interno — Painéis Exclusivos</h1>'
+        + '<p class="sub">Impakto Mídia · gerado em ' + new Date().toLocaleString('pt-BR') + ' · ' + exclusivos.length + ' painel(is)</p>'
+        + '<div class="aviso no-print">⚠️ Documento de uso interno. Não enviar ao cliente — painéis bloqueados não podem ser comercializados para outros clientes.</div>'
+        + '<table><thead><tr><th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Cliente exclusivo</th><th>Situação</th><th>Comercialização</th></tr></thead>'
+        + '<tbody>' + linhas + '</tbody></table>'
+        + '</body></html>';
+    var win = window.open('', '_blank');
+    if (!win) { alert('Habilite pop-ups para gerar o relatório.'); return; }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(function(){ win.print(); }, 300);
+}
 
 // ── Filtrar / Ordenar ────────────────────────────────────────
 function filtrar(lista) {
@@ -383,7 +452,11 @@ function filtrar(lista) {
         if (filtros.regiao   && (p.regiao  ||'').trim() !== filtros.regiao)   return false;
         if (filtros.cidade   && (p.cidade  ||'').trim() !== filtros.cidade)   return false;
         if (filtros.cliente  && (p.cliente ||'').trim() !== filtros.cliente)  return false;
-        if (filtros.situacao && (p.situacao||'').trim() !== filtros.situacao) return false;
+        if (filtros.situacao === '__exclusivo__') {
+            if (parseInt(p.exclusivo) !== 1) return false;
+        } else if (filtros.situacao && (p.situacao||'').trim() !== filtros.situacao) {
+            return false;
+        }
         if (filtros.corredor && (p.corredor||'').trim() !== filtros.corredor) return false;
         if (filtros.vencimento) {
             var hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -436,7 +509,7 @@ function renderLinha(p, busca) {
     html += '<td class="col-txt" title="'+esc(p.logradouro)+(p.descricao?' · '+esc(p.descricao):'')+'">'+highlight(p.logradouro,busca)+(p.descricao?'<span class="col-sub"> · '+highlight(p.descricao.substring(0,50),busca)+'</span>':'')+'</td>';
     html += '<td class="col-txt" title="'+esc(p.cidade)+'">'+highlight(p.cidade,busca)+'</td>';
     html += '<td class="col-txt" title="'+esc(p.cliente||'-')+(p.agencia?' · '+esc(p.agencia):'')+'">'+highlight(p.cliente||'—',busca)+(p.agencia?'<span class="col-sub"> · '+highlight(p.agencia,busca)+'</span>':'')+'</td>';
-    html += '<td style="white-space:nowrap">'+badgeSit(p.situacao)+' '+badgeContrato(p.fim_contrato)+'</td>';
+    html += '<td class="col-sit"><div class="sit-badges">'+badgeSit(p.situacao, p)+' '+badgeContrato(p.fim_contrato)+'</div>'+badgeExclusivo(p)+'</td>';
     html += '<td class="no-print" onclick="event.stopPropagation()" style="white-space:nowrap">';
     html += '<a href="/gestor/pontos/detalhes?id='+p.id+'" class="link-info">+Info</a>';
     html += '<a href="/gestor/pontos/editar?id='+p.id+'" class="link-editar" title="Editar">✏️</a>';
@@ -483,7 +556,7 @@ function renderTabela() {
     var html = '';
     ordemGrupos.forEach(function(reg) {
         var pts = ordenar(grupos[reg]);
-        var nDisp = pts.filter(function(p){ return normalizar(p.situacao||'').indexOf('disponiv') === 0; }).length;
+        var nDisp = pts.filter(function(p){ return normalizar(p.situacao||'').indexOf('disponiv') === 0 && estaAVenda(p); }).length;
 
         // Cabeçalho do grupo
         html += '<tr class="group-header"><td colspan="8">';
@@ -526,6 +599,9 @@ function toggleSel(id) {
                 mostrarAviso('⚠️ Ponto ' + (ponto.numero||id) + ' está <strong>Ocupado</strong> por ' + esc(ponto.cliente||'outro cliente') + '. Considere remover da seleção.', 'laranja');
             } else if (sit === 'reservado') {
                 mostrarAviso('⚠️ Ponto ' + (ponto.numero||id) + ' está <strong>Reservado</strong>. Pode haver conflito com outra proposta.', 'laranja');
+            }
+            if (parseInt(ponto.exclusivo) === 1 && parseInt(ponto.liberado_comercializacao) !== 1) {
+                mostrarAviso('🔒 Ponto ' + (ponto.numero||id) + ' é <strong>EXCLUSIVO</strong> de ' + esc(ponto.cliente_exclusivo||'outro cliente') + ' e não será incluído na pré-seleção/PDF gerado para outros clientes.', 'laranja');
             }
         }
     }

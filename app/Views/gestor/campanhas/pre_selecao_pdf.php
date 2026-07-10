@@ -61,6 +61,7 @@ $stmt = $pdo->prepare("
            ) AS foto_caminho
     FROM pontos p
     WHERE p.id IN ($ph)
+      AND (p.exclusivo = 0 OR p.exclusivo IS NULL OR p.liberado_comercializacao = 1)
     ORDER BY p.cidade ASC, p.numero ASC
 ");
 $stmt->execute($pontoIds);

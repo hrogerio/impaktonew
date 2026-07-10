@@ -55,6 +55,9 @@ $params = [
     ':situacao'        => limpar($_POST['situacao']        ?? '',    50),
     ':latitude'        => coordOuNull($_POST['latitude']   ?? ''),
     ':longitude'       => coordOuNull($_POST['longitude']  ?? ''),
+    ':exclusivo'               => isset($_POST['exclusivo']) ? 1 : 0,
+    ':cliente_exclusivo'       => limpar($_POST['cliente_exclusivo'] ?? '', 255),
+    ':liberado_comercializacao' => isset($_POST['liberado_comercializacao']) ? 1 : 0,
 ];
 
 // Garante que colunas opcionais existem antes de usá-las
@@ -65,7 +68,8 @@ foreach ($rsCol->fetchAll(PDO::FETCH_ASSOC) as $col) {
 }
 
 // Remove do params qualquer coluna que ainda não existe no servidor
-$colunasOpcionais = ['bairro','sentido','corredor','latitude','longitude'];
+$colunasOpcionais = ['bairro','sentido','corredor','latitude','longitude',
+    'exclusivo','cliente_exclusivo','liberado_comercializacao'];
 foreach ($colunasOpcionais as $c) {
     if (!isset($colunasExistentes[$c])) unset($params[":$c"]);
 }

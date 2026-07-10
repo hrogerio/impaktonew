@@ -444,6 +444,7 @@ try {
 var CART_KEY = 'impakto_cart';
 var selecao  = JSON.parse(localStorage.getItem(CART_KEY) || '[]'); // array de IDs string
 var pontosData = {}; // preenchido via AJAX
+var removidosExclusivos = 0; // qtde removida da seleção por serem exclusivos não liberados
 
 function esc(str) {
     return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -490,7 +491,14 @@ function carregarPontos() {
     fetch('/gestor/pontos/dados?ids='+selecao.join(','))
         .then(function(r){ return r.json(); })
         .then(function(data) {
+            var idsRetornados = data.map(function(p){ return String(p.id); });
+            var removidos = selecao.filter(function(id){ return idsRetornados.indexOf(String(id)) === -1; });
             data.forEach(function(p){ pontosData[String(p.id)] = p; });
+            if (removidos.length > 0) {
+                selecao = selecao.filter(function(id){ return idsRetornados.indexOf(String(id)) !== -1; });
+                localStorage.setItem(CART_KEY, JSON.stringify(selecao));
+                removidosExclusivos = removidos.length;
+            }
             renderLista();
         })
         .catch(function() {
@@ -518,6 +526,14 @@ function renderLista() {
     });
 
     var avisoHtml = '';
+    if (removidosExclusivos > 0) {
+        avisoHtml += '<div style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:0.65rem 1rem;margin-bottom:0.75rem;font-size:0.8rem;color:#f8fafc;">'
+            + '<strong>🔒 Aviso:</strong> '
+            + removidosExclusivos + ' ponto' + (removidosExclusivos > 1 ? 's' : '')
+            + ' foi' + (removidosExclusivos > 1 ? 'ram' : '') + ' removido' + (removidosExclusivos > 1 ? 's' : '')
+            + ' automaticamente da seleção por ' + (removidosExclusivos > 1 ? 'serem' : 'ser') + ' exclusivo' + (removidosExclusivos > 1 ? 's' : '') + ' de outro cliente.'
+            + '</div>';
+    }
     if (conflitos.length > 0) {
         avisoHtml = '<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.65rem 1rem;margin-bottom:0.75rem;font-size:0.8rem;color:#92400e;">'
             + '<strong>⚠️ Atenção:</strong> '

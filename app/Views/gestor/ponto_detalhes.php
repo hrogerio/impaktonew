@@ -48,6 +48,11 @@ if (!$ponto) {
     die("Ponto não encontrado.");
 }
 
+if ($modoPublico && (int)($ponto['exclusivo'] ?? 0) === 1 && (int)($ponto['liberado_comercializacao'] ?? 0) === 0) {
+    http_response_code(404);
+    die("Ponto não encontrado.");
+}
+
 // Fotos
 // Campanha ativa
 $campAtiva = null;
