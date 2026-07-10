@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/impaktom14266d67/public_html/
+    - /bin/cp -R . $DEPLOYPATH
