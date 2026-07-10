@@ -263,6 +263,8 @@ function diasR($fim) {
         .cp-btn-encerrar:hover { background:#fee2e2; }
         .cp-btn-checking { background:#fdf4ff; color:#7e22ce; border:1px solid #d8b4fe; text-decoration:none; }
         .cp-btn-checking:hover { background:#f3e8ff; }
+        .cp-btn-espelho { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; text-decoration:none; }
+        .cp-btn-espelho:hover { background:#ffedd5; }
 
         /* ── Modal de edição ── */
         .cp-modal-overlay {
@@ -497,11 +499,16 @@ function diasR($fim) {
                     'fim'      => $g['fim']    ? substr($g['fim'],    0, 10) : '',
                 ]);
                 foreach ($pontoIds as $pid) { $ckQ .= '&pontoIds[]=' . (int)$pid; }
-                $checkUrl = '/gestor/campanhas/checking?' . $ckQ;
+                $checkUrl   = '/gestor/campanhas/checking?' . $ckQ;
+                $espelhoUrl = '/gestor/campanhas/espelho/pdf?' . $ckQ;
             ?>
                 <a href="<?= htmlspecialchars($checkUrl) ?>"
                    class="cp-btn cp-btn-checking"
                    title="Checking fotográfico desta campanha">📸 Checking</a>
+                <a href="<?= htmlspecialchars($espelhoUrl) ?>"
+                   target="_blank"
+                   class="cp-btn cp-btn-espelho"
+                   title="Gerar PDF Espelho de Colagem">🗂️ Espelho</a>
             <?php if ($g['ativo']): ?>
                 <?php if ($isVencida): ?>
                 <button class="cp-btn cp-btn-renovar"

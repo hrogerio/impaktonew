@@ -13,7 +13,7 @@ $desc=array (
 );
 $up=-165;
 $ut=68;
-$ttffile=__DIR__.'/Inter-Regular.ttf';
+$ttffile=__DIR__.'/Inter-SemiBold.ttf';
 $originalsize=316220;
 $fontkey='interB';
 ?>
