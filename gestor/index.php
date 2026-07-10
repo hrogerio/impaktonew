@@ -21,7 +21,7 @@ try {
         SELECT c.id AS camp_id, c.ponto_id
         FROM campanhas c
         WHERE c.ativo = 1 AND c.situacao = 'Ocupado'
-          AND c.fim IS NOT NULL AND c.fim != '0000-00-00' AND DATE(c.fim) < CURDATE()
+          AND c.fim IS NOT NULL AND CAST(c.fim AS CHAR) != '0000-00-00' AND DATE(c.fim) < CURDATE()
     ");
     $paraProcessar = $stVenc ? $stVenc->fetchAll(PDO::FETCH_ASSOC) : [];
     if (!empty($paraProcessar)) {
@@ -81,14 +81,22 @@ $regioes = $stmtReg->fetchAll(PDO::FETCH_ASSOC);
 $stmtVenc = $pdo->query("
     SELECT p.id, p.numero, p.logradouro, p.cidade,
            COALESCE(c.cliente, p.cliente) AS cliente,
-           COALESCE(DATE(NULLIF(c.fim, '0000-00-00')), DATE(NULLIF(p.fim_contrato, '0000-00-00'))) AS fim_contrato,
-           DATEDIFF(COALESCE(DATE(NULLIF(c.fim, '0000-00-00')), DATE(NULLIF(p.fim_contrato, '0000-00-00'))), CURDATE()) AS dias_restantes
+           COALESCE(
+               CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
+               CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
+           ) AS fim_contrato,
+           DATEDIFF(COALESCE(
+               CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
+               CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
+           ), CURDATE()) AS dias_restantes
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE (p.ativo=1 OR p.ativo IS NULL)
       AND p.situacao NOT IN ('Disponivel','Disponível')
-      AND COALESCE(DATE(NULLIF(c.fim, '0000-00-00')), DATE(NULLIF(p.fim_contrato, '0000-00-00'))) IS NOT NULL
-      AND COALESCE(DATE(NULLIF(c.fim, '0000-00-00')), DATE(NULLIF(p.fim_contrato, '0000-00-00'))) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+      AND COALESCE(
+               CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
+               CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
+          ) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
     ORDER BY fim_contrato ASC
     LIMIT 15
 ");

@@ -28,7 +28,7 @@ $sqlOcupacaoRegiao = "
         SUM(CASE WHEN LOWER(situacao) = 'ocupado' THEN 1 ELSE 0 END) AS ocupados,
         SUM(CASE WHEN LOWER(situacao) IN ('disponivel','disponível') THEN 1 ELSE 0 END) AS disponiveis,
         SUM(CASE WHEN LOWER(situacao) = 'reservado' THEN 1 ELSE 0 END) AS reservados,
-        SUM(CASE WHEN fim_contrato IS NOT NULL AND fim_contrato != '0000-00-00' AND fim_contrato < CURDATE() THEN 1 ELSE 0 END) AS vencidos
+        SUM(CASE WHEN fim_contrato IS NOT NULL AND CAST(fim_contrato AS CHAR) != '0000-00-00' AND fim_contrato < CURDATE() THEN 1 ELSE 0 END) AS vencidos
     FROM pontos
     WHERE ativo = 1 OR ativo IS NULL
     GROUP BY regiao
@@ -43,7 +43,7 @@ $sqlOcupacaoCidade = "
         SUM(CASE WHEN LOWER(situacao) = 'ocupado' THEN 1 ELSE 0 END) AS ocupados,
         SUM(CASE WHEN LOWER(situacao) IN ('disponivel','disponível') THEN 1 ELSE 0 END) AS disponiveis,
         SUM(CASE WHEN LOWER(situacao) = 'reservado' THEN 1 ELSE 0 END) AS reservados,
-        SUM(CASE WHEN fim_contrato IS NOT NULL AND fim_contrato != '0000-00-00' AND fim_contrato < CURDATE() THEN 1 ELSE 0 END) AS vencidos
+        SUM(CASE WHEN fim_contrato IS NOT NULL AND CAST(fim_contrato AS CHAR) != '0000-00-00' AND fim_contrato < CURDATE() THEN 1 ELSE 0 END) AS vencidos
     FROM pontos
     WHERE ativo = 1 OR ativo IS NULL
     GROUP BY cidade
@@ -91,16 +91,15 @@ $sqlContratosVencendo = "
         p.numero, p.logradouro, p.cidade, p.regiao, p.contato, p.tipo, p.situacao,
         COALESCE(c.cliente, p.cliente) AS cliente,
         COALESCE(c.agencia, p.agencia) AS agencia,
-        COALESCE(DATE(c.fim), DATE(p.fim_contrato)) AS fim_contrato,
-        DATEDIFF(COALESCE(DATE(c.fim), DATE(p.fim_contrato)), CURDATE()) AS dias_restantes
+        COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) AS fim_contrato,
+        DATEDIFF(COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END), CURDATE()) AS dias_restantes
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE
         p.situacao NOT IN ('Disponivel','Disponível')
-        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) IS NOT NULL
-        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) != '0000-00-00'
-        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) >= CURDATE()
-        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) <= DATE_ADD(CURDATE(), $intervalSQL)
+        AND COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) IS NOT NULL
+        AND COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) >= CURDATE()
+        AND COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) <= DATE_ADD(CURDATE(), $intervalSQL)
         AND (p.ativo = 1 OR p.ativo IS NULL)
     ORDER BY fim_contrato ASC
 ";
@@ -112,15 +111,14 @@ $sqlVencidos = "
         p.numero, p.logradouro, p.cidade, p.regiao, p.contato,
         COALESCE(c.cliente, p.cliente) AS cliente,
         COALESCE(c.agencia, p.agencia) AS agencia,
-        COALESCE(DATE(c.fim), DATE(p.fim_contrato)) AS fim_contrato,
-        DATEDIFF(CURDATE(), COALESCE(DATE(c.fim), DATE(p.fim_contrato))) AS dias_vencido
+        COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) AS fim_contrato,
+        DATEDIFF(CURDATE(), COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END)) AS dias_vencido
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE
         p.situacao NOT IN ('Disponivel','Disponível')
-        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) IS NOT NULL
-        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) != '0000-00-00'
-        AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) < CURDATE()
+        AND COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) IS NOT NULL
+        AND COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) < CURDATE()
         AND (p.ativo = 1 OR p.ativo IS NULL)
     ORDER BY fim_contrato DESC
 ";
@@ -152,7 +150,7 @@ $sqlClientes = "
         COUNT(*) AS total_pontos,
         SUM(CASE WHEN LOWER(p.situacao) = 'ocupado' THEN 1 ELSE 0 END) AS ocupados,
         MIN(COALESCE(DATE(c.inicio), DATE(p.inicio_contrato))) AS inicio_mais_antigo,
-        MAX(COALESCE(DATE(c.fim), DATE(p.fim_contrato))) AS fim_mais_recente
+        MAX(COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END)) AS fim_mais_recente
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE

@@ -40,7 +40,7 @@ $semCoord = $pdo->query("
 // ── Sem cliente (nem pontos nem campanha ativa têm cliente) ──
 $semCliente = $pdo->query("
     SELECT p.id, p.numero, p.logradouro, p.cidade, p.situacao,
-           COALESCE(DATE(c.fim), DATE(p.fim_contrato)) AS fim_contrato
+           COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) AS fim_contrato
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1
     WHERE (p.ativo=1 OR p.ativo IS NULL)
@@ -53,14 +53,13 @@ $semCliente = $pdo->query("
 $vencidosSemAtualizar = $pdo->query("
     SELECT p.id, p.numero, p.logradouro, p.cidade, p.situacao,
            COALESCE(c.cliente, p.cliente) AS cliente,
-           COALESCE(DATE(c.fim), DATE(p.fim_contrato)) AS fim_contrato,
-           DATEDIFF(CURDATE(), COALESCE(DATE(c.fim), DATE(p.fim_contrato))) AS dias_vencido
+           COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) AS fim_contrato,
+           DATEDIFF(CURDATE(), COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END)) AS dias_vencido
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
     WHERE (p.ativo=1 OR p.ativo IS NULL)
-      AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) IS NOT NULL
-      AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) != '0000-00-00'
-      AND COALESCE(DATE(c.fim), DATE(p.fim_contrato)) < CURDATE()
+      AND COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) IS NOT NULL
+      AND COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) < CURDATE()
       AND LOWER(p.situacao) NOT IN ('disponivel','disponível','vencido')
     ORDER BY fim_contrato ASC
 ")->fetchAll(PDO::FETCH_ASSOC);

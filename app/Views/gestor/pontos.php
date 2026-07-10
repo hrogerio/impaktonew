@@ -24,7 +24,7 @@ $sql = "
                p.foto
            ) AS foto,
            CASE
-               WHEN c.fim IS NULL OR c.fim = '0000-00-00'
+               WHEN c.fim IS NULL OR CAST(c.fim AS CHAR) = '0000-00-00'
                THEN NULL ELSE DATE(c.fim)
            END AS fim_contrato
     FROM pontos p
