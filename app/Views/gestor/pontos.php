@@ -17,6 +17,7 @@ $sql = "
     SELECT p.id, p.numero, p.logradouro, p.descricao, p.cidade, p.regiao,
            COALESCE(c.cliente, p.cliente) AS cliente,
            COALESCE(c.agencia, p.agencia) AS agencia,
+           COALESCE(c.contato, p.contato) AS contato,
            p.tipo, p.situacao, p.corredor, p.formato,
            p.exclusivo, p.cliente_exclusivo, p.liberado_comercializacao,
            COALESCE(
@@ -410,31 +411,30 @@ function gerarRelatorioExclusivos() {
         alert('Nenhum painel exclusivo encontrado com os filtros atuais.');
         return;
     }
-    exclusivos = ordenar(exclusivos);
+    exclusivos = exclusivos.slice().sort(function(a,b) {
+        return normalizar(a.cliente_exclusivo||'').localeCompare(normalizar(b.cliente_exclusivo||''));
+    });
     var linhas = exclusivos.map(function(p) {
         var comerc = parseInt(p.liberado_comercializacao) === 1
             ? '<span class="tag tag-liberado">🔓 Liberado p/ comercialização</span>'
             : '<span class="tag tag-preso">🔒 Bloqueado</span>';
-        return '<tr><td>'+esc(p.numero)+'</td><td>'+esc(p.logradouro)+'</td><td>'+esc(p.cidade)+'</td>'
-            + '<td>'+esc(p.cliente_exclusivo||'—')+'</td><td>'+esc(p.situacao||'—')+'</td><td>'+comerc+'</td></tr>';
+        return '<tr><td>'+esc(p.cliente_exclusivo||'—')+'</td><td>'+esc(p.numero)+'</td><td>'+esc(p.logradouro)+'</td><td>'+esc(p.cidade)+'</td>'
+            + '<td>'+esc(p.formato||'—')+'</td><td>'+esc(p.contato||'—')+'</td><td>'+comerc+'</td></tr>';
     }).join('');
     var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
         + '<title>Relatório de Painéis Exclusivos — Impakto Mídia</title><style>'
         + 'body{font-family:Arial,Helvetica,sans-serif;padding:28px;color:#111}'
         + 'h1{font-size:1.15rem;margin:0 0 2px}'
         + '.sub{color:#666;font-size:0.78rem;margin:0 0 4px}'
-        + '.aviso{background:#fef3c7;border:1px solid #fcd34d;color:#78350f;font-size:0.78rem;padding:8px 12px;border-radius:6px;margin:12px 0}'
         + 'table{width:100%;border-collapse:collapse;margin-top:10px}'
         + 'th,td{border:1px solid #ddd;padding:6px 8px;font-size:0.78rem;text-align:left}'
         + 'th{background:#f1f5f9}'
         + '.tag{display:inline-block;padding:2px 7px;border-radius:20px;font-size:0.65rem;font-weight:700;white-space:nowrap}'
         + '.tag-liberado{background:#78350f;color:#fef3c7}.tag-preso{background:#1e293b;color:#f8fafc}'
-        + '@media print{ .no-print{display:none} }'
         + '</style></head><body>'
         + '<h1>🔒 Relatório Interno — Painéis Exclusivos</h1>'
         + '<p class="sub">Impakto Mídia · gerado em ' + new Date().toLocaleString('pt-BR') + ' · ' + exclusivos.length + ' painel(is)</p>'
-        + '<div class="aviso no-print">⚠️ Documento de uso interno. Não enviar ao cliente — painéis bloqueados não podem ser comercializados para outros clientes.</div>'
-        + '<table><thead><tr><th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Cliente exclusivo</th><th>Situação</th><th>Comercialização</th></tr></thead>'
+        + '<table><thead><tr><th>Cliente exclusivo</th><th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Formato</th><th>Contato</th><th>Comercialização</th></tr></thead>'
         + '<tbody>' + linhas + '</tbody></table>'
         + '</body></html>';
     var win = window.open('', '_blank');
