@@ -4,10 +4,10 @@ $paginaAtual = $paginaAtual ?? '';
 <style>
 .nav-gear-wrap { position: relative; }
 .nav-gear-btn {
-    background: none; border: none; cursor: pointer;
-    font-size: 1.1rem; padding: 0.3rem 0.5rem; border-radius: 6px;
+    background: none; border: 1px solid transparent; cursor: pointer;
+    font-size: 1.1rem; padding: 0.35rem 0.6rem; border-radius: 8px;
     color: var(--color-text-muted); line-height: 1;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .nav-gear-btn:hover,
 .nav-gear-btn.aberto { background: #f3f4f6; color: var(--color-text-dark); }

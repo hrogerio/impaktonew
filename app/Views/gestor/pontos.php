@@ -147,13 +147,34 @@ $recentes = $pdo->query(
         .badge-excl-wrap { margin-top:3px; }
         .badge-excl     { display:inline-block; padding:2px 7px; border-radius:20px; font-size:0.62rem; font-weight:700; white-space:nowrap; background:#1e293b; color:#f8fafc; }
         .badge-excl.liberado { background:#78350f; color:#fef3c7; }
-        .btn-relatorio-excl {
-            display:inline-flex; align-items:center; gap:0.25rem;
-            background:none; border:none; color:var(--color-text-muted);
+        /* ── Dropdown de ações de exclusivos ── */
+        .dropdown-excl { position:relative; }
+        .btn-dropdown-excl {
+            display:inline-flex; align-items:center; gap:0.35rem;
+            background:none; border:1.5px solid var(--color-border); color:var(--color-text-muted);
             font-family:'Montserrat', sans-serif; font-size:0.75rem; font-weight:600;
-            cursor:pointer; white-space:nowrap; text-decoration:underline; padding:0.4rem 0.2rem;
+            cursor:pointer; white-space:nowrap; padding:0.4rem 0.7rem; border-radius:6px;
+            transition:all 0.15s;
         }
-        .btn-relatorio-excl:hover { color:var(--color-text-dark); }
+        .btn-dropdown-excl:hover, .btn-dropdown-excl.aberto { color:var(--color-text-dark); border-color:var(--color-text-muted); background:#f8fafc; }
+        .dropdown-caret { font-size:0.65rem; transition:transform 0.15s; }
+        .btn-dropdown-excl.aberto .dropdown-caret { transform:rotate(180deg); }
+        .dropdown-excl-menu {
+            display:none; position:absolute; top:calc(100% + 6px); right:0; z-index:100;
+            background:white; border:1px solid var(--color-border); border-radius:8px;
+            box-shadow:0 8px 24px rgba(0,0,0,0.12); min-width:230px; overflow:hidden;
+            padding:0.3rem;
+        }
+        .dropdown-excl-menu.aberto { display:block; }
+        .dropdown-excl-item {
+            display:flex; align-items:center; gap:0.5rem; width:100%;
+            background:none; border:none; text-align:left;
+            font-family:'Montserrat', sans-serif; font-size:0.78rem; font-weight:600;
+            color:var(--color-text-dark); cursor:pointer; padding:0.55rem 0.6rem; border-radius:5px;
+            white-space:nowrap;
+        }
+        .dropdown-excl-item:hover { background:#f1f5f9; color:var(--color-accent-primary); }
+        .acoes-divider { width:1px; height:1.6rem; background:var(--color-border); }
         .badge-contrato { display:inline-block; padding:1px 6px; border-radius:10px; font-size:0.62rem; font-weight:600; white-space:nowrap; }
         .ctr-vencido { background:#fde8e8; color:#c0392b; }
         .ctr-critico { background:#fee2e2; color:#991b1b; }
@@ -202,21 +223,28 @@ $recentes = $pdo->query(
 
         /* ── Push bar ── */
         .push-bar {
-            display:flex; align-items:center; gap:0.5rem;
-            background:#1e293b; color:white;
-            padding:0.35rem 1.2rem; font-size:0.72rem; flex-shrink:0;
+            display:flex; align-items:center; gap:0.6rem;
+            background:linear-gradient(180deg, #1e293b, #17212f);
+            color:white;
+            padding:0.4rem 1.2rem; font-size:0.72rem; flex-shrink:0;
             overflow:hidden;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,0.05);
         }
         .push-bar-label { font-weight:700; color:#94a3b8; white-space:nowrap; flex-shrink:0; }
-        .push-bar-items { display:flex; gap:0.4rem; overflow:hidden; flex:1; }
+        .push-bar-items {
+            display:flex; gap:0.4rem; overflow:hidden; flex:1;
+            mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent 100%);
+            -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent 100%);
+        }
         .push-bar-item {
             color:white; text-decoration:none;
-            padding:2px 8px; border-radius:4px;
+            padding:3px 10px; border-radius:20px;
             background:rgba(255,255,255,0.08);
+            border:1px solid rgba(255,255,255,0.06);
             white-space:nowrap; font-size:0.7rem;
-            transition:background 0.15s; flex-shrink:0;
+            transition:background 0.15s, transform 0.15s; flex-shrink:0;
         }
-        .push-bar-item:hover { background:rgba(255,255,255,0.18); }
+        .push-bar-item:hover { background:rgba(255,255,255,0.18); transform:translateY(-1px); }
         .push-bar-item strong { color:#f87171; margin-right:3px; }
         .push-bar-close {
             margin-left:auto; flex-shrink:0;
@@ -305,8 +333,14 @@ $recentes = $pdo->query(
         <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.3rem;">
             <span id="resultCount"></span>
             <span id="selCount" style="font-size:0.75rem;color:var(--color-accent-primary);font-weight:700;"></span>
-            <button type="button" class="btn-relatorio-excl" id="btnRelatorioExclusivos" onclick="gerarRelatorioExclusivos()" style="margin-left:auto">📋 Relatório de Exclusivos</button>
-            <button type="button" class="btn-relatorio-excl" id="btnPdfExclusivos" onclick="gerarPdfExclusivos()">📑 PDF de Apresentação</button>
+            <div class="dropdown-excl" id="dropdownExcl" style="margin-left:auto">
+                <button type="button" class="btn-dropdown-excl" id="btnDropdownExcl" onclick="toggleDropdownExcl(event)">🔒 Exclusivos <span class="dropdown-caret">▾</span></button>
+                <div class="dropdown-excl-menu" id="dropdownExclMenu">
+                    <button type="button" class="dropdown-excl-item" onclick="fecharDropdownExcl();gerarRelatorioExclusivos()">📋 Relatório de Exclusivos</button>
+                    <button type="button" class="dropdown-excl-item" onclick="fecharDropdownExcl();gerarPdfExclusivos()">📑 PDF de Apresentação</button>
+                </div>
+            </div>
+            <span class="acoes-divider"></span>
             <a href="/gestor/pontos/novo" class="btn-novo-ponto">+ Novo Ponto</a>
         </div>
     </div>
@@ -352,6 +386,7 @@ if (!Array.isArray(PONTOS)) PONTOS = [];
 var CART_KEY = 'impakto_cart';
 var selecao  = new Set(JSON.parse(localStorage.getItem(CART_KEY) || '[]'));
 var sortCol  = 'numero', sortDir = 'asc';
+var listaVisivelAtual = []; // pontos atualmente renderizados na tabela (vazio no estado padrão sem filtro)
 var filtros  = { busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', vencimento:'' };
 var pontosMap = {};
 PONTOS.forEach(function(p) { pontosMap[String(p.id)] = p; });
@@ -573,11 +608,20 @@ function renderTabela() {
     }
     document.getElementById('btnLimpar').className = 'btn-limpar-filtros'+(temFiltro?' visible':'');
 
+    if (!temFiltro) {
+        listaVisivelAtual = [];
+        document.getElementById('tabelaBody').innerHTML = '<tr class="empty-row"><td colspan="8">🔍 Use a busca ou um filtro acima para visualizar os pontos.</td></tr>';
+        atualizarCart();
+        return;
+    }
+
     if (lista.length === 0) {
+        listaVisivelAtual = [];
         document.getElementById('tabelaBody').innerHTML = '<tr class="empty-row"><td colspan="8">Nenhum ponto encontrado</td></tr>';
         atualizarCart();
         return;
     }
+    listaVisivelAtual = lista;
 
     // Agrupar por região
     var grupos = {}, ordemGrupos = [];
@@ -673,8 +717,7 @@ function mostrarAviso(html, tipo) {
     }, 4500);
 }
 function toggleTodos(marcar) {
-    var visiveis = ordenar(filtrar(PONTOS));
-    visiveis.forEach(function(p) {
+    listaVisivelAtual.forEach(function(p) {
         var id = String(p.id);
         if (marcar) selecao.add(id);
         else selecao.delete(id);
@@ -689,10 +732,10 @@ function atualizarCart() {
     document.getElementById('cartBtn').className = 'cart-btn no-print'+(n>0?' visivel':'');
 
     // sincroniza checkbox master com os visíveis
-    var visiveis = ordenar(filtrar(PONTOS));
+    var visiveis = listaVisivelAtual;
     var chkAll = document.getElementById('checkAll');
-    if (chkAll && visiveis.length > 0) {
-        var todosSel = visiveis.every(function(p){ return selecao.has(String(p.id)); });
+    if (chkAll) {
+        var todosSel = visiveis.length > 0 && visiveis.every(function(p){ return selecao.has(String(p.id)); });
         var algumSel = visiveis.some(function(p){  return selecao.has(String(p.id)); });
         chkAll.checked = todosSel;
         chkAll.indeterminate = !todosSel && algumSel;
@@ -757,7 +800,24 @@ function fecharLb() {
 }
 document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey||e.metaKey)&&e.key==='k') { e.preventDefault(); document.getElementById('searchInput').focus(); }
-    if (e.key==='Escape') fecharLb();
+    if (e.key==='Escape') { fecharLb(); fecharDropdownExcl(); }
+});
+
+// ── Dropdown de ações de exclusivos ──────────────────────────
+function toggleDropdownExcl(e) {
+    e.stopPropagation();
+    var menu = document.getElementById('dropdownExclMenu');
+    var abrir = !menu.classList.contains('aberto');
+    menu.classList.toggle('aberto', abrir);
+    document.getElementById('btnDropdownExcl').classList.toggle('aberto', abrir);
+}
+function fecharDropdownExcl() {
+    document.getElementById('dropdownExclMenu').classList.remove('aberto');
+    document.getElementById('btnDropdownExcl').classList.remove('aberto');
+}
+document.addEventListener('click', function(e) {
+    var dd = document.getElementById('dropdownExcl');
+    if (dd && !dd.contains(e.target)) fecharDropdownExcl();
 });
 
 // ── Push bar ─────────────────────────────────────────────────
