@@ -306,6 +306,7 @@ $recentes = $pdo->query(
             <span id="resultCount"></span>
             <span id="selCount" style="font-size:0.75rem;color:var(--color-accent-primary);font-weight:700;"></span>
             <button type="button" class="btn-relatorio-excl" id="btnRelatorioExclusivos" onclick="gerarRelatorioExclusivos()" style="margin-left:auto">📋 Relatório de Exclusivos</button>
+            <button type="button" class="btn-relatorio-excl" id="btnPdfExclusivos" onclick="gerarPdfExclusivos()">📑 PDF de Apresentação</button>
             <a href="/gestor/pontos/novo" class="btn-novo-ponto">+ Novo Ponto</a>
         </div>
     </div>
@@ -414,12 +415,33 @@ function gerarRelatorioExclusivos() {
     exclusivos = exclusivos.slice().sort(function(a,b) {
         return normalizar(a.cliente_exclusivo||'').localeCompare(normalizar(b.cliente_exclusivo||''));
     });
-    var linhas = exclusivos.map(function(p) {
-        var comerc = parseInt(p.liberado_comercializacao) === 1
-            ? '<span class="tag tag-liberado">🔓 Liberado p/ comercialização</span>'
-            : '<span class="tag tag-preso">🔒 Bloqueado</span>';
-        return '<tr><td>'+esc(p.cliente_exclusivo||'—')+'</td><td>'+esc(p.numero)+'</td><td>'+esc(p.logradouro)+'</td><td>'+esc(p.cidade)+'</td>'
-            + '<td>'+esc(p.formato||'—')+'</td><td>'+esc(p.contato||'—')+'</td><td>'+comerc+'</td></tr>';
+
+    // Agrupa por cliente exclusivo, na ordem já ordenada
+    var grupos = {};
+    var ordemClientes = [];
+    exclusivos.forEach(function(p) {
+        var cli = p.cliente_exclusivo || '—';
+        if (!grupos[cli]) { grupos[cli] = []; ordemClientes.push(cli); }
+        grupos[cli].push(p);
+    });
+
+    var linhas = ordemClientes.map(function(cli) {
+        var pontosCliente = grupos[cli];
+        var ckQ = 'cliente=' + encodeURIComponent(pontosCliente[0].cliente_exclusivo || '')
+            + '&agencia=&campanha=' + encodeURIComponent('Checking Exclusivos')
+            + '&situacao=' + encodeURIComponent('Exclusivo') + '&inicio=&fim=';
+        pontosCliente.forEach(function(p) { ckQ += '&pontoIds[]=' + p.id; });
+        var grupoHtml = '<tr class="grp-row no-print"><td colspan="7"><strong>'+esc(cli)+'</strong>'
+            + ' <span class="grp-count">'+pontosCliente.length+' painel(is)</span>'
+            + ' <a class="chk-link" href="/gestor/campanhas/checking?'+ckQ+'" target="_blank">📸 Gerar Checking</a></td></tr>';
+        var linhasCliente = pontosCliente.map(function(p) {
+            var comerc = parseInt(p.liberado_comercializacao) === 1
+                ? '<span class="tag tag-liberado">🔓 Liberado p/ comercialização</span>'
+                : '<span class="tag tag-preso">🔒 Bloqueado</span>';
+            return '<tr><td>'+esc(p.cliente_exclusivo||'—')+'</td><td>'+esc(p.numero)+'</td><td>'+esc(p.logradouro)+'</td><td>'+esc(p.cidade)+'</td>'
+                + '<td>'+esc(p.formato||'—')+'</td><td>'+esc(p.contato||'—')+'</td><td>'+comerc+'</td></tr>';
+        }).join('');
+        return grupoHtml + linhasCliente;
     }).join('');
     var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
         + '<title>Relatório de Painéis Exclusivos — Impakto Mídia</title><style>'
@@ -431,6 +453,11 @@ function gerarRelatorioExclusivos() {
         + 'th{background:#f1f5f9}'
         + '.tag{display:inline-block;padding:2px 7px;border-radius:20px;font-size:0.65rem;font-weight:700;white-space:nowrap}'
         + '.tag-liberado{background:#78350f;color:#fef3c7}.tag-preso{background:#1e293b;color:#f8fafc}'
+        + '.grp-row td{background:#f8fafc;padding:8px}'
+        + '.grp-count{color:#666;font-size:0.72rem;margin-left:6px}'
+        + '.chk-link{float:right;background:#7e22ce;color:#fff;text-decoration:none;padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:700}'
+        + '.chk-link:hover{background:#6b21a8}'
+        + '@media print{ .no-print{display:none} }'
         + '</style></head><body>'
         + '<h1>🔒 Relatório Interno — Painéis Exclusivos</h1>'
         + '<p class="sub">Impakto Mídia · gerado em ' + new Date().toLocaleString('pt-BR') + ' · ' + exclusivos.length + ' painel(is)</p>'
@@ -443,6 +470,20 @@ function gerarRelatorioExclusivos() {
     win.document.close();
     win.focus();
     setTimeout(function(){ win.print(); }, 300);
+}
+
+// ── PDF de apresentação dos painéis exclusivos (estrutura da pré-seleção) ──
+function gerarPdfExclusivos() {
+    var exclusivos = filtrar(PONTOS).filter(function(p){ return parseInt(p.exclusivo) === 1; });
+    if (exclusivos.length === 0) {
+        alert('Nenhum painel exclusivo encontrado com os filtros atuais.');
+        return;
+    }
+    exclusivos = exclusivos.slice().sort(function(a,b) {
+        return normalizar(a.cliente_exclusivo||'').localeCompare(normalizar(b.cliente_exclusivo||''));
+    });
+    var q = exclusivos.map(function(p){ return 'pontoIds[]=' + p.id; }).join('&');
+    window.open('/gestor/pontos/exclusivos/pdf?' + q, '_blank');
 }
 
 // ── Filtrar / Ordenar ────────────────────────────────────────

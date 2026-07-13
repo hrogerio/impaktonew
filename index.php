@@ -213,6 +213,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/pontos_dados.php';
         break;
 
+    // ── PDF DE APRESENTAÇÃO — PAINÉIS EXCLUSIVOS (download) ──
+    case 'gestor/pontos/exclusivos/pdf':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/pontos_exclusivos_pdf.php';
+        break;
+
     // ── RELATÓRIOS ──────────────────────────────────────────
     case 'gestor/relatorios':
         auth_required();
