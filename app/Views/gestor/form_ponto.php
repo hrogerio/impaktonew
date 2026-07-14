@@ -146,6 +146,8 @@ sort($listaAgencias);
         <div class="form-msg ok">✅ Ponto reativado com sucesso!</div>
     <?php elseif ($msg === 'erro'): ?>
         <div class="form-msg erro">⚠️ Verifique os campos obrigatórios (Número, Logradouro, Cidade).</div>
+    <?php elseif ($msg === 'erro_situacao_sem_campanha'): ?>
+        <div class="form-msg erro">⚠️ Não é possível marcar "Ocupado" sem uma campanha ativa. Use "Registrar campanha" para ocupar este ponto.</div>
     <?php endif; ?>
 
     <!-- ── Abas (só em modo editar) ─────────────────────────── -->

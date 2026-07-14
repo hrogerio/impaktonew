@@ -60,6 +60,25 @@ $params = [
     ':liberado_comercializacao' => isset($_POST['liberado_comercializacao']) ? 1 : 0,
 ];
 
+// Impede marcar "Ocupado" manualmente sem uma campanha ativa por trás
+// (isso já causou pontos travados em "Ocupado" após a campanha real ter
+// sido encerrada — ver database/migrations/limpa_pontos_ocupacao_divergente.sql)
+if ($params[':situacao'] === 'Ocupado') {
+    $temCampanhaAtiva = false;
+    if ($id > 0) {
+        $stmtCheck = $pdo->prepare("SELECT 1 FROM campanhas WHERE ponto_id = :id AND ativo = 1 LIMIT 1");
+        $stmtCheck->execute([':id' => $id]);
+        $temCampanhaAtiva = (bool)$stmtCheck->fetchColumn();
+    }
+    if (!$temCampanhaAtiva) {
+        $redir = $id > 0
+            ? "/gestor/pontos/editar?id=$id&msg=erro_situacao_sem_campanha"
+            : "/gestor/pontos/novo?msg=erro_situacao_sem_campanha";
+        header("Location: $redir");
+        exit;
+    }
+}
+
 // Garante que colunas opcionais existem antes de usá-las
 $colunasExistentes = [];
 $rsCol = $pdo->query("SHOW COLUMNS FROM pontos");
