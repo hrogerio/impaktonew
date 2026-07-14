@@ -44,7 +44,7 @@ $semCliente = $pdo->query("
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1
     WHERE (p.ativo=1 OR p.ativo IS NULL)
-      AND COALESCE(NULLIF(TRIM(c.cliente),''), NULLIF(TRIM(p.cliente),'')) IS NULL
+      AND NULLIF(TRIM(c.cliente),'') IS NULL
     GROUP BY p.id
     ORDER BY p.numero ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
@@ -52,7 +52,7 @@ $semCliente = $pdo->query("
 // ── Contratos vencidos sem atualização de situação ────────────
 $vencidosSemAtualizar = $pdo->query("
     SELECT p.id, p.numero, p.logradouro, p.cidade, p.situacao,
-           COALESCE(c.cliente, p.cliente) AS cliente,
+           c.cliente AS cliente,
            COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END) AS fim_contrato,
            DATEDIFF(CURDATE(), COALESCE(CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END, CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END)) AS dias_vencido
     FROM pontos p

@@ -80,7 +80,7 @@ $regioes = $stmtReg->fetchAll(PDO::FETCH_ASSOC);
 // ── Vencimentos próximos 30 dias (campanhas ativas) ──────────
 $stmtVenc = $pdo->query("
     SELECT p.id, p.numero, p.logradouro, p.cidade,
-           COALESCE(c.cliente, p.cliente) AS cliente,
+           c.cliente AS cliente,
            COALESCE(
                CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
                CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END

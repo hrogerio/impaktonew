@@ -15,8 +15,8 @@ try {
 
 $sql = "
     SELECT p.id, p.numero, p.logradouro, p.descricao, p.cidade, p.regiao,
-           COALESCE(c.cliente, p.cliente) AS cliente,
-           COALESCE(c.agencia, p.agencia) AS agencia,
+           c.cliente AS cliente,
+           c.agencia AS agencia,
            COALESCE(c.contato, p.contato) AS contato,
            p.tipo, p.situacao, p.corredor, p.formato,
            p.exclusivo, p.cliente_exclusivo, p.liberado_comercializacao,
@@ -38,7 +38,7 @@ $pontos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 $regioes    = $pdo->query("SELECT DISTINCT regiao   FROM pontos WHERE regiao   IS NOT NULL AND regiao   != '' AND (ativo=1 OR ativo IS NULL) ORDER BY regiao"  )->fetchAll(PDO::FETCH_COLUMN);
 $cidades    = $pdo->query("SELECT DISTINCT cidade   FROM pontos WHERE cidade   IS NOT NULL AND cidade   != '' AND (ativo=1 OR ativo IS NULL) ORDER BY cidade"  )->fetchAll(PDO::FETCH_COLUMN);
 $clientes   = $pdo->query("
-    SELECT DISTINCT COALESCE(c.cliente, p.cliente) AS cliente
+    SELECT DISTINCT c.cliente AS cliente
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1
     WHERE (p.ativo = 1 OR p.ativo IS NULL)

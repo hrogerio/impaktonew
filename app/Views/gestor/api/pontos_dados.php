@@ -39,7 +39,7 @@ $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
 $sql = "
     SELECT p.id, p.numero, p.logradouro, p.descricao, p.cidade, p.regiao,
-           p.cliente, p.agencia, p.tipo, p.situacao, p.corredor, p.formato,
+           p.tipo, p.situacao, p.corredor, p.formato,
            p.inicio_contrato, p.fim_contrato,
            COALESCE(
                (SELECT pf.caminho FROM ponto_fotos pf WHERE pf.ponto_id = p.id AND pf.principal = 1 LIMIT 1),

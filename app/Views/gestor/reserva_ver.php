@@ -31,7 +31,7 @@ if (!$ps) {
 // Pontos da pré-seleção (com situação atual + campanha ativa vinculada)
 $stmt2 = $pdo->prepare("
     SELECT p.id, p.numero, p.logradouro, p.descricao, p.cidade, p.regiao,
-           p.tipo, p.situacao, p.formato, p.cliente AS ponto_cliente,
+           p.tipo, p.situacao, p.formato,
            COALESCE(
                (SELECT pf.caminho FROM ponto_fotos pf WHERE pf.ponto_id = p.id AND pf.principal = 1 LIMIT 1),
                p.foto
