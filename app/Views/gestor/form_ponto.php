@@ -49,17 +49,14 @@ function v($arr, $campo, $default = '') {
 $situacoes = ['Disponivel','Ocupado','Reservado','Vencido','Permuta','Bisemana'];
 $tipos     = ['Painel','Outdoor','Frontlight','Painel LED'];
 
-// Autocomplete: clientes e agências de pontos + campanhas
+// Autocomplete: clientes e agências de campanhas + cliente_exclusivo dos pontos
 $listaClientes = array_unique(array_merge(
-    $pdo->query("SELECT DISTINCT cliente FROM pontos WHERE cliente IS NOT NULL AND cliente != '' AND (ativo=1 OR ativo IS NULL) ORDER BY cliente")->fetchAll(PDO::FETCH_COLUMN),
-    $pdo->query("SELECT DISTINCT cliente FROM campanhas WHERE cliente IS NOT NULL AND cliente != '' AND ativo=1 ORDER BY cliente")->fetchAll(PDO::FETCH_COLUMN)
+    $pdo->query("SELECT DISTINCT cliente FROM campanhas WHERE cliente IS NOT NULL AND cliente != '' AND ativo=1 ORDER BY cliente")->fetchAll(PDO::FETCH_COLUMN),
+    $pdo->query("SELECT DISTINCT cliente_exclusivo FROM pontos WHERE cliente_exclusivo IS NOT NULL AND cliente_exclusivo != '' AND (ativo=1 OR ativo IS NULL) ORDER BY cliente_exclusivo")->fetchAll(PDO::FETCH_COLUMN)
 ));
 sort($listaClientes);
 
-$listaAgencias = array_unique(array_merge(
-    $pdo->query("SELECT DISTINCT agencia FROM pontos WHERE agencia IS NOT NULL AND agencia != '' AND agencia != '-' AND (ativo=1 OR ativo IS NULL) ORDER BY agencia")->fetchAll(PDO::FETCH_COLUMN),
-    $pdo->query("SELECT DISTINCT agencia FROM campanhas WHERE agencia IS NOT NULL AND agencia != '' AND ativo=1 ORDER BY agencia")->fetchAll(PDO::FETCH_COLUMN)
-));
+$listaAgencias = $pdo->query("SELECT DISTINCT agencia FROM campanhas WHERE agencia IS NOT NULL AND agencia != '' AND ativo=1 ORDER BY agencia")->fetchAll(PDO::FETCH_COLUMN);
 sort($listaAgencias);
 ?>
 <!DOCTYPE html>

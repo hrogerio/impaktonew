@@ -63,7 +63,9 @@ $params = [
 // Impede marcar "Ocupado" manualmente sem uma campanha ativa por trás
 // (isso já causou pontos travados em "Ocupado" após a campanha real ter
 // sido encerrada — ver database/migrations/limpa_pontos_ocupacao_divergente.sql)
-if ($params[':situacao'] === 'Ocupado') {
+// Exceção: painéis exclusivos não usam campanhas para ocupação — o cliente
+// fica registrado em cliente_exclusivo, então não se aplica essa checagem.
+if ($params[':situacao'] === 'Ocupado' && $params[':exclusivo'] !== 1) {
     $temCampanhaAtiva = false;
     if ($id > 0) {
         $stmtCheck = $pdo->prepare("SELECT 1 FROM campanhas WHERE ponto_id = :id AND ativo = 1 LIMIT 1");
