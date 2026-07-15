@@ -15,11 +15,10 @@ require_once __DIR__ . '/../../Controllers/RelatorioController.php';
 
 $controller = new RelatorioController();
 
-$periodoContratos = $_GET['periodo'] ?? '3m';
 $periodoHistorico = $_GET['periodo_historico'] ?? '3m';
 
 $ocupacao  = $controller->dadosOcupacao();
-$contratos = $controller->dadosContratos($periodoContratos);
+$contratos = $controller->dadosContratos();
 $clientes  = $controller->dadosClientes();
 $historico = $controller->dadosHistorico($periodoHistorico);
 
@@ -30,11 +29,6 @@ function pct($valor, $total) {
     return $total > 0 ? round(($valor / $total) * 100, 1) : 0;
 }
 
-function diasClass($dias) {
-    if ($dias <= 15) return 'urgente';
-    if ($dias <= 30) return 'atencao';
-    return 'ok';
-}
 
 function mesLabel($mesStr) {
     $meses = ['01'=>'Jan','02'=>'Fev','03'=>'Mar','04'=>'Abr','05'=>'Mai','06'=>'Jun',
@@ -57,6 +51,36 @@ function fmtDuracao($dias) {
     }
     $meses = round($dias / 30);
     return $meses . ' meses';
+}
+
+/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos), reutilizada em Contratos Ativos e Vencendo por mês */
+function tabelaCampanhas(array $lista) {
+    if (empty($lista)) {
+        echo '<div class="empty-state"><p>Nenhum contrato encontrado.</p></div>';
+        return;
+    }
+    ?>
+    <div class="table-container">
+        <table class="rel-table">
+            <thead>
+                <tr><th>Cliente</th><th>Campanha</th><th>Agência</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:right">Pontos</th></tr>
+            </thead>
+            <tbody>
+                <?php foreach ($lista as $c): ?>
+                <tr>
+                    <td><strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong></td>
+                    <td><?= htmlspecialchars($c['campanha'] ?? '-') ?></td>
+                    <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
+                    <td><?= fmtData($c['inicio_contrato']) ?></td>
+                    <td><?= fmtData($c['fim_contrato']) ?></td>
+                    <td><?= fmtDuracao($c['duracao_dias']) ?></td>
+                    <td style="text-align:right"><strong style="color:var(--color-accent-primary)"><?= $c['qtd_pontos'] ?></strong></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
 }
 
 $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' => '6 meses', '12m' => '12 meses'];
@@ -85,7 +109,7 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
             <h2>📊 Relatórios</h2>
             <p>Ocupação, contratos, clientes e histórico — visão comercial para apresentação à diretoria.</p>
         </div>
-        <a class="btn-export btn-pdf-mensal" href="/gestor/relatorios/pdf?periodo=<?= urlencode($periodoContratos) ?>&periodo_historico=<?= urlencode($periodoHistorico) ?>" target="_blank">
+        <a class="btn-export btn-pdf-mensal" href="/gestor/relatorios/pdf?periodo_historico=<?= urlencode($periodoHistorico) ?>" target="_blank">
             📄 Gerar Relatório Mensal (PDF)
         </a>
     </div>
@@ -254,61 +278,12 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
         <?php endif; ?>
 
         <div class="section-title">📋 Contratos Ativos por Cliente</div>
-        <?php
-        $campanhasUnicas = [];
-        foreach ($contratos['contratos_com_duracao'] as $c) {
-            $chave = ($c['cliente'] ?? '-') . '|' . ($c['campanha'] ?? '-') . '|' . ($c['agencia'] ?? '-') . '|' . $c['inicio_contrato'] . '|' . $c['fim_contrato'];
-            if (!isset($campanhasUnicas[$chave])) {
-                $campanhasUnicas[$chave] = $c;
-                $campanhasUnicas[$chave]['qtd_pontos'] = 0;
-            }
-            $campanhasUnicas[$chave]['qtd_pontos']++;
-        }
-        usort($campanhasUnicas, fn($a, $b) => strcmp($a['cliente'] ?? '', $b['cliente'] ?? ''));
-        ?>
-        <?php if (empty($campanhasUnicas)): ?>
-            <div class="empty-state"><p>Nenhum contrato ativo encontrado.</p></div>
-        <?php else: ?>
-        <div class="table-container">
-            <table class="rel-table" id="tbl-duracao">
-                <thead>
-                    <tr><th>Cliente</th><th>Campanha</th><th>Agência</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:right">Pontos</th></tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($campanhasUnicas as $c): ?>
-                    <tr>
-                        <td><strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong></td>
-                        <td><?= htmlspecialchars($c['campanha'] ?? '-') ?></td>
-                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
-                        <td><?= fmtData($c['inicio_contrato']) ?></td>
-                        <td><?= fmtData($c['fim_contrato']) ?></td>
-                        <td><?= fmtDuracao($c['duracao_dias']) ?></td>
-                        <td style="text-align:right"><strong style="color:var(--color-accent-primary)"><?= $c['qtd_pontos'] ?></strong></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php endif; ?>
+        <?php tabelaCampanhas($contratos['campanhas_ativas']); ?>
 
         <!-- ===== Contratos Vencendo / Vencidos ===== -->
         <div class="section-title" style="margin-top:1.5rem">📅 Contratos Vencendo</div>
 
-        <div class="periodo-pills">
-            <span style="font-size:0.82rem;font-weight:700;color:var(--color-text-muted);">Vencendo em:</span>
-            <?php foreach ($periodoOpcoes as $chave => $label): ?>
-            <a href="?periodo=<?= $chave ?>&periodo_historico=<?= urlencode($periodoHistorico) ?>#contratos" class="pill <?= $periodoContratos==$chave?'active':'' ?>"><?= $label ?></a>
-            <?php endforeach; ?>
-        </div>
-
-        <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr); margin-bottom:1.25rem;">
-            <div class="kpi-card">
-                <div class="kpi-icon" style="background:#f0f4ff;">📅</div>
-                <div class="kpi-body">
-                    <div class="kpi-value" style="color:#1a237e"><?= count($contratos['vencendo']) ?></div>
-                    <div class="kpi-label">Vencendo em <?= $contratos['periodo_label'] ?></div>
-                </div>
-            </div>
+        <div class="kpi-grid" style="grid-template-columns:minmax(180px,220px); margin-bottom:1.25rem;">
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#f9f0ff;">🔴</div>
                 <div class="kpi-body">
@@ -320,8 +295,8 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
 
         <?php if (!empty($contratos['vencendo_por_mes'])): ?>
         <div class="panel" style="margin-bottom:1.25rem;">
-            <div class="panel-title">Distribuição por mês</div>
-            <?php $maxMes = max($contratos['vencendo_por_mes']); ?>
+            <div class="panel-title">Distribuição por mês (Jul a Dez)</div>
+            <?php $maxMes = max(1, max($contratos['vencendo_por_mes'])); ?>
             <div class="timeline-bars">
                 <?php foreach ($contratos['vencendo_por_mes'] as $mes => $qtd): ?>
                 <div class="tl-col">
@@ -334,33 +309,15 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
         </div>
         <?php endif; ?>
 
-        <?php if (empty($contratos['vencendo'])): ?>
-            <div class="empty-state"><div class="empty-state-icon">🎉</div><p>Nenhum contrato vencendo em <?= $contratos['periodo_label'] ?>.</p></div>
+        <?php if (empty($contratos['vencendo_agrupado'])): ?>
+            <div class="empty-state"><div class="empty-state-icon">🎉</div><p>Nenhum contrato vencendo este ano.</p></div>
         <?php else: ?>
-            <div class="table-container">
-                <table class="rel-table" id="tbl-contratos">
-                    <thead>
-                        <tr>
-                            <th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Cliente</th><th>Agência</th>
-                            <th>Vencimento</th><th>Dias</th><th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($contratos['vencendo'] as $c): $cls = diasClass($c['dias_restantes']); ?>
-                        <tr>
-                            <td><strong style="color:var(--color-accent-primary)"><?= htmlspecialchars($c['numero']) ?></strong></td>
-                            <td><?= htmlspecialchars($c['logradouro'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($c['cidade'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($c['cliente'] ?? '-') ?></td>
-                            <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
-                            <td><?= fmtData($c['fim_contrato']) ?></td>
-                            <td><strong><?= $c['dias_restantes'] ?></strong></td>
-                            <td><span class="tag-<?= $cls ?>"><?= $cls==='urgente' ? '⚠️ Urgente' : ($cls==='atencao' ? '🔶 Atenção' : '✅ OK') ?></span></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+            <?php foreach ($contratos['vencendo_agrupado'] as $mes => $campanhas): ?>
+            <div class="bloco-section">
+                <div class="bloco-label"><?= mesLabel($mes) ?></div>
+                <?php tabelaCampanhas($campanhas); ?>
             </div>
+            <?php endforeach; ?>
         <?php endif; ?>
 
         <div class="section-title" style="margin-top:1.5rem">🔴 Contratos Vencidos (<?= count($contratos['vencidos']) ?>)</div>
@@ -503,7 +460,7 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
         <div class="periodo-pills">
             <span style="font-size:0.82rem;font-weight:700;color:var(--color-text-muted);">Período:</span>
             <?php foreach ($periodoOpcoes as $chave => $label): ?>
-            <a href="?periodo=<?= urlencode($periodoContratos) ?>&periodo_historico=<?= $chave ?>#historico" class="pill <?= $periodoHistorico==$chave?'active':'' ?>"><?= $label ?></a>
+            <a href="?periodo_historico=<?= $chave ?>#historico" class="pill <?= $periodoHistorico==$chave?'active':'' ?>"><?= $label ?></a>
             <?php endforeach; ?>
         </div>
 

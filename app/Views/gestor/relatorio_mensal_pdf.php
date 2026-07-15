@@ -20,11 +20,10 @@ if (!isset($_SESSION['usuario'])) {
 require_once __DIR__ . '/../../../config/database.php';
 require_once __DIR__ . '/../../Controllers/RelatorioController.php';
 
-$periodoContratos = $_GET['periodo'] ?? '3m';
 $periodoHistorico = $_GET['periodo_historico'] ?? '3m';
 
 $controller = new RelatorioController();
-$dados = $controller->dadosCompletos($periodoContratos, $periodoHistorico);
+$dados = $controller->dadosCompletos($periodoHistorico);
 
 // ── tFPDF (com fallback pra FPDF) ──────────────────────────────────────────
 $tfpdfPath   = __DIR__ . '/../../../lib/fpdf/tfpdf.php';
@@ -54,6 +53,12 @@ function pctPdf($valor, $total) {
 function fmtDataPdf($d) {
     if (!$d || $d === '0000-00-00') return '-';
     try { return (new DateTime($d))->format('d/m/Y'); } catch (Exception $e) { return '-'; }
+}
+function mesLabelPdf($mesStr) {
+    $meses = ['01'=>'Jan','02'=>'Fev','03'=>'Mar','04'=>'Abr','05'=>'Mai','06'=>'Jun',
+              '07'=>'Jul','08'=>'Ago','09'=>'Set','10'=>'Out','11'=>'Nov','12'=>'Dez'];
+    [$ano, $m] = explode('-', $mesStr);
+    return ($meses[$m] ?? $m) . '/' . substr($ano, 2);
 }
 
 $VERM   = [192, 57,  43 ];
@@ -183,6 +188,16 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
     $pdf->Ln(3);
 }
 
+/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos) */
+function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED) {
+    tabela($pdf,
+        ['Cliente', 'Campanha', 'Agencia', 'Inicio', 'Fim', 'Duracao (dias)', 'Pontos'],
+        [36, 34, 30, 20, 20, 24, 16],
+        array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), $c['duracao_dias'], $c['qtd_pontos']], $lista),
+        $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
+    );
+}
+
 $pdf->AddPage();
 cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
 
@@ -222,7 +237,6 @@ tituloSecao($pdf, 'Contratos e Tempo de Contrato', $CW, $MX, $VERM, $PRETO, $MUT
 kpis($pdf, [
     ['Duracao Media Geral', round($ct['duracao_agregada']['media_geral_dias'] / 30, 1) . ' meses'],
     ['Contratos Ativos', count($ct['contratos_com_duracao'])],
-    ['Vencendo em ' . $ct['periodo_label'], count($ct['vencendo'])],
     ['Ja Vencidos', count($ct['vencidos'])],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
@@ -235,30 +249,12 @@ tabela($pdf,
 );
 
 subtitulo($pdf, 'Contratos Ativos por Cliente', $CW, $MUTED);
-$campanhasUnicasPdf = [];
-foreach ($ct['contratos_com_duracao'] as $c) {
-    $chave = ($c['cliente'] ?? '-') . '|' . ($c['campanha'] ?? '-') . '|' . ($c['agencia'] ?? '-') . '|' . $c['inicio_contrato'] . '|' . $c['fim_contrato'];
-    if (!isset($campanhasUnicasPdf[$chave])) {
-        $campanhasUnicasPdf[$chave] = $c;
-        $campanhasUnicasPdf[$chave]['qtd_pontos'] = 0;
-    }
-    $campanhasUnicasPdf[$chave]['qtd_pontos']++;
-}
-usort($campanhasUnicasPdf, fn($a, $b) => strcmp($a['cliente'] ?? '', $b['cliente'] ?? ''));
-tabela($pdf,
-    ['Cliente', 'Campanha', 'Agencia', 'Inicio', 'Fim', 'Duracao (dias)', 'Pontos'],
-    [36, 34, 30, 20, 20, 24, 16],
-    array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), $c['duracao_dias'], $c['qtd_pontos']], $campanhasUnicasPdf),
-    $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
-);
+tabelaCampanhasPdf($pdf, $ct['campanhas_ativas'], $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED);
 
-subtitulo($pdf, 'Contratos Vencendo em ' . $ct['periodo_label'], $CW, $MUTED);
-tabela($pdf,
-    ['No', 'Cidade', 'Cliente', 'Agencia', 'Vencimento', 'Dias'],
-    [14, 32, 42, 34, 28, 16],
-    array_map(fn($c) => [$c['numero'], $c['cidade'], $c['cliente'] ?: '-', $c['agencia'] ?: '-', fmtDataPdf($c['fim_contrato']), $c['dias_restantes']], $ct['vencendo']),
-    $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
-);
+foreach ($ct['vencendo_agrupado'] as $mes => $campanhas) {
+    subtitulo($pdf, 'Vencendo em ' . mesLabelPdf($mes), $CW, $MUTED);
+    tabelaCampanhasPdf($pdf, $campanhas, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED);
+}
 
 subtitulo($pdf, 'Contratos Vencidos (todos)', $CW, $MUTED);
 tabela($pdf,

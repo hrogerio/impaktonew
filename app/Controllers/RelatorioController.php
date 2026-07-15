@@ -6,11 +6,11 @@ class RelatorioController {
     private $model;
 
     private const PERIODOS = [
-        '15d' => ['sql' => 'INTERVAL 15 DAY',    'label' => '15 dias'],
-        '1m'  => ['sql' => 'INTERVAL 1 MONTH',   'label' => '1 mês'],
-        '3m'  => ['sql' => 'INTERVAL 3 MONTH',   'label' => '3 meses'],
-        '6m'  => ['sql' => 'INTERVAL 6 MONTH',   'label' => '6 meses'],
-        '12m' => ['sql' => 'INTERVAL 12 MONTH',  'label' => '12 meses'],
+        '15d' => ['sql' => 'INTERVAL 15 DAY',    'label' => '15 dias', 'modify' => '+15 days'],
+        '1m'  => ['sql' => 'INTERVAL 1 MONTH',   'label' => '1 mês',   'modify' => '+1 month'],
+        '3m'  => ['sql' => 'INTERVAL 3 MONTH',   'label' => '3 meses', 'modify' => '+3 months'],
+        '6m'  => ['sql' => 'INTERVAL 6 MONTH',   'label' => '6 meses', 'modify' => '+6 months'],
+        '12m' => ['sql' => 'INTERVAL 12 MONTH',  'label' => '12 meses','modify' => '+12 months'],
     ];
 
     public function __construct() {
@@ -38,30 +38,53 @@ class RelatorioController {
         ];
     }
 
-    public function dadosContratos(string $periodoChave): array {
-        $periodo = $this->periodo($periodoChave);
-
-        $vencendo = $this->model->contratosVencendo($periodo['sql']);
-        $vencidos = $this->model->contratosVencidos();
+    public function dadosContratos(): array {
+        $vencidos   = $this->model->contratosVencidos();
         $comDuracao = $this->model->contratosAtivosComDuracao();
 
+        // Contratos vencendo, agrupados por mês (Jul a Dez do ano corrente) e deduplicados por campanha
+        $anoAtual = date('Y');
         $vencendoPorMes = [];
-        foreach ($vencendo as $c) {
-            $mes = (new DateTime($c['fim_contrato']))->format('Y-m');
-            $vencendoPorMes[$mes] = ($vencendoPorMes[$mes] ?? 0) + 1;
+        for ($m = 7; $m <= 12; $m++) {
+            $vencendoPorMes[$anoAtual . '-' . str_pad($m, 2, '0', STR_PAD_LEFT)] = 0;
         }
-        ksort($vencendoPorMes);
+        $vencendoAgrupado = [];
+        foreach ($comDuracao as $c) {
+            $fim = new DateTime($c['fim_contrato']);
+            if ($fim->format('Y') !== $anoAtual) continue;
+            $mesChave = $fim->format('Y-m');
+            $vencendoPorMes[$mesChave]++;
+            $vencendoAgrupado[$mesChave][] = $c;
+        }
+        ksort($vencendoAgrupado);
+        foreach ($vencendoAgrupado as $mes => $lista) {
+            $vencendoAgrupado[$mes] = $this->agruparCampanhas($lista);
+        }
 
         return [
-            'periodo_chave'   => $periodoChave,
-            'periodo_label'   => $periodo['label'],
-            'vencendo'        => $vencendo,
-            'vencendo_por_mes'=> $vencendoPorMes,
-            'vencidos'        => $vencidos,
+            'vencendo_por_mes'      => $vencendoPorMes,
+            'vencendo_agrupado'     => $vencendoAgrupado,
+            'vencidos'              => $vencidos,
             'contratos_com_duracao' => $comDuracao,
+            'campanhas_ativas'      => $this->agruparCampanhas($comDuracao),
             'duracao_agregada'      => $this->model->duracaoAgregada($comDuracao),
             'ativos_por_mes'        => $this->model->contratosAtivosPorMes(),
         ];
+    }
+
+    /** Deduplica uma lista de contratos por campanha (cliente+campanha+agência+período), somando a quantidade de pontos */
+    private function agruparCampanhas(array $contratos): array {
+        $grupos = [];
+        foreach ($contratos as $c) {
+            $chave = ($c['cliente'] ?? '-') . '|' . ($c['campanha'] ?? '-') . '|' . ($c['agencia'] ?? '-') . '|' . $c['inicio_contrato'] . '|' . $c['fim_contrato'];
+            if (!isset($grupos[$chave])) {
+                $grupos[$chave] = $c;
+                $grupos[$chave]['qtd_pontos'] = 0;
+            }
+            $grupos[$chave]['qtd_pontos']++;
+        }
+        usort($grupos, fn($a, $b) => strcmp($a['cliente'] ?? '', $b['cliente'] ?? ''));
+        return $grupos;
     }
 
     public function dadosClientes(): array {
@@ -86,10 +109,10 @@ class RelatorioController {
     }
 
     /** Todos os dados de uma vez, usado pelo PDF consolidado */
-    public function dadosCompletos(string $periodoContratos = '3m', string $periodoHistorico = '3m'): array {
+    public function dadosCompletos(string $periodoHistorico = '3m'): array {
         return [
             'ocupacao'  => $this->dadosOcupacao(),
-            'contratos' => $this->dadosContratos($periodoContratos),
+            'contratos' => $this->dadosContratos(),
             'clientes'  => $this->dadosClientes(),
             'historico' => $this->dadosHistorico($periodoHistorico),
         ];

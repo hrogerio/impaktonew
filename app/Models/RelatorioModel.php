@@ -59,27 +59,6 @@ class RelatorioModel {
     // CONTRATOS
     // ============================================================
 
-    public function contratosVencendo(string $intervalSQL): array {
-        $fim = self::FIM_CONTRATO_SQL;
-        return $this->pdo->query("
-            SELECT
-                p.numero, p.logradouro, p.cidade, p.regiao, p.contato, p.tipo, p.situacao,
-                c.cliente AS cliente,
-                c.agencia AS agencia,
-                $fim AS fim_contrato,
-                DATEDIFF($fim, CURDATE()) AS dias_restantes
-            FROM pontos p
-            LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
-            WHERE
-                p.situacao NOT IN ('Disponivel','Disponível')
-                AND $fim IS NOT NULL
-                AND $fim >= CURDATE()
-                AND $fim <= DATE_ADD(CURDATE(), $intervalSQL)
-                AND (p.ativo = 1 OR p.ativo IS NULL)
-            ORDER BY fim_contrato ASC
-        ")->fetchAll(PDO::FETCH_ASSOC);
-    }
-
     public function contratosVencidos(): array {
         $fim = self::FIM_CONTRATO_SQL;
         return $this->pdo->query("
@@ -95,6 +74,7 @@ class RelatorioModel {
                 p.situacao NOT IN ('Disponivel','Disponível')
                 AND $fim IS NOT NULL
                 AND $fim < CURDATE()
+                AND $fim >= DATE_FORMAT(CURDATE(), '%Y-07-01')
                 AND (p.ativo = 1 OR p.ativo IS NULL)
             ORDER BY fim_contrato DESC
         ")->fetchAll(PDO::FETCH_ASSOC);
