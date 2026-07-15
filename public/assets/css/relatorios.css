@@ -37,16 +37,6 @@
 .bar-fill-venc { background:#8e44ad; height:100%; }
 .bar-total { font-size:0.8rem; font-weight:800; color:var(--color-text-dark); text-align:right; }
 
-/* ===== DONUT ===== */
-.donut-wrapper { display:flex; align-items:center; gap:2rem; margin-bottom:1.5rem; padding:1rem; background:var(--color-bg-primary); border-radius:var(--border-radius); border:1px solid var(--color-border); }
-.donut-svg { flex-shrink:0; }
-.donut-legend { display:flex; flex-direction:column; gap:0.5rem; flex:1; }
-.legend-item { display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; }
-.legend-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
-.legend-name { flex:1; font-weight:600; }
-.legend-val { font-weight:800; color:var(--color-text-dark); }
-.legend-pct { color:var(--color-text-muted); font-size:0.8rem; }
-
 .section-title { font-size:0.9rem; font-weight:800; color:var(--color-text-dark); margin:1.5rem 0 0.75rem; padding-bottom:0.4rem; border-bottom:2px solid var(--color-accent-primary); display:flex; align-items:center; gap:0.4rem; }
 
 /* ===== BLOCOS ===== */
@@ -54,15 +44,6 @@
 .bloco-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; }
 .bloco-label { font-size:0.72rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.08em; }
 .bloco-count { background:var(--color-bg-primary); border:1px solid var(--color-border); border-radius:10px; padding:1px 7px; font-size:0.7rem; font-weight:700; margin-left:6px; color:var(--color-text-muted); }
-
-/* ===== LEGENDA ===== */
-.bar-legenda { display:flex; gap:1rem; margin-bottom:0.75rem; flex-wrap:wrap; }
-.bar-legenda span { display:flex; align-items:center; gap:5px; font-size:0.75rem; color:var(--color-text-muted); }
-.dot-ocup,.dot-disp,.dot-res,.dot-venc { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-.dot-ocup { background:#e34c3e; }
-.dot-disp { background:#27ae60; }
-.dot-res  { background:#f39c12; }
-.dot-venc { background:#8e44ad; }
 
 /* ===== BARRAS LIMPAS ===== */
 .bars-clean { display:flex; flex-direction:column; gap:2px; }
@@ -111,8 +92,14 @@
 .panel { background:var(--color-bg-primary); border:1px solid var(--color-border); border-radius:var(--border-radius); padding:1rem; }
 .panel-title { font-size:0.82rem; font-weight:800; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.75rem; }
 
+/* ===== PDF MENSAL (botão de destaque no topo) ===== */
+.btn-pdf-mensal { padding:0.6rem 1.25rem; border-radius:var(--border-radius); font-size:0.85rem; font-weight:700; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:0.4rem; transition:all 0.2s; font-family:'Montserrat',sans-serif; text-decoration:none; background:var(--color-accent-primary); color:white; white-space:nowrap; }
+.btn-pdf-mensal:hover { filter:brightness(0.92); box-shadow:0 2px 8px rgba(0,0,0,0.15); }
+
 @media (max-width:768px) {
     .kpi-grid { grid-template-columns:repeat(2,1fr); }
     .kpi-value { font-size:1.3rem; }
     .bar-row { grid-template-columns:90px 1fr 45px; }
+    .tabs-nav { flex-wrap:wrap; }
+    .tab-btn { flex:1 1 50%; }
 }
