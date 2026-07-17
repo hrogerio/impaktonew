@@ -26,7 +26,7 @@ $pontos = $pdo->query("
                p.foto
            ) AS foto
     FROM pontos p
-    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
     WHERE (p.ativo = 1 OR p.ativo IS NULL)
       AND p.latitude  IS NOT NULL AND p.latitude  != 0
       AND p.longitude IS NOT NULL AND p.longitude != 0
@@ -58,7 +58,7 @@ $tipos = $pdo->query("
 $clientes = $pdo->query("
     SELECT DISTINCT c.cliente AS cliente
     FROM pontos p
-    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
     WHERE (p.ativo=1 OR p.ativo IS NULL)
       AND p.latitude IS NOT NULL AND p.latitude != 0
       AND c.cliente IS NOT NULL

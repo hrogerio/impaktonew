@@ -73,7 +73,7 @@ class RelatorioModel {
                 DATEDIFF($fim, $inicio) AS duracao_dias,
                 DATEDIFF(CURDATE(), $fim) AS dias_vencido
             FROM pontos p
-            LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+            LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
             WHERE
                 p.situacao NOT IN ('Disponivel','Disponível')
                 AND $fim IS NOT NULL
@@ -98,7 +98,7 @@ class RelatorioModel {
                 $fim AS fim_contrato,
                 DATEDIFF($fim, $inicio) AS duracao_dias
             FROM pontos p
-            INNER JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+            INNER JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
             WHERE
                 (p.ativo = 1 OR p.ativo IS NULL)
                 AND $inicio IS NOT NULL
@@ -154,7 +154,7 @@ class RelatorioModel {
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*)
             FROM pontos p
-            INNER JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+            INNER JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
             WHERE
                 (p.ativo = 1 OR p.ativo IS NULL)
                 AND $inicio IS NOT NULL
@@ -190,7 +190,7 @@ class RelatorioModel {
                 MIN(COALESCE(DATE(c.inicio), DATE(p.inicio_contrato))) AS inicio_mais_antigo,
                 MAX(" . self::FIM_CONTRATO_SQL . ") AS fim_mais_recente
             FROM pontos p
-            LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+            LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
             WHERE
                 NULLIF(TRIM(c.cliente),'') IS NOT NULL
                 AND NULLIF(TRIM(c.cliente),'') != '-'
@@ -217,7 +217,7 @@ class RelatorioModel {
                 COUNT(DISTINCT NULLIF(TRIM(c.cliente),'')) AS total_clientes,
                 COUNT(*) AS total_pontos
             FROM pontos p
-            LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+            LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
             WHERE
                 NULLIF(TRIM(c.cliente),'') IS NOT NULL
                 AND NULLIF(TRIM(c.cliente),'') != '-'

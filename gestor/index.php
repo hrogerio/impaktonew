@@ -14,7 +14,9 @@ try {
     die("Erro na conexão com o banco de dados.");
 }
 
-// ── Auto-processar contratos vencidos (silencioso) ────────────
+// ── Marcar contratos vencidos como 'Vencido' (silencioso) ──────
+// Não encerra automaticamente: fica aguardando decisão manual de
+// renovar ou encerrar (o ponto continua Ocupado nesse meio-tempo).
 $autoProcessados = 0;
 try {
     $stVenc = $pdo->query("
@@ -28,10 +30,8 @@ try {
         try {
             $pdo->beginTransaction();
             foreach ($paraProcessar as $v) {
-                $pdo->prepare("UPDATE campanhas SET ativo=0, encerrado_em=NOW() WHERE id=?")
+                $pdo->prepare("UPDATE campanhas SET situacao='Vencido' WHERE id=?")
                     ->execute([$v['camp_id']]);
-                $pdo->prepare("UPDATE pontos SET situacao='Disponivel' WHERE id=?")
-                    ->execute([$v['ponto_id']]);
             }
             $pdo->commit();
             $autoProcessados = count($paraProcessar);
@@ -90,7 +90,7 @@ $stmtVenc = $pdo->query("
                CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
            ), CURDATE()) AS dias_restantes
     FROM pontos p
-    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'
+    LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
     WHERE (p.ativo=1 OR p.ativo IS NULL)
       AND p.situacao NOT IN ('Disponivel','Disponível')
       AND COALESCE(
@@ -289,9 +289,9 @@ $CORES_SIT = [
     <?php endif; ?>
 
     <?php if ($autoProcessados > 0): ?>
-    <div class="db-alert" style="background:#f0fdf4;border-color:#86efac;color:#166534">
-        🔓 <strong><?= $autoProcessados ?> contrato<?= $autoProcessados > 1 ? 's' : '' ?> vencido<?= $autoProcessados > 1 ? 's' : '' ?></strong>
-        <?= $autoProcessados > 1 ? 'foram liberados' : 'foi liberado' ?> automaticamente — pontos voltaram a ficar Disponíveis.
+    <div class="db-alert" style="background:#fff7ed;border-color:#fdba74;color:#9a3412">
+        ⚠️ <strong><?= $autoProcessados ?> contrato<?= $autoProcessados > 1 ? 's' : '' ?> vencido<?= $autoProcessados > 1 ? 's' : '' ?></strong>
+        <?= $autoProcessados > 1 ? 'aguardam decisão' : 'aguarda decisão' ?> — renove ou encerre manualmente em Campanhas.
     </div>
     <?php endif; ?>
 
