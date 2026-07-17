@@ -60,13 +60,17 @@ class RelatorioModel {
     // ============================================================
 
     public function contratosVencidos(): array {
-        $fim = self::FIM_CONTRATO_SQL;
+        $inicio = self::INICIO_CONTRATO_SQL;
+        $fim    = self::FIM_CONTRATO_SQL;
         return $this->pdo->query("
             SELECT
                 p.numero, p.logradouro, p.cidade, p.regiao, p.contato,
                 c.cliente AS cliente,
                 c.agencia AS agencia,
+                c.campanha AS campanha,
+                $inicio AS inicio_contrato,
                 $fim AS fim_contrato,
+                DATEDIFF($fim, $inicio) AS duracao_dias,
                 DATEDIFF(CURDATE(), $fim) AS dias_vencido
             FROM pontos p
             LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao = 'Ocupado'

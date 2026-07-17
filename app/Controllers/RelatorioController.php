@@ -65,6 +65,7 @@ class RelatorioController {
             'vencendo_por_mes'      => $vencendoPorMes,
             'vencendo_agrupado'     => $vencendoAgrupado,
             'vencidos'              => $vencidos,
+            'vencidos_agrupado'     => $this->agruparCampanhas($vencidos),
             'contratos_com_duracao' => $comDuracao,
             'campanhas_ativas'      => $this->agruparCampanhas($comDuracao),
             'duracao_agregada'      => $this->model->duracaoAgregada($comDuracao),

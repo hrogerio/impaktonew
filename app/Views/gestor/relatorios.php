@@ -251,6 +251,10 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
     <!-- ============================================================ -->
     <div class="tab-content" id="tab-contratos">
 
+        <div class="export-bar">
+            <a class="btn-export btn-pdf" href="/gestor/relatorios/contratos/pdf" target="_blank">📄 PDF de Contratos</a>
+        </div>
+
         <div class="kpi-grid" style="grid-template-columns:minmax(180px,220px); margin-bottom:1.25rem;">
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#eef6ff;">📄</div>
@@ -343,26 +347,6 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
                     <?php endforeach; ?>
                 </tbody>
             </table>
-        </div>
-        <?php endif; ?>
-
-        <?php if (!empty($contratos['duracao_agregada']['por_regiao'])): ?>
-        <div class="bloco-section" style="margin-top:1.5rem;">
-            <div class="bloco-label">Duração Média por Região</div>
-            <div class="table-container" style="margin-top:0.5rem;">
-                <table class="rel-table">
-                    <thead><tr><th>Região</th><th style="text-align:right">Contratos</th><th style="text-align:right">Duração Média</th></tr></thead>
-                    <tbody>
-                        <?php foreach ($contratos['duracao_agregada']['por_regiao'] as $regiao => $d): ?>
-                        <tr>
-                            <td><strong><?= htmlspecialchars($regiao) ?></strong></td>
-                            <td style="text-align:right"><?= $d['qtd'] ?></td>
-                            <td style="text-align:right"><?= fmtDuracao($d['media_dias']) ?></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
         </div>
         <?php endif; ?>
 
