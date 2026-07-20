@@ -73,11 +73,27 @@ class RelatorioController {
         ];
     }
 
+    /** Normaliza texto pra comparação (remove acento e caixa) — evita que typos de digitação (ex: "Armazem" vs "Armazém") separem a mesma campanha em grupos diferentes */
+    private function normalizarTexto(?string $texto): string {
+        $texto = trim((string)$texto);
+        if (class_exists('Normalizer')) {
+            $decomposto = Normalizer::normalize($texto, Normalizer::FORM_D);
+            if ($decomposto !== false) $texto = preg_replace('/\p{Mn}/u', '', $decomposto);
+        }
+        return mb_strtolower($texto);
+    }
+
     /** Deduplica uma lista de contratos por campanha (cliente+campanha+agência+período), somando a quantidade de pontos */
     private function agruparCampanhas(array $contratos): array {
         $grupos = [];
         foreach ($contratos as $c) {
-            $chave = ($c['cliente'] ?? '-') . '|' . ($c['campanha'] ?? '-') . '|' . ($c['agencia'] ?? '-') . '|' . $c['inicio_contrato'] . '|' . $c['fim_contrato'];
+            $chave = implode('|', [
+                $this->normalizarTexto($c['cliente'] ?? ''),
+                $this->normalizarTexto($c['campanha'] ?? ''),
+                $this->normalizarTexto($c['agencia'] ?? ''),
+                $c['inicio_contrato'],
+                $c['fim_contrato'],
+            ]);
             if (!isset($grupos[$chave])) {
                 $grupos[$chave] = $c;
                 $grupos[$chave]['qtd_pontos'] = 0;
