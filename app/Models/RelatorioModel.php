@@ -90,7 +90,7 @@ class RelatorioModel {
         $fim    = self::FIM_CONTRATO_SQL;
         return $this->pdo->query("
             SELECT
-                p.numero, p.logradouro, p.cidade, p.regiao,
+                p.numero, p.logradouro, p.cidade, p.regiao, p.contato,
                 c.cliente AS cliente,
                 c.agencia AS agencia,
                 c.campanha AS campanha,

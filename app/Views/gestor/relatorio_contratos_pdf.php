@@ -207,9 +207,9 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
 /** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos) */
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED) {
     tabela($pdf,
-        ['Cliente', 'Campanha', 'Agencia', 'Inicio', 'Fim', 'Duracao', 'Pontos'],
-        [32, 30, 36, 20, 20, 22, 14],
-        array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos']], $lista),
+        ['Cliente', 'Campanha', 'Agencia', 'Contato', 'Inicio', 'Fim', 'Duracao', 'Pontos'],
+        [28, 24, 28, 22, 18, 18, 20, 12],
+        array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos']], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
     );
 }
