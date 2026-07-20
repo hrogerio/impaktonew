@@ -123,6 +123,8 @@ function tituloSecao($pdf, $texto, $CW, $MX, $VERM, $PRETO, $MUTED) {
 }
 
 function subtitulo($pdf, $texto, $CW, $MUTED) {
+    $MX = 12; $VERM = [192, 57, 43];
+    if ($pdf->GetY() > 260) { $pdf->AddPage(); cabecalho($pdf, $CW, $MX, $VERM, $MUTED); }
     $pdf->SetFont(FONT_MAIN, 'B', 9.5);
     $pdf->SetTextColor(...$MUTED);
     $pdf->Cell($CW, 6, s($texto), 0, 1, 'L');
