@@ -267,7 +267,7 @@ $pdf->Ln(4);
 // ============================================================
 tituloSecao($pdf, 'Contratos e Tempo de Contrato', $CW, $MX, $VERM, $PRETO, $MUTED);
 kpis($pdf, [
-    ['Contratos Ativos', count($ct['contratos_com_duracao'])],
+    ['Contratos Ativos', count($ct['campanhas_ativas'])],
     ['Ja Vencidos', count($ct['vencidos'])],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 

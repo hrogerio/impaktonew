@@ -259,7 +259,7 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#eef6ff;">📄</div>
                 <div class="kpi-body">
-                    <div class="kpi-value" style="color:#3498db"><?= count($contratos['contratos_com_duracao']) ?></div>
+                    <div class="kpi-value" style="color:#3498db"><?= count($contratos['campanhas_ativas']) ?></div>
                     <div class="kpi-label">Contratos Ativos</div>
                 </div>
             </div>

@@ -151,8 +151,10 @@ class RelatorioModel {
         $inicio = self::INICIO_CONTRATO_SQL;
         $fim    = self::FIM_CONTRATO_SQL;
 
+        // Conta campanhas distintas (cliente+campanha+agência+período), não pontos —
+        // uma mesma campanha pode ocupar vários pontos e não deve ser contada várias vezes.
         $stmt = $this->pdo->prepare("
-            SELECT COUNT(*)
+            SELECT COUNT(DISTINCT CONCAT_WS('|', c.cliente, c.campanha, c.agencia, $inicio, $fim))
             FROM pontos p
             INNER JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
             WHERE

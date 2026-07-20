@@ -236,7 +236,7 @@ $ct = $dados['contratos'];
 tituloSecao($pdf, 'Contratos e Tempo de Contrato', $CW, $MX, $VERM, $PRETO, $MUTED);
 kpis($pdf, [
     ['Duracao Media Geral', round($ct['duracao_agregada']['media_geral_dias'] / 30, 1) . ' meses'],
-    ['Contratos Ativos', count($ct['contratos_com_duracao'])],
+    ['Contratos Ativos', count($ct['campanhas_ativas'])],
     ['Ja Vencidos', count($ct['vencidos'])],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
