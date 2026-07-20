@@ -97,8 +97,16 @@ class RelatorioController {
             if (!isset($grupos[$chave])) {
                 $grupos[$chave] = $c;
                 $grupos[$chave]['qtd_pontos'] = 0;
+                $grupos[$chave]['pontos'] = [];
             }
             $grupos[$chave]['qtd_pontos']++;
+            $grupos[$chave]['pontos'][] = [
+                'ponto_id'   => $c['ponto_id']   ?? null,
+                'numero'     => $c['numero']     ?? null,
+                'logradouro' => $c['logradouro'] ?? '',
+                'cidade'     => $c['cidade']     ?? '',
+                'regiao'     => $c['regiao']     ?? '',
+            ];
         }
         usort($grupos, fn($a, $b) => strcmp($a['cliente'] ?? '', $b['cliente'] ?? ''));
         return $grupos;

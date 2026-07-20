@@ -66,8 +66,19 @@ function tabelaCampanhas(array $lista) {
                 <tr><th>Cliente</th><th>Campanha</th><th>Agência</th><th>Contato</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:right">Pontos</th></tr>
             </thead>
             <tbody>
-                <?php foreach ($lista as $c): ?>
-                <tr>
+                <?php foreach ($lista as $c):
+                    $dadosContrato = json_encode([
+                        'cliente'         => $c['cliente'] ?? '-',
+                        'agencia'         => $c['agencia'] ?? '',
+                        'campanha'        => $c['campanha'] ?? '-',
+                        'situacao'        => $c['situacao'] ?? 'Ocupado',
+                        'inicio_contrato' => $c['inicio_contrato'] ?? null,
+                        'fim_contrato'    => $c['fim_contrato'] ?? null,
+                        'inicio_fmt'      => fmtData($c['inicio_contrato'] ?? null),
+                        'fim_fmt'         => fmtData($c['fim_contrato'] ?? null),
+                        'pontos'          => $c['pontos'] ?? [],
+                    ], JSON_HEX_APOS | JSON_HEX_QUOT); ?>
+                <tr class="rel-row-clicavel" onclick='abrirDetalhesContrato(<?= $dadosContrato ?>)' title="Ver detalhes do contrato">
                     <td><strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong></td>
                     <td><?= htmlspecialchars($c['campanha'] ?? '-') ?></td>
                     <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
@@ -98,6 +109,70 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/assets/css/gestor.css">
     <link rel="stylesheet" href="/public/assets/css/relatorios.css">
+    <style>
+        .rel-row-clicavel { cursor:pointer; }
+        .rel-row-clicavel:hover { background:#f9fafb; }
+        .rel-row-clicavel:hover td:first-child strong { color:var(--color-accent-primary); text-decoration:underline; }
+
+        .cp-modal-overlay {
+            display:none; position:fixed; inset:0;
+            background:rgba(0,0,0,0.45); z-index:1000;
+            align-items:center; justify-content:center;
+        }
+        .cp-modal-overlay.aberto { display:flex; }
+        .cp-card {
+            background:#fff; border:1px solid var(--color-border); border-radius:12px;
+            overflow:hidden; display:flex; flex-direction:column;
+        }
+        .cp-card.cp-modal {
+            width:480px; max-width:95vw; max-height:90vh; overflow-y:auto;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3); border-radius:14px;
+        }
+        .cp-card-head { padding:0.85rem 1rem 0.6rem; border-bottom:1px solid #f0f2f5; }
+        .cp-card-top { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem; flex-wrap:wrap; }
+        .sit-badge {
+            display:inline-block; padding:2px 9px; border-radius:10px;
+            font-size:0.6rem; font-weight:800; text-transform:uppercase;
+            letter-spacing:0.4px; color:white; white-space:nowrap; flex-shrink:0;
+        }
+        .cp-card-nome { font-size:0.75rem; font-weight:600; color:var(--color-text-muted); flex:1; min-width:0; }
+        .cp-card-cliente { font-size:1rem; font-weight:800; color:var(--color-text-dark); }
+        .cp-card-agencia { font-size:0.72rem; color:var(--color-text-muted); font-weight:600; }
+        .cp-card-meta { display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem; flex-wrap:wrap; }
+        .cp-card-periodo { font-size:0.75rem; color:var(--color-text-muted); font-weight:600; }
+
+        .cp-card-paineis { max-height:260px; overflow-y:auto; }
+        .cp-painel-row { display:flex; align-items:center; gap:0.6rem; padding:0.5rem 1rem; border-bottom:1px solid #f5f5f7; }
+        .cp-painel-row:last-child { border-bottom:none; }
+        .cp-painel-num { font-weight:800; color:var(--color-accent-primary); font-size:0.78rem; min-width:32px; flex-shrink:0; }
+        .cp-painel-end { flex:1; min-width:0; }
+        .cp-painel-log { font-size:0.78rem; font-weight:600; color:var(--color-text-dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .cp-painel-cid { font-size:0.68rem; color:var(--color-text-muted); margin-top:1px; }
+        .cp-painel-link { font-size:0.72rem; font-weight:700; color:var(--color-accent-primary); text-decoration:none; flex-shrink:0; }
+        .cp-painel-link:hover { text-decoration:underline; }
+
+        .cp-card-footer {
+            padding:0.45rem 0.75rem 0.45rem 1rem; background:#fafbfc;
+            border-top:1px solid #f0f2f5; font-size:0.68rem; font-weight:700;
+            color:var(--color-text-muted); display:flex; align-items:center;
+            justify-content:space-between; gap:0.5rem; flex-wrap:wrap;
+        }
+        .cp-acoes { display:flex; gap:0.35rem; flex-wrap:wrap; }
+        .cp-btn {
+            padding:3px 9px; border-radius:5px; font-size:0.7rem; font-weight:700;
+            cursor:pointer; border:none; font-family:'Montserrat',sans-serif;
+            transition:all 0.15s; white-space:nowrap; text-decoration:none;
+            display:inline-flex; align-items:center; gap:0.25rem;
+        }
+        .cp-btn-checking { background:#fdf4ff; color:#7e22ce; border:1px solid #d8b4fe; }
+        .cp-btn-checking:hover { background:#f3e8ff; }
+        .cp-btn-pi { background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; cursor:not-allowed; }
+        .cp-btn-cancelar {
+            padding:0.55rem 1rem; background:none; color:#666;
+            border:1px solid var(--color-border); border-radius:8px;
+            font-family:'Montserrat',sans-serif; font-size:0.85rem; cursor:pointer;
+        }
+    </style>
 </head>
 <body>
 
@@ -514,6 +589,36 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
 
 </div><!-- /container -->
 
+<!-- ── Modal de detalhes do contrato ── -->
+<div class="cp-modal-overlay" id="relDetalheOverlay">
+    <div class="cp-modal cp-card" style="padding:0;">
+        <div class="cp-card-faixa" id="relDetalheFaixa" style="background:#888"></div>
+        <div class="cp-card-head">
+            <div class="cp-card-top">
+                <span class="sit-badge" id="relDetalheBadge" style="background:#888">Ocupado</span>
+                <span class="cp-card-nome" id="relDetalheNome"></span>
+            </div>
+            <div class="cp-card-cliente" id="relDetalheCliente"></div>
+            <div class="cp-card-agencia" id="relDetalheAgencia" style="display:none"></div>
+            <div class="cp-card-meta">
+                <span class="cp-card-periodo" id="relDetalhePeriodo"></span>
+            </div>
+        </div>
+        <div class="cp-card-paineis" id="relDetalhePontos"></div>
+        <div class="cp-card-footer">
+            <span id="relDetalheQtd"></span>
+            <div class="cp-acoes">
+                <a href="#" target="_blank" id="relDetalheChecking" class="cp-btn cp-btn-checking" title="Checking fotográfico desta campanha">📸 Checking</a>
+                <button type="button" class="cp-btn cp-btn-pi" disabled title="Upload do Pedido de Inserção (PDF) — em breve">📄 P.I.</button>
+                <button type="button" class="cp-btn cp-btn-pi" disabled title="Upload do P.P. (PDF) — em breve">📄 P.P.</button>
+            </div>
+        </div>
+        <div style="padding:0.75rem 1rem;">
+            <button class="cp-btn-cancelar" style="width:100%" onclick="fecharDetalhesContrato()">Fechar</button>
+        </div>
+    </div>
+</div>
+
 <script>
 function switchTab(name, btn) {
     document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
@@ -555,6 +660,73 @@ function exportCSV(tableId, filename) {
     link.download = filename + '_' + new Date().toISOString().slice(0,10) + '.csv';
     link.click();
 }
+
+// ── Modal de detalhes do contrato ─────────────────────────────
+var CORES_SITUACAO = {
+    'Ocupado': '#dc3545', 'Reservado': '#fd7e14',
+    'Permuta': '#51086e', 'Bisemana': '#0284c7',
+    'Vencido': '#6c757d'
+};
+
+function abrirDetalhesContrato(c) {
+    var cor = CORES_SITUACAO[c.situacao] || '#888';
+
+    document.getElementById('relDetalheFaixa').style.background = cor;
+    document.getElementById('relDetalheBadge').style.background = cor;
+    document.getElementById('relDetalheBadge').textContent = c.situacao || 'Ocupado';
+    document.getElementById('relDetalheNome').textContent = c.campanha || 'Sem nome';
+    document.getElementById('relDetalheCliente').textContent = c.cliente || '-';
+
+    var agenciaEl = document.getElementById('relDetalheAgencia');
+    if (c.agencia) { agenciaEl.textContent = c.agencia; agenciaEl.style.display = ''; }
+    else { agenciaEl.style.display = 'none'; }
+
+    document.getElementById('relDetalhePeriodo').textContent =
+        (c.inicio_fmt || '?') + ' → ' + (c.fim_fmt || '?');
+
+    var pontos = c.pontos || [];
+    var htmlPontos = pontos.map(function(p) {
+        var num = String(p.numero || '').padStart(3, '0');
+        var cidReg = [p.cidade, p.regiao].filter(Boolean).join(' · ');
+        var link = p.ponto_id
+            ? '<a href="/gestor/pontos/detalhes?id=' + p.ponto_id + '" class="cp-painel-link" title="Ver ponto" target="_blank">→</a>'
+            : '';
+        return '<div class="cp-painel-row">' +
+            '<span class="cp-painel-num">' + num + '</span>' +
+            '<div class="cp-painel-end">' +
+                '<div class="cp-painel-log">' + (p.logradouro || '') + '</div>' +
+                '<div class="cp-painel-cid">' + cidReg + '</div>' +
+            '</div>' + link +
+        '</div>';
+    }).join('');
+    document.getElementById('relDetalhePontos').innerHTML = htmlPontos || '<div class="cp-empty">Nenhum ponto vinculado.</div>';
+    document.getElementById('relDetalheQtd').textContent = pontos.length + ' ponto' + (pontos.length > 1 ? 's' : '');
+
+    var pontoIds = pontos.map(function(p){ return p.ponto_id; }).filter(Boolean);
+    var params = new URLSearchParams();
+    params.set('cliente', c.cliente || '');
+    params.set('agencia', c.agencia || '');
+    params.set('campanha', c.campanha || '');
+    params.set('situacao', c.situacao || 'Ocupado');
+    params.set('inicio', (c.inicio_contrato || '').substring(0, 10));
+    params.set('fim', (c.fim_contrato || '').substring(0, 10));
+    pontoIds.forEach(function(id){ params.append('pontoIds[]', id); });
+
+    document.getElementById('relDetalheChecking').href = '/gestor/campanhas/checking?' + params.toString();
+
+    document.getElementById('relDetalheOverlay').classList.add('aberto');
+}
+
+function fecharDetalhesContrato() {
+    document.getElementById('relDetalheOverlay').classList.remove('aberto');
+}
+
+document.getElementById('relDetalheOverlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharDetalhesContrato();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') fecharDetalhesContrato();
+});
 </script>
 
 </body>

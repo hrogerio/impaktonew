@@ -64,11 +64,12 @@ class RelatorioModel {
         $fim    = self::FIM_CONTRATO_SQL;
         return $this->pdo->query("
             SELECT
-                p.numero, p.logradouro, p.cidade, p.regiao,
+                p.id AS ponto_id, p.numero, p.logradouro, p.cidade, p.regiao,
                 COALESCE(NULLIF(c.contato, ''), NULLIF(p.contato, '')) AS contato,
                 c.cliente AS cliente,
                 c.agencia AS agencia,
                 c.campanha AS campanha,
+                c.situacao AS situacao,
                 $inicio AS inicio_contrato,
                 $fim AS fim_contrato,
                 DATEDIFF($fim, $inicio) AS duracao_dias,
@@ -91,11 +92,12 @@ class RelatorioModel {
         $fim    = self::FIM_CONTRATO_SQL;
         return $this->pdo->query("
             SELECT
-                p.numero, p.logradouro, p.cidade, p.regiao,
+                p.id AS ponto_id, p.numero, p.logradouro, p.cidade, p.regiao,
                 COALESCE(NULLIF(c.contato, ''), NULLIF(p.contato, '')) AS contato,
                 c.cliente AS cliente,
                 c.agencia AS agencia,
                 c.campanha AS campanha,
+                c.situacao AS situacao,
                 $inicio AS inicio_contrato,
                 $fim AS fim_contrato,
                 DATEDIFF($fim, $inicio) AS duracao_dias
