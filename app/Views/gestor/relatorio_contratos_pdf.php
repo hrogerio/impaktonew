@@ -180,6 +180,12 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
         }
         $pdf->Ln();
     };
+    // Garante espaço pro cabeçalho + pelo menos 1 linha antes de desenhar — senão o cabeçalho
+    // fica "órfão" no fim da página, sem nenhuma linha visível abaixo dele.
+    if ($pdf->GetY() + 6.5 + $rowH > 280) {
+        $pdf->AddPage();
+        if ($CW !== null && $MUTED !== null) cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
+    }
     $drawHeader();
     $pdf->SetFont(FONT_MAIN, '', 7.5);
     $pdf->SetTextColor(...$PRETO);
