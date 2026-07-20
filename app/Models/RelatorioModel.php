@@ -64,7 +64,8 @@ class RelatorioModel {
         $fim    = self::FIM_CONTRATO_SQL;
         return $this->pdo->query("
             SELECT
-                p.numero, p.logradouro, p.cidade, p.regiao, p.contato,
+                p.numero, p.logradouro, p.cidade, p.regiao,
+                COALESCE(NULLIF(c.contato, ''), NULLIF(p.contato, '')) AS contato,
                 c.cliente AS cliente,
                 c.agencia AS agencia,
                 c.campanha AS campanha,
@@ -90,7 +91,8 @@ class RelatorioModel {
         $fim    = self::FIM_CONTRATO_SQL;
         return $this->pdo->query("
             SELECT
-                p.numero, p.logradouro, p.cidade, p.regiao, p.contato,
+                p.numero, p.logradouro, p.cidade, p.regiao,
+                COALESCE(NULLIF(c.contato, ''), NULLIF(p.contato, '')) AS contato,
                 c.cliente AS cliente,
                 c.agencia AS agencia,
                 c.campanha AS campanha,
