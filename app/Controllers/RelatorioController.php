@@ -53,12 +53,12 @@ class RelatorioController {
             $fim = new DateTime($c['fim_contrato']);
             if ($fim->format('Y') !== $anoAtual) continue;
             $mesChave = $fim->format('Y-m');
-            $vencendoPorMes[$mesChave]++;
             $vencendoAgrupado[$mesChave][] = $c;
         }
         ksort($vencendoAgrupado);
         foreach ($vencendoAgrupado as $mes => $lista) {
             $vencendoAgrupado[$mes] = $this->agruparCampanhas($lista);
+            $vencendoPorMes[$mes] = count($vencendoAgrupado[$mes]);
         }
 
         return [
