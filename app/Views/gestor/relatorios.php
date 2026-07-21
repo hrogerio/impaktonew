@@ -128,7 +128,17 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
         .cp-card.cp-modal {
             width:480px; max-width:95vw; max-height:90vh; overflow-y:auto;
             box-shadow:0 20px 60px rgba(0,0,0,0.3); border-radius:14px;
+            position:relative;
         }
+        .rel-modal-fechar {
+            position:absolute; top:0.75rem; right:0.75rem; z-index:1;
+            width:28px; height:28px; border-radius:50%;
+            background:#fff; border:2px solid #dc3545; color:#dc3545;
+            font-size:0.85rem; font-weight:800; line-height:1;
+            cursor:pointer; display:flex; align-items:center; justify-content:center;
+            transition:all 0.15s;
+        }
+        .rel-modal-fechar:hover { background:#dc3545; color:#fff; }
         .cp-card-head { padding:0.85rem 1rem 0.6rem; border-bottom:1px solid #f0f2f5; }
         .cp-card-top { display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem; flex-wrap:wrap; }
         .sit-badge {
@@ -168,6 +178,10 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
         .cp-btn-checking { background:#fdf4ff; color:#7e22ce; border:1px solid #d8b4fe; }
         .cp-btn-checking:hover { background:#f3e8ff; }
         .cp-btn-pi { background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; cursor:not-allowed; }
+        .cp-btn-editar { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+        .cp-btn-editar:hover { background:#dbeafe; }
+        .cp-btn-renovar { background:#f0fdf4; color:#166534; border:1px solid #86efac; }
+        .cp-btn-renovar:hover { background:#dcfce7; }
         .cp-btn-cancelar {
             padding:0.55rem 1rem; background:none; color:#666;
             border:1px solid var(--color-border); border-radius:8px;
@@ -332,12 +346,19 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
             <a class="btn-export btn-pdf" href="/gestor/relatorios/contratos/pdf" target="_blank">📄 PDF de Contratos</a>
         </div>
 
-        <div class="kpi-grid" style="grid-template-columns:minmax(180px,220px); margin-bottom:1.25rem;">
+        <div class="kpi-grid" style="grid-template-columns:repeat(2,minmax(180px,220px)); margin-bottom:1.25rem;">
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#eef6ff;">📄</div>
                 <div class="kpi-body">
                     <div class="kpi-value" style="color:#3498db"><?= count($contratos['campanhas_ativas']) ?></div>
                     <div class="kpi-label">Contratos Ativos</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#f9f0ff;">🔴</div>
+                <div class="kpi-body">
+                    <div class="kpi-value" style="color:#8e44ad"><?= count($contratos['vencidos']) ?></div>
+                    <div class="kpi-label">Já Vencidos</div>
                 </div>
             </div>
         </div>
@@ -361,18 +382,11 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
         <div class="section-title">📋 Contratos Ativos por Cliente</div>
         <?php tabelaCampanhas($contratos['campanhas_ativas']); ?>
 
-        <!-- ===== Contratos Vencendo / Vencidos ===== -->
-        <div class="section-title" style="margin-top:1.5rem">📅 Contratos Vencendo</div>
+        <div class="section-title" style="margin-top:1.5rem">🔴 Contratos Vencidos (<?= count($contratos['vencidos_agrupado']) ?>)</div>
+        <?php tabelaCampanhas($contratos['vencidos_agrupado']); ?>
 
-        <div class="kpi-grid" style="grid-template-columns:minmax(180px,220px); margin-bottom:1.25rem;">
-            <div class="kpi-card">
-                <div class="kpi-icon" style="background:#f9f0ff;">🔴</div>
-                <div class="kpi-body">
-                    <div class="kpi-value" style="color:#8e44ad"><?= count($contratos['vencidos']) ?></div>
-                    <div class="kpi-label">Já Vencidos</div>
-                </div>
-            </div>
-        </div>
+        <!-- ===== Contratos Vencendo ===== -->
+        <div class="section-title" style="margin-top:1.5rem">📅 Contratos Vencendo</div>
 
         <?php if (!empty($contratos['vencendo_por_mes'])): ?>
         <div class="panel" style="margin-bottom:1.25rem;">
@@ -400,9 +414,6 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
             </div>
             <?php endforeach; ?>
         <?php endif; ?>
-
-        <div class="section-title" style="margin-top:1.5rem">🔴 Contratos Vencidos (<?= count($contratos['vencidos_agrupado']) ?>)</div>
-        <?php tabelaCampanhas($contratos['vencidos_agrupado']); ?>
 
     </div><!-- /tab-contratos -->
 
@@ -570,6 +581,7 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
 <!-- ── Modal de detalhes do contrato ── -->
 <div class="cp-modal-overlay" id="relDetalheOverlay">
     <div class="cp-modal cp-card" style="padding:0;">
+        <button type="button" class="rel-modal-fechar" onclick="fecharDetalhesContrato()" title="Fechar">✕</button>
         <div class="cp-card-faixa" id="relDetalheFaixa" style="background:#888"></div>
         <div class="cp-card-head">
             <div class="cp-card-top">
@@ -591,8 +603,11 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
                 <button type="button" class="cp-btn cp-btn-pi" disabled title="Upload do P.P. (PDF) — em breve">📄 P.P.</button>
             </div>
         </div>
-        <div style="padding:0.75rem 1rem;">
-            <button class="cp-btn-cancelar" style="width:100%" onclick="fecharDetalhesContrato()">Fechar</button>
+        <div class="cp-card-footer" style="border-top:none; justify-content:flex-end;">
+            <div class="cp-acoes">
+                <a href="#" target="_blank" id="relDetalheEditar" class="cp-btn cp-btn-editar" title="Editar campanha (abre em Campanhas)">✏️ Editar</a>
+                <a href="#" target="_blank" id="relDetalheRenovar" class="cp-btn cp-btn-renovar" title="Renovar campanha (abre em Campanhas)">🔄 Renovar</a>
+            </div>
         </div>
     </div>
 </div>
@@ -691,6 +706,17 @@ function abrirDetalhesContrato(c) {
     pontoIds.forEach(function(id){ params.append('pontoIds[]', id); });
 
     document.getElementById('relDetalheChecking').href = '/gestor/campanhas/checking?' + params.toString();
+
+    var alvoParams = new URLSearchParams();
+    alvoParams.set('cliente', c.cliente || '');
+    alvoParams.set('agencia', c.agencia || '');
+    alvoParams.set('campanha', c.campanha || '');
+    alvoParams.set('situacao', c.situacao || '');
+    alvoParams.set('inicio', (c.inicio_contrato || '').substring(0, 10));
+    alvoParams.set('fim', (c.fim_contrato || '').substring(0, 10));
+
+    document.getElementById('relDetalheEditar').href  = '/gestor/campanhas?acao=editar&'  + alvoParams.toString();
+    document.getElementById('relDetalheRenovar').href = '/gestor/campanhas?acao=renovar&' + alvoParams.toString();
 
     document.getElementById('relDetalheOverlay').classList.add('aberto');
 }

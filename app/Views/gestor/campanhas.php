@@ -644,6 +644,41 @@ function filtrar() {
 }
 
 var debTimer;
+(function() {
+    var qs = new URLSearchParams(location.search);
+    var buscaUrl = qs.get('busca');
+    if (buscaUrl) {
+        document.getElementById('cpBusca').value = buscaUrl;
+        filtros.busca = buscaUrl.toLowerCase().trim();
+        filtrar();
+    }
+
+    var acao = qs.get('acao');
+    if (acao === 'editar' || acao === 'renovar') {
+        var norm = function(s) { return (s || '').toString().trim().toLowerCase(); };
+        var alvo = {
+            cliente:  norm(qs.get('cliente')),
+            agencia:  norm(qs.get('agencia')),
+            nome:     norm(qs.get('campanha')),
+            situacao: norm(qs.get('situacao')),
+            inicio:   qs.get('inicio') || '',
+            fim:      qs.get('fim') || '',
+        };
+        var cards = document.querySelectorAll('#cpGrid .cp-card');
+        for (var i = 0; i < cards.length; i++) {
+            var d;
+            try { d = JSON.parse(cards[i].dataset.campanha || '{}'); } catch(e) { continue; }
+            if (norm(d.cliente) === alvo.cliente && norm(d.agencia) === alvo.agencia &&
+                norm(d.nome) === alvo.nome && norm(d.situacao) === alvo.situacao &&
+                (d.inicio || '') === alvo.inicio && (d.fim || '') === alvo.fim) {
+                cards[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (acao === 'editar') abrirEdicao(cards[i]);
+                else abrirRenovacao(cards[i]);
+                break;
+            }
+        }
+    }
+})();
 document.getElementById('cpBusca').addEventListener('input', function() {
     clearTimeout(debTimer);
     var val = this.value.toLowerCase().trim();
