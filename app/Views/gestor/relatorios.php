@@ -112,7 +112,8 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
     <style>
         .rel-row-clicavel { cursor:pointer; }
         .rel-row-clicavel:hover { background:#f9fafb; }
-        .rel-row-clicavel:hover td:first-child strong { color:var(--color-accent-primary); text-decoration:underline; }
+        .rel-row-clicavel:hover td { color:var(--color-accent-primary) !important; font-weight:700; }
+        .rel-row-clicavel:hover td:first-child strong { text-decoration:underline; }
 
         .cp-modal-overlay {
             display:none; position:fixed; inset:0;
@@ -400,31 +401,8 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
             <?php endforeach; ?>
         <?php endif; ?>
 
-        <div class="section-title" style="margin-top:1.5rem">🔴 Contratos Vencidos (<?= count($contratos['vencidos']) ?>)</div>
-        <?php if (empty($contratos['vencidos'])): ?>
-            <div class="empty-state"><p>Nenhum contrato vencido encontrado.</p></div>
-        <?php else: ?>
-        <div class="table-container">
-            <table class="rel-table" id="tbl-vencidos">
-                <thead>
-                    <tr><th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Cliente</th><th>Agência</th><th>Venceu em</th><th>Dias Vencido</th></tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($contratos['vencidos'] as $c): ?>
-                    <tr class="row-vencida">
-                        <td><strong style="color:#8e44ad"><?= htmlspecialchars($c['numero']) ?></strong></td>
-                        <td><?= htmlspecialchars($c['logradouro'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($c['cidade'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($c['cliente'] ?? '-') ?></td>
-                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
-                        <td><?= fmtData($c['fim_contrato']) ?></td>
-                        <td><span class="tag-vencido"><?= $c['dias_vencido'] ?> dias</span></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php endif; ?>
+        <div class="section-title" style="margin-top:1.5rem">🔴 Contratos Vencidos (<?= count($contratos['vencidos_agrupado']) ?>)</div>
+        <?php tabelaCampanhas($contratos['vencidos_agrupado']); ?>
 
     </div><!-- /tab-contratos -->
 
