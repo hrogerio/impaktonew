@@ -291,6 +291,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/campanhas/checking_pdf.php';
         break;
 
+    // ── CAMPANHAS: DOCUMENTOS P.I./P.P. UPLOAD (API, POST) ───
+    case 'gestor/campanhas/documentos/upload':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/pi_pp_upload.php';
+        break;
+
     // ── CAMPANHAS: ESPELHO DE COLAGEM PDF (download) ─────
     case 'gestor/campanhas/espelho/pdf':
         auth_required();

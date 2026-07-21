@@ -37,6 +37,18 @@ $rows = $pdo->query("
         c.criado_em DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+// Documentos financeiros (P.I./P.P.) — vinculados ao contrato (cliente+agência+campanha+período),
+// não a uma linha específica de campanhas, pra sobreviver a adição/remoção de pontos no contrato.
+$docKey = fn($cliente, $agencia, $campanha, $inicio, $fim) => md5(
+    trim($cliente) . '|' . trim($agencia) . '|' . trim($campanha) . '|' . ($inicio ?? '') . '|' . ($fim ?? '')
+);
+$documentosPorGrupo = [];
+$docsRows = $pdo->query("SELECT * FROM campanha_documentos ORDER BY criado_em DESC")->fetchAll(PDO::FETCH_ASSOC);
+foreach ($docsRows as $d) {
+    $dk = $docKey($d['cliente'], $d['agencia'], $d['campanha'], $d['inicio'], $d['fim']);
+    $documentosPorGrupo[$dk][] = $d;
+}
+
 // Agrupar: Cliente → CampanhaKey → dados + painéis
 $grupos = [];
 foreach ($rows as $r) {
@@ -46,14 +58,15 @@ foreach ($rows as $r) {
 
     if (!isset($grupos[$campKey])) {
         $grupos[$campKey] = [
-            'cliente'  => $cli,
-            'agencia'  => trim($r['agencia'] ?? ''),
-            'nome'     => $camp,
-            'situacao' => $r['situacao'],
-            'ativo'    => (int)$r['ativo'],
-            'inicio'   => $r['inicio'],
-            'fim'      => $r['fim'],
-            'rows'     => [],
+            'cliente'    => $cli,
+            'agencia'    => trim($r['agencia'] ?? ''),
+            'nome'       => $camp,
+            'situacao'   => $r['situacao'],
+            'ativo'      => (int)$r['ativo'],
+            'inicio'     => $r['inicio'],
+            'fim'        => $r['fim'],
+            'rows'       => [],
+            'documentos' => $documentosPorGrupo[$docKey($cli, $r['agencia'] ?? '', $camp, $r['inicio'], $r['fim'])] ?? [],
         ];
     }
     $grupos[$campKey]['rows'][] = $r;
@@ -265,6 +278,8 @@ function diasR($fim) {
         .cp-btn-checking:hover { background:#f3e8ff; }
         .cp-btn-espelho { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; text-decoration:none; }
         .cp-btn-espelho:hover { background:#ffedd5; }
+        .cp-btn-docs { background:#eefdf6; color:#0f766e; border:1px solid #99f6e4; }
+        .cp-btn-docs:hover { background:#ccfbf1; }
 
         /* ── Modal de edição ── */
         .cp-modal-overlay {
@@ -309,6 +324,31 @@ function diasR($fim) {
             font-family:'Montserrat',sans-serif; font-size:0.85rem; cursor:pointer;
         }
         .cp-modal-divider { height:1px; background:var(--color-border); margin:1rem 0; }
+
+        /* ── Modal de documentos (P.I. / P.P.) ── */
+        .cp-docs-tipo-titulo { font-size:0.8rem; font-weight:800; color:var(--color-text-dark); margin-bottom:0.5rem; }
+        .cp-docs-lista { display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.6rem; }
+        .cp-docs-vazio { font-size:0.78rem; color:var(--color-text-muted); font-style:italic; }
+        .cp-docs-item {
+            display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
+            background:#f8fafc; border:1px solid var(--color-border); border-radius:6px;
+            padding:0.4rem 0.6rem; font-size:0.78rem;
+        }
+        .cp-docs-item a { color:#0f766e; font-weight:700; text-decoration:none; }
+        .cp-docs-item a:hover { text-decoration:underline; }
+        .cp-docs-item-data { color:var(--color-text-muted); font-size:0.72rem; }
+        .cp-docs-item-excluir {
+            background:none; border:none; color:#c0392b; cursor:pointer;
+            font-size:0.85rem; padding:0 0.25rem; line-height:1;
+        }
+        .cp-docs-upload {
+            display:inline-flex; align-items:center; gap:0.4rem; cursor:pointer;
+            font-size:0.78rem; font-weight:700; color:#0f766e;
+            background:#eefdf6; border:1px solid #99f6e4; border-radius:6px;
+            padding:0.45rem 0.75rem;
+        }
+        .cp-docs-upload:hover { background:#ccfbf1; }
+        .cp-docs-upload input[type="file"] { display:none; }
 
         .cp-empty { padding:3rem; text-align:center; color:var(--color-text-muted); font-size:0.85rem; }
 
@@ -421,15 +461,22 @@ function diasR($fim) {
         $pontoIds = array_column($g['rows'], 'ponto_id');
         $isVencida = $g['ativo'] && $g['fim'] && substr($g['fim'], 0, 10) < $hoje;
         $dataCard = htmlspecialchars(json_encode([
-            'campIds'   => $campIds,
-            'pontoIds'  => $pontoIds,
-            'cliente'   => $g['cliente'],
-            'agencia'   => $g['agencia'],
-            'nome'      => $g['nome'],
-            'situacao'  => $g['situacao'],
-            'inicio'    => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
-            'fim'       => $g['fim']    ? substr($g['fim'],    0, 10) : '',
-            'isVencida' => (bool)$isVencida,
+            'campIds'    => $campIds,
+            'pontoIds'   => $pontoIds,
+            'cliente'    => $g['cliente'],
+            'agencia'    => $g['agencia'],
+            'nome'       => $g['nome'],
+            'situacao'   => $g['situacao'],
+            'inicio'     => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
+            'fim'        => $g['fim']    ? substr($g['fim'],    0, 10) : '',
+            'isVencida'  => (bool)$isVencida,
+            'documentos' => array_map(fn($d) => [
+                'id'            => (int)$d['id'],
+                'tipo'          => $d['tipo'],
+                'caminho'       => $d['caminho'],
+                'nome_original' => $d['nome_original'],
+                'criado_em'     => $d['criado_em'],
+            ], $g['documentos']),
         ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
     ?>
     <div class="cp-card <?= !$g['ativo'] ? 'encerrada' : ($isVencida ? 'vencida' : '') ?>"
@@ -509,6 +556,9 @@ function diasR($fim) {
                    target="_blank"
                    class="cp-btn cp-btn-espelho"
                    title="Gerar PDF Espelho de Colagem">🗂️ Espelho</a>
+                <button class="cp-btn cp-btn-docs"
+                        onclick="abrirDocumentos(this.closest('.cp-card'))"
+                        title="Documentos financeiros (P.I. / P.P.)">📎 Docs (<?= count($g['documentos']) ?>)</button>
             <?php if ($g['ativo']): ?>
                 <?php if ($isVencida): ?>
                 <button class="cp-btn cp-btn-renovar"
@@ -606,6 +656,38 @@ function diasR($fim) {
         <div class="cp-modal-actions">
             <button class="cp-btn-cancelar" onclick="fecharModal()">Cancelar</button>
             <button class="cp-btn-salvar" id="cpBtnSalvar" onclick="salvarEdicao()">💾 Salvar alterações</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal de documentos (P.I. / P.P.) ── -->
+<div class="cp-modal-overlay" id="cpDocsOverlay">
+    <div class="cp-modal">
+        <div class="cp-modal-title">📎 Documentos Financeiros</div>
+        <div class="cp-modal-sub" id="cpDocsSub"></div>
+
+        <div class="cp-docs-secao">
+            <div class="cp-docs-tipo-titulo">Pedido de Inserção (P.I.)</div>
+            <div class="cp-docs-lista" id="cpDocsListaPI"></div>
+            <label class="cp-docs-upload">
+                📤 Enviar novo P.I.
+                <input type="file" accept="application/pdf" id="cpDocsInputPI" onchange="enviarDocumento('PI', this)">
+            </label>
+        </div>
+
+        <div class="cp-modal-divider"></div>
+
+        <div class="cp-docs-secao">
+            <div class="cp-docs-tipo-titulo">Pedido de Produção (P.P.)</div>
+            <div class="cp-docs-lista" id="cpDocsListaPP"></div>
+            <label class="cp-docs-upload">
+                📤 Enviar novo P.P.
+                <input type="file" accept="application/pdf" id="cpDocsInputPP" onchange="enviarDocumento('PP', this)">
+            </label>
+        </div>
+
+        <div class="cp-modal-actions">
+            <button class="cp-btn-cancelar" onclick="document.getElementById('cpDocsOverlay').classList.remove('aberto')">Fechar</button>
         </div>
     </div>
 </div>
@@ -747,6 +829,95 @@ function fecharModal() {
     _modalCard = null;
 }
 
+// ── Documentos financeiros (P.I. / P.P.) ──────────────────────
+var _docsGrupo = null; // {cliente, agencia, campanha, inicio, fim}
+
+function abrirDocumentos(card) {
+    var dados;
+    try {
+        dados = JSON.parse(card.dataset.campanha || '{}');
+    } catch(e) {
+        alert('Erro ao abrir documentos. Recarregue a página e tente novamente.');
+        return;
+    }
+    _docsGrupo = {
+        cliente:  dados.cliente  || '',
+        agencia:  dados.agencia  || '',
+        campanha: dados.nome     || '',
+        inicio:   dados.inicio   || '',
+        fim:      dados.fim      || '',
+    };
+    document.getElementById('cpDocsSub').textContent = dados.cliente + (dados.nome ? ' — ' + dados.nome : '');
+    renderizarDocs('PI', dados.documentos || []);
+    renderizarDocs('PP', dados.documentos || []);
+    document.getElementById('cpDocsOverlay').classList.add('aberto');
+}
+
+function renderizarDocs(tipo, documentos) {
+    var lista = documentos.filter(function(d) { return d.tipo === tipo; });
+    var el = document.getElementById('cpDocsLista' + tipo);
+    if (lista.length === 0) {
+        el.innerHTML = '<div class="cp-docs-vazio">Nenhum arquivo enviado ainda</div>';
+        return;
+    }
+    el.innerHTML = lista.map(function(d) {
+        var data = new Date(d.criado_em.replace(' ', 'T')).toLocaleDateString('pt-BR');
+        return '<div class="cp-docs-item">' +
+            '<a href="/' + d.caminho + '" target="_blank">📄 ' + (d.nome_original || 'arquivo.pdf') + '</a>' +
+            '<span class="cp-docs-item-data">' + data + '</span>' +
+            '<button class="cp-docs-item-excluir" onclick="excluirDocumento(' + d.id + ')" title="Excluir">✕</button>' +
+        '</div>';
+    }).join('');
+}
+
+function enviarDocumento(tipo, inputEl) {
+    if (!inputEl.files || !inputEl.files[0]) return;
+    var fd = new FormData();
+    fd.append('cliente',  _docsGrupo.cliente);
+    fd.append('agencia',  _docsGrupo.agencia);
+    fd.append('campanha', _docsGrupo.campanha);
+    fd.append('inicio',   _docsGrupo.inicio);
+    fd.append('fim',      _docsGrupo.fim);
+    fd.append('tipo',     tipo);
+    fd.append('arquivo',  inputEl.files[0]);
+
+    fetch('/gestor/campanhas/documentos/upload', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            inputEl.value = '';
+            if (!resp.ok) {
+                mostrarToast('Erro ao enviar arquivo (' + (resp.erro || 'desconhecido') + ')', 'err');
+                return;
+            }
+            mostrarToast('Documento enviado com sucesso!');
+            location.reload();
+        })
+        .catch(function() {
+            mostrarToast('Erro de conexão ao enviar arquivo', 'err');
+        });
+}
+
+function excluirDocumento(docId) {
+    if (!confirm('Excluir este documento?')) return;
+    var fd = new FormData();
+    fd.append('action', 'excluir');
+    fd.append('doc_id', docId);
+
+    fetch('/gestor/campanhas/documentos/upload', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            if (!resp.ok) {
+                mostrarToast('Erro ao excluir (' + (resp.erro || 'desconhecido') + ')', 'err');
+                return;
+            }
+            mostrarToast('Documento excluído.');
+            location.reload();
+        })
+        .catch(function() {
+            mostrarToast('Erro de conexão ao excluir', 'err');
+        });
+}
+
 function salvarEdicao() {
     if (!_modalCard) return;
     var dados   = JSON.parse(_modalCard.dataset.campanha || '{}');
@@ -869,10 +1040,14 @@ document.getElementById('cpModalOverlay').addEventListener('click', function(e) 
 document.getElementById('cpRenovarOverlay').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('aberto');
 });
+document.getElementById('cpDocsOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('aberto');
+});
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         fecharModal();
         document.getElementById('cpRenovarOverlay').classList.remove('aberto');
+        document.getElementById('cpDocsOverlay').classList.remove('aberto');
     }
 });
 
