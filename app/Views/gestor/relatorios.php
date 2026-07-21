@@ -21,6 +21,7 @@ $ocupacao  = $controller->dadosOcupacao();
 $contratos = $controller->dadosContratos();
 $clientes  = $controller->dadosClientes();
 $historico = $controller->dadosHistorico($periodoHistorico);
+$documentosPorGrupo = $controller->documentosPorGrupo();
 
 // ============================================================
 // Helpers de apresentação
@@ -55,6 +56,7 @@ function fmtDuracao($dias) {
 
 /** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos), reutilizada em Contratos Ativos e Vencendo por mês */
 function tabelaCampanhas(array $lista) {
+    global $documentosPorGrupo;
     if (empty($lista)) {
         echo '<div class="empty-state"><p>Nenhum contrato encontrado.</p></div>';
         return;
@@ -67,6 +69,7 @@ function tabelaCampanhas(array $lista) {
             </thead>
             <tbody>
                 <?php foreach ($lista as $c):
+                    $docChave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') . '|' . ($c['inicio_contrato'] ?? '') . '|' . ($c['fim_contrato'] ?? ''));
                     $dadosContrato = json_encode([
                         'cliente'         => $c['cliente'] ?? '-',
                         'agencia'         => $c['agencia'] ?? '',
@@ -77,6 +80,7 @@ function tabelaCampanhas(array $lista) {
                         'inicio_fmt'      => fmtData($c['inicio_contrato'] ?? null),
                         'fim_fmt'         => fmtData($c['fim_contrato'] ?? null),
                         'pontos'          => $c['pontos'] ?? [],
+                        'documentos'      => $documentosPorGrupo[$docChave] ?? [],
                     ], JSON_HEX_APOS | JSON_HEX_QUOT); ?>
                 <tr class="rel-row-clicavel" onclick='abrirDetalhesContrato(<?= $dadosContrato ?>)' title="Ver detalhes do contrato">
                     <td><strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong></td>
@@ -177,7 +181,9 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
         }
         .cp-btn-checking { background:#fdf4ff; color:#7e22ce; border:1px solid #d8b4fe; }
         .cp-btn-checking:hover { background:#f3e8ff; }
-        .cp-btn-pi { background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; cursor:not-allowed; }
+        .cp-btn-docs { background:#eefdf6; color:#0f766e; border:1px solid #99f6e4; }
+        .cp-btn-docs:hover { background:#ccfbf1; }
+        .cp-btn-docs.desabilitado { background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; cursor:not-allowed; pointer-events:none; }
         .cp-btn-editar { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
         .cp-btn-editar:hover { background:#dbeafe; }
         .cp-btn-renovar { background:#f0fdf4; color:#166534; border:1px solid #86efac; }
@@ -599,8 +605,8 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
             <span id="relDetalheQtd"></span>
             <div class="cp-acoes">
                 <a href="#" target="_blank" id="relDetalheChecking" class="cp-btn cp-btn-checking" title="Checking fotográfico desta campanha">📸 Checking</a>
-                <button type="button" class="cp-btn cp-btn-pi" disabled title="Upload do Pedido de Inserção (PDF) — em breve">📄 P.I.</button>
-                <button type="button" class="cp-btn cp-btn-pi" disabled title="Upload do P.P. (PDF) — em breve">📄 P.P.</button>
+                <a href="#" target="_blank" id="relDetalhePi" class="cp-btn cp-btn-docs desabilitado" title="Nenhum P.I. enviado ainda">📄 P.I.</a>
+                <a href="#" target="_blank" id="relDetalhePp" class="cp-btn cp-btn-docs desabilitado" title="Nenhum P.P. enviado ainda">📄 P.P.</a>
             </div>
         </div>
         <div class="cp-card-footer" style="border-top:none; justify-content:flex-end;">
@@ -706,6 +712,21 @@ function abrirDetalhesContrato(c) {
     pontoIds.forEach(function(id){ params.append('pontoIds[]', id); });
 
     document.getElementById('relDetalheChecking').href = '/gestor/campanhas/checking?' + params.toString();
+
+    var documentos = c.documentos || [];
+    ['PI', 'PP'].forEach(function(tipo) {
+        var docs = documentos.filter(function(d){ return d.tipo === tipo; });
+        var el = document.getElementById(tipo === 'PI' ? 'relDetalhePi' : 'relDetalhePp');
+        if (docs.length === 0) {
+            el.href = '#';
+            el.classList.add('desabilitado');
+            el.title = 'Nenhum ' + tipo.replace('PI','P.I.').replace('PP','P.P.') + ' enviado ainda';
+        } else {
+            el.href = '/' + docs[0].caminho;
+            el.classList.remove('desabilitado');
+            el.title = docs.length > 1 ? (docs.length + ' arquivos — abrindo o mais recente') : 'Ver arquivo';
+        }
+    });
 
     var alvoParams = new URLSearchParams();
     alvoParams.set('cliente', c.cliente || '');

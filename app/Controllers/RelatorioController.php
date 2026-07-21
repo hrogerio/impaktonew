@@ -133,6 +133,10 @@ class RelatorioController {
         ];
     }
 
+    public function documentosPorGrupo(): array {
+        return $this->model->documentosPorGrupo();
+    }
+
     /** Todos os dados de uma vez, usado pelo PDF consolidado */
     public function dadosCompletos(string $periodoHistorico = '3m'): array {
         return [

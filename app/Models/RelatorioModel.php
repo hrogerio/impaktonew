@@ -278,4 +278,19 @@ class RelatorioModel {
             WHERE alterado_em >= DATE_SUB(CURDATE(), $intervalSQL)
         ")->fetchColumn();
     }
+
+    // ============================================================
+    // DOCUMENTOS FINANCEIROS (P.I./P.P.)
+    // ============================================================
+
+    /** Documentos financeiros agrupados por contrato (cliente+agência+campanha+período) — mesma chave usada em campanhas.php */
+    public function documentosPorGrupo(): array {
+        $rows = $this->pdo->query("SELECT * FROM campanha_documentos ORDER BY criado_em DESC")->fetchAll(PDO::FETCH_ASSOC);
+        $porGrupo = [];
+        foreach ($rows as $d) {
+            $chave = md5(trim($d['cliente']) . '|' . trim($d['agencia']) . '|' . trim($d['campanha']) . '|' . ($d['inicio'] ?? '') . '|' . ($d['fim'] ?? ''));
+            $porGrupo[$chave][] = $d;
+        }
+        return $porGrupo;
+    }
 }
