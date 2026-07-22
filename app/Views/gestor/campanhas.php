@@ -9,19 +9,6 @@ $paginaAtual = 'campanhas';
 require_once __DIR__ . '/../../../config/database.php';
 $pdo = getDatabase();
 
-// ── KPIs ──────────────────────────────────────────────────────
-$kpi = $pdo->query("
-    SELECT
-        COUNT(*)                                                      AS total,
-        SUM(ativo = 1)                                                AS ativas,
-        SUM(ativo = 0)                                                AS encerradas,
-        COUNT(DISTINCT NULLIF(TRIM(cliente),''))                      AS clientes,
-        SUM(ativo = 1 AND fim IS NOT NULL
-            AND fim BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)) AS vencendo
-    FROM campanhas
-    WHERE situacao != 'Reservado'
-")->fetch(PDO::FETCH_ASSOC);
-
 // ── Todas as campanhas com dados do ponto ─────────────────────
 $rows = $pdo->query("
     SELECT
@@ -86,11 +73,18 @@ foreach ($grupos as $g) {
 ksort($listaClientes);
 $listaClientes = array_keys($listaClientes);
 
-// Hoje para detectar grupos vencidos
+// KPIs por campanha agrupada (não por linha ponto-campanha)
 $hoje = date('Y-m-d');
+$totalAtivas = 0;
+$totalEncerradas = 0;
 $totalVencidos = 0;
 foreach ($grupos as $g) {
-    if ($g['ativo'] && $g['fim'] && substr($g['fim'], 0, 10) < $hoje) $totalVencidos++;
+    if ($g['ativo']) {
+        $totalAtivas++;
+        if ($g['fim'] && substr($g['fim'], 0, 10) < $hoje) $totalVencidos++;
+    } else {
+        $totalEncerradas++;
+    }
 }
 
 $CORES = [
@@ -125,7 +119,7 @@ function diasR($fim) {
         .cp-page { max-width:1100px; margin:0 auto; padding:1.5rem 1.5rem 4rem; }
 
         /* ── KPIs ── */
-        .cp-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:0.75rem; margin-bottom:1.5rem; }
+        .cp-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; margin-bottom:1.5rem; }
         .cp-kpi {
             background:white; border:1px solid var(--color-border); border-radius:10px;
             padding:0.9rem 1rem; display:flex; flex-direction:column; gap:0.2rem;
@@ -134,6 +128,7 @@ function diasR($fim) {
         .cp-kpi-val   { font-size:1.7rem; font-weight:800; color:var(--color-text-dark); line-height:1; }
         .cp-kpi-val.verde   { color:#1a9059; }
         .cp-kpi-val.laranja { color:#fd7e14; }
+        .cp-kpi-val.vermelho { color:#dc2626; }
         .cp-kpi-val.azul    { color:#0284c7; }
 
         /* ── Filtros ── */
@@ -226,8 +221,19 @@ function diasR($fim) {
         .status-ativa    { background:#dcfce7; color:#166534; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
         .status-encerrada{ background:#f1f5f9; color:#475569; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
 
-        /* Lista de painéis */
+        /* Lista de painéis (acordeão) */
         .cp-card-paineis { flex:1; }
+        .cp-acordeon-toggle {
+            width:100%; display:flex; align-items:center; justify-content:space-between;
+            gap:0.5rem; padding:0.55rem 1rem; background:none; border:none;
+            border-bottom:1px solid #f5f5f7; cursor:pointer; text-align:left;
+            font-family:'Montserrat',sans-serif;
+        }
+        .cp-acordeon-toggle:hover { background:#fafbfc; }
+        .cp-acordeon-toggle-label { font-size:0.78rem; font-weight:700; color:var(--color-text-dark); }
+        .cp-acordeon-seta { font-size:0.7rem; color:var(--color-text-muted); transition:transform 0.15s; flex-shrink:0; }
+        .cp-acordeon-seta.aberta { transform:rotate(180deg); }
+        .cp-card-paineis.fechado { display:none; }
         .cp-painel-row {
             display:flex; align-items:center; gap:0.6rem;
             padding:0.5rem 1rem; border-bottom:1px solid #f5f5f7;
@@ -253,15 +259,13 @@ function diasR($fim) {
         }
         .cp-painel-link:hover { text-decoration:underline; }
 
-        /* Rodapé do card: contagem + ações */
+        /* Rodapé do card: ações (em acordeão fechado por padrão) */
         .cp-card-footer {
-            padding:0.45rem 0.75rem 0.45rem 1rem;
+            padding:0.6rem 0.75rem;
             background:#fafbfc;
             border-top:1px solid #f0f2f5;
-            font-size:0.68rem; font-weight:700; color:var(--color-text-muted);
-            display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
         }
-        .cp-acoes { display:flex; gap:0.35rem; }
+        .cp-acoes { display:flex; flex-wrap:wrap; gap:0.35rem; }
         .cp-btn {
             padding:3px 9px; border-radius:5px; font-size:0.7rem; font-weight:700;
             cursor:pointer; border:none; font-family:'Montserrat',sans-serif;
@@ -353,11 +357,10 @@ function diasR($fim) {
         .cp-empty { padding:3rem; text-align:center; color:var(--color-text-muted); font-size:0.85rem; }
 
         @media(max-width:700px) {
-            .cp-kpis { grid-template-columns:repeat(3,1fr); }
             .cp-grid  { grid-template-columns:1fr; }
         }
         @media(max-width:480px) {
-            .cp-kpis { grid-template-columns:repeat(2,1fr); }
+            .cp-kpis { grid-template-columns:1fr; }
         }
     </style>
 </head>
@@ -370,9 +373,6 @@ function diasR($fim) {
     <!-- ── Título ── -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem">
         <h1 style="font-size:1.3rem;font-weight:800;color:var(--color-text-dark);margin:0">📢 Campanhas</h1>
-        <span style="font-size:0.78rem;color:var(--color-text-muted);font-weight:600">
-            Histórico completo de ocupações por ponto
-        </span>
     </div>
 
     <!-- ── Alerta de vencidos ── -->
@@ -393,24 +393,16 @@ function diasR($fim) {
     <!-- ── KPIs ── -->
     <div class="cp-kpis">
         <div class="cp-kpi">
-            <div class="cp-kpi-label">Total</div>
-            <div class="cp-kpi-val"><?= $kpi['total'] ?></div>
+            <div class="cp-kpi-label">Ativas</div>
+            <div class="cp-kpi-val verde"><?= $totalAtivas ?></div>
         </div>
         <div class="cp-kpi">
-            <div class="cp-kpi-label">Ativas</div>
-            <div class="cp-kpi-val verde"><?= $kpi['ativas'] ?></div>
+            <div class="cp-kpi-label">Vencidas</div>
+            <div class="cp-kpi-val <?= $totalVencidos > 0 ? 'vermelho' : '' ?>"><?= $totalVencidos ?></div>
         </div>
         <div class="cp-kpi">
             <div class="cp-kpi-label">Encerradas</div>
-            <div class="cp-kpi-val" style="color:var(--color-text-muted)"><?= $kpi['encerradas'] ?></div>
-        </div>
-        <div class="cp-kpi">
-            <div class="cp-kpi-label">Clientes</div>
-            <div class="cp-kpi-val azul"><?= $kpi['clientes'] ?></div>
-        </div>
-        <div class="cp-kpi">
-            <div class="cp-kpi-label">Vencendo 30d</div>
-            <div class="cp-kpi-val <?= $kpi['vencendo'] > 0 ? 'laranja' : '' ?>"><?= $kpi['vencendo'] ?></div>
+            <div class="cp-kpi-val" style="color:var(--color-text-muted)"><?= $totalEncerradas ?></div>
         </div>
     </div>
 
@@ -427,18 +419,11 @@ function diasR($fim) {
             <?php endforeach; ?>
         </select>
         <select id="cpFiltroSit" class="cp-sel">
-            <option value="">Todas situações</option>
-            <?php foreach(['Ocupado','Permuta','Bisemana','Vencido'] as $s): ?>
-            <option value="<?= $s ?>"><?= $s ?></option>
-            <?php endforeach; ?>
-        </select>
-        <select id="cpFiltroStatus" class="cp-sel">
-            <option value="">Ativas + Encerradas</option>
-            <option value="1">Só ativas</option>
-            <option value="0">Só encerradas</option>
+            <option value="">Ativas</option>
+            <option value="Encerradas">Encerradas</option>
+            <option value="Vencidas">Vencidas</option>
         </select>
         <button class="cp-limpar" id="cpLimpar" onclick="limparFiltros()">✕ Limpar</button>
-        <span class="cp-contador" id="cpContador"></span>
     </div>
 
     <!-- ── Grid de cards ── -->
@@ -483,6 +468,7 @@ function diasR($fim) {
          data-busca="<?= htmlspecialchars($buscaStr) ?>"
          data-situacao="<?= htmlspecialchars($g['situacao']) ?>"
          data-status="<?= $g['ativo'] ?>"
+         data-vencida="<?= $isVencida ? 1 : 0 ?>"
          data-cliente="<?= htmlspecialchars(strtolower($g['cliente'])) ?>"
          data-campanha="<?= $dataCard ?>">
 
@@ -519,7 +505,11 @@ function diasR($fim) {
             </div>
         </div>
 
-        <div class="cp-card-paineis">
+        <button type="button" class="cp-acordeon-toggle" onclick="toggleAcordeon(this)">
+            <span class="cp-acordeon-toggle-label">📍 <?= $nPain ?> ponto<?= $nPain > 1 ? 's' : '' ?></span>
+            <span class="cp-acordeon-seta">▾</span>
+        </button>
+        <div class="cp-card-paineis fechado">
             <?php foreach ($g['rows'] as $r): ?>
             <div class="cp-painel-row">
                 <span class="cp-painel-num"><?= str_pad($r['numero'], 3, '0', STR_PAD_LEFT) ?></span>
@@ -533,7 +523,6 @@ function diasR($fim) {
         </div>
 
         <div class="cp-card-footer">
-            <span><?= $nPain ?> ponto<?= $nPain > 1 ? 's' : '' ?></span>
             <div class="cp-acoes">
             <?php
                 // URL do checking para este grupo
@@ -704,25 +693,34 @@ function diasR($fim) {
 
 <script>
 // ── Filtros ───────────────────────────────────────────────────
-var filtros = { busca:'', cliente:'', situacao:'', status:'' };
+// situacao === ''          -> só ativas (padrão ao carregar)
+// situacao === 'Encerradas' -> só encerradas (status=0)
+// situacao === 'Vencidas'   -> ativas com contrato vencido (data-vencida=1)
+var filtros = { busca:'', cliente:'', situacao:'' };
 
 function filtrar() {
-    var temFiltro = filtros.busca || filtros.cliente || filtros.situacao || filtros.status !== '';
+    var temFiltro = filtros.busca || filtros.cliente || filtros.situacao;
     document.getElementById('cpLimpar').className = 'cp-limpar' + (temFiltro ? ' vis' : '');
 
     var total = 0;
     document.querySelectorAll('#cpGrid .cp-card').forEach(function(card) {
         var ok = true;
-        if (filtros.busca    && card.dataset.busca.indexOf(filtros.busca)       === -1) ok = false;
-        if (filtros.cliente  && card.dataset.cliente !== filtros.cliente)               ok = false;
-        if (filtros.situacao && card.dataset.situacao !== filtros.situacao)             ok = false;
-        if (filtros.status !== '' && card.dataset.status !== filtros.status)            ok = false;
+        if (filtros.busca   && card.dataset.busca.indexOf(filtros.busca) === -1) ok = false;
+        if (filtros.cliente && card.dataset.cliente !== filtros.cliente)         ok = false;
+
+        if (filtros.situacao === 'Encerradas') {
+            if (card.dataset.status !== '0') ok = false;
+        } else if (filtros.situacao === 'Vencidas') {
+            if (card.dataset.vencida !== '1') ok = false;
+        } else {
+            if (card.dataset.status !== '1') ok = false;
+        }
+
         card.style.display = ok ? '' : 'none';
         if (ok) total++;
     });
 
-    document.getElementById('cpContador').textContent = total + ' campanha' + (total !== 1 ? 's' : '');
-    document.getElementById('cpEmpty').style.display  = total === 0 ? 'block' : 'none';
+    document.getElementById('cpEmpty').style.display = total === 0 ? 'block' : 'none';
 }
 
 var debTimer;
@@ -750,19 +748,23 @@ document.getElementById('cpFiltroSit').addEventListener('change', function() {
     this.className = 'cp-sel' + (this.value ? ' ativo' : '');
     filtrar();
 });
-document.getElementById('cpFiltroStatus').addEventListener('change', function() {
-    filtros.status = this.value;
-    this.className = 'cp-sel' + (this.value ? ' ativo' : '');
-    filtrar();
-});
 function limparFiltros() {
-    filtros = { busca:'', cliente:'', situacao:'', status:'' };
+    filtros = { busca:'', cliente:'', situacao:'' };
     document.getElementById('cpBusca').value = '';
-    ['cpFiltroCliente','cpFiltroSit','cpFiltroStatus'].forEach(function(id) {
+    ['cpFiltroCliente','cpFiltroSit'].forEach(function(id) {
         document.getElementById(id).value = '';
         document.getElementById(id).className = 'cp-sel';
     });
     filtrar();
+}
+
+// ── Acordeão de pontos ─────────────────────────────────────────
+function toggleAcordeon(btn) {
+    var painel = btn.nextElementSibling;
+    var seta   = btn.querySelector('.cp-acordeon-seta');
+    var aberto = !painel.classList.contains('fechado');
+    painel.classList.toggle('fechado', aberto);
+    seta.classList.toggle('aberta', !aberto);
 }
 
 // ── Modal de edição ───────────────────────────────────────────
