@@ -4,7 +4,7 @@
  * Gera PDF de apresentação dos painéis exclusivos (uso interno) — A4 Paisagem.
  * Reaproveita a estrutura visual do PDF de pré-seleção (capa + 1 página por ponto).
  */
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
 ini_set('memory_limit', '256M');
 set_time_limit(120);

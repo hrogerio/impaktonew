@@ -53,7 +53,9 @@ $paginaAtual = $paginaAtual ?? '';
         <div class="user-info">
             <!-- ⚙ Dropdown Auditoria / Backup -->
             <?php
-            $isAdmin = in_array($paginaAtual, ['auditoria', 'backup']);
+            $paginasAdmin = ['auditoria', 'backup', 'usuarios', 'logs-acesso'];
+            $isAdmin = in_array($paginaAtual, $paginasAdmin);
+            $souAdmin = ($_SESSION['usuario_role'] ?? 'admin') === 'admin';
             ?>
             <div class="nav-gear-wrap" id="navGearWrap">
                 <button class="nav-gear-btn<?= $isAdmin ? ' aberto-admin' : '' ?>"
@@ -65,10 +67,19 @@ $paginaAtual = $paginaAtual ?? '';
                     <a href="/gestor/auditoria" class="nav-gear-link<?= $paginaAtual === 'auditoria' ? ' active' : '' ?>">
                         📊 Auditoria
                     </a>
+                    <?php if ($souAdmin): ?>
+                    <div class="nav-gear-divider"></div>
+                    <a href="/gestor/usuarios" class="nav-gear-link<?= $paginaAtual === 'usuarios' ? ' active' : '' ?>">
+                        👤 Usuários
+                    </a>
+                    <a href="/gestor/logs-acesso" class="nav-gear-link<?= $paginaAtual === 'logs-acesso' ? ' active' : '' ?>">
+                        🛡️ Log de Acessos
+                    </a>
                     <div class="nav-gear-divider"></div>
                     <a href="/gestor/backup" class="nav-gear-link<?= $paginaAtual === 'backup' ? ' active' : '' ?>">
                         💾 Backup BD
                     </a>
+                    <?php endif; ?>
                 </div>
             </div>
 

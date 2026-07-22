@@ -3,7 +3,7 @@
  * GET /gestor/campanhas/espelho/pdf
  * Gera PDF Espelho de Colagem — A4 Retrato, 4 pontos por página (grid 2×2).
  */
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
 ini_set('memory_limit', '256M');
 set_time_limit(120);

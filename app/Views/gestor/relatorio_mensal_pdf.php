@@ -4,7 +4,7 @@
  * Gera o Relatório Mensal consolidado (Ocupação, Contratos & Tempo de Contrato,
  * Clientes & Agências, Histórico/Auditoria) em um único PDF — A4 retrato.
  */
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
 ini_set('memory_limit', '256M');
 set_time_limit(120);

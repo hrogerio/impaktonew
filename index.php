@@ -2,8 +2,27 @@
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('display_errors', 0);
     ini_set('log_errors', 1);
+
+    require_once __DIR__ . '/config/database.php'; // só carrega .env + define getDatabase(), não conecta
+
+    $httpsDetectado = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['SERVER_PORT'] ?? '') == 443)
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    $sessionSecure = $httpsDetectado || getenv('SESSION_SECURE') === 'true';
+
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => $sessionSecure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+
     session_start();
 }
+
+define('SESSAO_TIMEOUT_MINUTOS', getenv('SESSION_LIFETIME') ? (int)getenv('SESSION_LIFETIME') : 120);
 
 // Detecta se o projeto está num subdiretório (ex: /impaktonew no Laragon)
 // Em produção (domínio próprio) basePath fica vazio
@@ -28,6 +47,31 @@ function auth_required() {
     if (!isset($_SESSION['usuario'])) {
         header("Location: " . BASE . "/?erro=nao_logado");
         exit;
+    }
+
+    $inatividade = time() - ($_SESSION['last_activity'] ?? time());
+    if ($inatividade > SESSAO_TIMEOUT_MINUTOS * 60) {
+        $usuarioAnterior = $_SESSION['usuario'];
+        $_SESSION = [];
+        session_destroy();
+        error_log("Sessão expirada por inatividade: {$usuarioAnterior}");
+        header("Location: " . BASE . "/?erro=sessao_expirada");
+        exit;
+    }
+    $_SESSION['last_activity'] = time();
+
+    // Regenera o ID da sessão periodicamente para reduzir a janela de sequestro de sessão
+    if (($_SESSION['regenerated_at'] ?? 0) < time() - 900) {
+        session_regenerate_id(true);
+        $_SESSION['regenerated_at'] = time();
+    }
+}
+
+function require_role($role) {
+    auth_required();
+    if (($_SESSION['usuario_role'] ?? 'admin') !== $role) {
+        http_response_code(403);
+        die("Acesso restrito.");
     }
 }
 
@@ -245,8 +289,36 @@ switch ($uri) {
 
     // ── BACKUP DO BANCO ──────────────────────────────────────
     case 'gestor/backup':
-        auth_required();
+        require_role('admin');
         require __DIR__ . '/app/Views/gestor/backup_bd.php';
+        break;
+
+    // ── USUÁRIOS (admin) ─────────────────────────────────────
+    case 'gestor/usuarios':
+        require_role('admin');
+        require __DIR__ . '/app/Views/gestor/usuarios.php';
+        break;
+
+    case 'gestor/usuarios/novo':
+    case 'gestor/usuarios/editar':
+        require_role('admin');
+        require __DIR__ . '/app/Views/gestor/usuario_form.php';
+        break;
+
+    case 'gestor/usuarios/salvar':
+        require_role('admin');
+        require __DIR__ . '/app/Views/gestor/api/salvar_usuario.php';
+        break;
+
+    case 'gestor/usuarios/status':
+        require_role('admin');
+        require __DIR__ . '/app/Views/gestor/api/usuario_status.php';
+        break;
+
+    // ── LOG DE ACESSOS (admin) ───────────────────────────────
+    case 'gestor/logs-acesso':
+        require_role('admin');
+        require __DIR__ . '/app/Views/gestor/logs_acesso.php';
         break;
 
     // ── MAPA DE PONTOS ───────────────────────────────────────
