@@ -33,6 +33,11 @@ $paginaAtual = $paginaAtual ?? '';
 .nav-gear-link:hover { background: #f9fafb; }
 .nav-gear-link.active { color: var(--color-accent-primary); font-weight: 700; }
 .nav-gear-divider { height: 1px; background: var(--color-border); margin: 0.25rem 0; }
+.nav-saudacao {
+    font-size: 0.83rem; font-weight: 600; color: var(--color-text-muted);
+    white-space: nowrap;
+}
+.nav-saudacao strong { color: var(--color-text-dark); font-weight: 700; }
 </style>
 
 <div class="header">
@@ -51,6 +56,8 @@ $paginaAtual = $paginaAtual ?? '';
         </nav>
 
         <div class="user-info">
+            <span class="nav-saudacao">Olá, <strong><?= htmlspecialchars($_SESSION['usuario'] ?? '') ?></strong></span>
+
             <!-- ⚙ Dropdown Auditoria / Backup -->
             <?php
             $paginasAdmin = ['auditoria', 'backup', 'usuarios', 'logs-acesso'];
