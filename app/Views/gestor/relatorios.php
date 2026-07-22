@@ -15,12 +15,9 @@ require_once __DIR__ . '/../../Controllers/RelatorioController.php';
 
 $controller = new RelatorioController();
 
-$periodoHistorico = $_GET['periodo_historico'] ?? '3m';
-
 $ocupacao  = $controller->dadosOcupacao();
 $contratos = $controller->dadosContratos();
 $clientes  = $controller->dadosClientes();
-$historico = $controller->dadosHistorico($periodoHistorico);
 $documentosPorGrupo = $controller->documentosPorGrupo();
 
 // ============================================================
@@ -99,7 +96,6 @@ function tabelaCampanhas(array $lista) {
     <?php
 }
 
-$periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' => '6 meses', '12m' => '12 meses'];
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -206,22 +202,22 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
             <h2>📊 Relatórios</h2>
             <p>Ocupação, contratos, clientes e histórico — visão comercial para apresentação à diretoria.</p>
         </div>
-        <a class="btn-export btn-pdf-mensal" href="/gestor/relatorios/pdf?periodo_historico=<?= urlencode($periodoHistorico) ?>" target="_blank">
+        <a class="btn-export btn-pdf-mensal" href="/gestor/relatorios/pdf" target="_blank">
             📄 Gerar Relatório Mensal (PDF)
         </a>
     </div>
 
     <div class="tabs-nav" id="tabsNav">
-        <button class="tab-btn active" onclick="switchTab('ocupacao',this)">🗺️ Ocupação</button>
-        <button class="tab-btn" onclick="switchTab('contratos',this)">📅 Contratos &amp; Tempo de Contrato</button>
-        <button class="tab-btn" onclick="switchTab('clientes',this)">🏢 Clientes &amp; Agências</button>
-        <button class="tab-btn" onclick="switchTab('historico',this)">🕒 Histórico / Auditoria</button>
+        <button class="tab-btn active" onclick="switchTab('contratos',this)">📅 Contratos</button>
+        <button class="tab-btn" onclick="switchTab('clientes',this)">🏢 Clientes</button>
+        <button class="tab-btn" onclick="switchTab('agencias',this)">🏛️ Agências</button>
+        <button class="tab-btn" onclick="switchTab('ocupacao',this)">🗺️ Ocupação</button>
     </div>
 
     <!-- ============================================================ -->
     <!-- ABA 1: OCUPAÇÃO                                               -->
     <!-- ============================================================ -->
-    <div class="tab-content active" id="tab-ocupacao">
+    <div class="tab-content" id="tab-ocupacao">
 
         <div class="export-bar">
             <button class="btn-export btn-csv" onclick="exportCSV('tbl-regiao-hidden','ocupacao-regiao')">⬇ CSV</button>
@@ -346,7 +342,7 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
     <!-- ============================================================ -->
     <!-- ABA 2: CONTRATOS & TEMPO DE CONTRATO                          -->
     <!-- ============================================================ -->
-    <div class="tab-content" id="tab-contratos">
+    <div class="tab-content active" id="tab-contratos">
 
         <div class="export-bar">
             <a class="btn-export btn-pdf" href="/gestor/relatorios/contratos/pdf" target="_blank">📄 PDF de Contratos</a>
@@ -425,7 +421,7 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
 
 
     <!-- ============================================================ -->
-    <!-- ABA 3: CLIENTES & AGÊNCIAS                                   -->
+    <!-- ABA 3: CLIENTES                                              -->
     <!-- ============================================================ -->
     <div class="tab-content" id="tab-clientes">
 
@@ -433,19 +429,12 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
             <button class="btn-export btn-csv" onclick="exportCSV('tbl-clientes','pontos-por-cliente')">⬇ CSV</button>
         </div>
 
-        <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr); margin-bottom:1.25rem;">
+        <div class="kpi-grid" style="grid-template-columns:minmax(180px,220px); margin-bottom:1.25rem;">
             <div class="kpi-card kpi-total">
                 <div class="kpi-icon">🏢</div>
                 <div class="kpi-body">
                     <div class="kpi-value"><?= count($clientes['clientes']) ?></div>
                     <div class="kpi-label">Clientes</div>
-                </div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-icon" style="background:#eef6ff;">🏛️</div>
-                <div class="kpi-body">
-                    <div class="kpi-value" style="color:#3498db"><?= count($clientes['agencias']) ?></div>
-                    <div class="kpi-label">Agências</div>
                 </div>
             </div>
         </div>
@@ -482,8 +471,31 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
         </div>
         <?php endif; ?>
 
-        <?php if (!empty($clientes['agencias'])): ?>
-        <div class="section-title" style="margin-top:1.5rem">🏛️ Resumo por Agência (<?= count($clientes['agencias']) ?>)</div>
+    </div><!-- /tab-clientes -->
+
+    <!-- ============================================================ -->
+    <!-- ABA 4: AGÊNCIAS                                              -->
+    <!-- ============================================================ -->
+    <div class="tab-content" id="tab-agencias">
+
+        <div class="export-bar">
+            <button class="btn-export btn-csv" onclick="exportCSV('tbl-agencias','resumo-agencias')">⬇ CSV</button>
+        </div>
+
+        <div class="kpi-grid" style="grid-template-columns:minmax(180px,220px); margin-bottom:1.25rem;">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#eef6ff;">🏛️</div>
+                <div class="kpi-body">
+                    <div class="kpi-value" style="color:#3498db"><?= count($clientes['agencias']) ?></div>
+                    <div class="kpi-label">Agências</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">🏛️ Resumo por Agência (<?= count($clientes['agencias']) ?>)</div>
+        <?php if (empty($clientes['agencias'])): ?>
+            <div class="empty-state"><p>Nenhuma agência encontrada.</p></div>
+        <?php else: ?>
         <div class="table-container">
             <table class="rel-table" id="tbl-agencias">
                 <thead><tr><th>Agência</th><th>Clientes</th><th>Total de Pontos</th></tr></thead>
@@ -500,87 +512,8 @@ $periodoOpcoes = ['15d' => '15 dias', '1m' => '1 mês', '3m' => '3 meses', '6m' 
         </div>
         <?php endif; ?>
 
-    </div><!-- /tab-clientes -->
+    </div><!-- /tab-agencias -->
 
-
-    <!-- ============================================================ -->
-    <!-- ABA 4: HISTÓRICO / AUDITORIA                                  -->
-    <!-- ============================================================ -->
-    <div class="tab-content" id="tab-historico">
-
-        <div class="export-bar">
-            <button class="btn-export btn-csv" onclick="exportCSV('tbl-timeline','historico-pontos')">⬇ CSV</button>
-        </div>
-
-        <div class="periodo-pills">
-            <span style="font-size:0.82rem;font-weight:700;color:var(--color-text-muted);">Período:</span>
-            <?php foreach ($periodoOpcoes as $chave => $label): ?>
-            <a href="?periodo_historico=<?= $chave ?>#historico" class="pill <?= $periodoHistorico==$chave?'active':'' ?>"><?= $label ?></a>
-            <?php endforeach; ?>
-        </div>
-
-        <div class="kpi-grid" style="margin-bottom:1.25rem;">
-            <div class="kpi-card kpi-total">
-                <div class="kpi-icon">🕒</div>
-                <div class="kpi-body">
-                    <div class="kpi-value"><?= number_format($historico['total_mudancas']) ?></div>
-                    <div class="kpi-label">Mudanças em <?= $historico['periodo_label'] ?></div>
-                </div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-icon" style="background:#f9f0ff;">🔄</div>
-                <div class="kpi-body">
-                    <div class="kpi-value" style="color:#8e44ad"><?= count($historico['rotatividade']) ?></div>
-                    <div class="kpi-label">Pontos com mais giro</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section-title">🔄 Rotatividade — Pontos com Mais Mudanças de Situação</div>
-        <?php if (empty($historico['rotatividade'])): ?>
-            <div class="empty-state"><p>Nenhuma mudança de situação registrada em <?= $historico['periodo_label'] ?>.</p></div>
-        <?php else: ?>
-        <div class="table-container">
-            <table class="rel-table" id="tbl-rotatividade">
-                <thead><tr><th>Nº</th><th>Logradouro</th><th>Cidade</th><th style="text-align:right">Mudanças de Situação</th></tr></thead>
-                <tbody>
-                    <?php foreach ($historico['rotatividade'] as $r): ?>
-                    <tr>
-                        <td><strong style="color:var(--color-accent-primary)"><?= htmlspecialchars($r['numero']) ?></strong></td>
-                        <td><?= htmlspecialchars($r['logradouro'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($r['cidade'] ?? '') ?></td>
-                        <td style="text-align:right"><strong><?= $r['total_mudancas'] ?></strong></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php endif; ?>
-
-        <div class="section-title" style="margin-top:1.5rem">📜 Linha do Tempo — Últimas Alterações</div>
-        <?php if (empty($historico['timeline'])): ?>
-            <div class="empty-state"><p>Nenhuma alteração registrada em <?= $historico['periodo_label'] ?>.</p></div>
-        <?php else: ?>
-        <div class="table-container">
-            <table class="rel-table" id="tbl-timeline">
-                <thead><tr><th>Data/Hora</th><th>Nº</th><th>Logradouro</th><th>Campo</th><th>De</th><th>Para</th></tr></thead>
-                <tbody>
-                    <?php foreach ($historico['timeline'] as $h): ?>
-                    <tr>
-                        <td style="font-size:0.78rem;white-space:nowrap;"><?= (new DateTime($h['alterado_em']))->format('d/m/Y H:i') ?></td>
-                        <td><strong style="color:var(--color-accent-primary)"><?= htmlspecialchars($h['numero']) ?></strong></td>
-                        <td><?= htmlspecialchars($h['logradouro'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($h['campo']) ?></td>
-                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($h['valor_antes'] ?? '-') ?></td>
-                        <td><strong><?= htmlspecialchars($h['valor_depois'] ?? '-') ?></strong></td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-        <?php endif; ?>
-
-    </div><!-- /tab-historico -->
 
 </div><!-- /container -->
 
@@ -628,7 +561,7 @@ function switchTab(name, btn) {
 
 (function(){
     var hash = location.hash.replace('#','');
-    var tabs = ['ocupacao','contratos','clientes','historico'];
+    var tabs = ['contratos','clientes','agencias','ocupacao'];
     var idx = tabs.indexOf(hash);
     if (idx !== -1) {
         document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
