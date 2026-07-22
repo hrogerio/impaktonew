@@ -104,6 +104,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
+
+// Imagem/vídeo do painel direito: roda entre os banners disponíveis, trocando uma vez por dia
+$bannerDir = __DIR__ . '/assets/img/login-banners';
+$banners   = glob($bannerDir . '/*.{svg,png,jpg,jpeg,webp,gif,mp4,webm}', GLOB_BRACE) ?: [];
+sort($banners);
+$bannerUrl   = null;
+$bannerVideo = false;
+if ($banners) {
+    $indice      = (int)date('z') % count($banners);
+    $arquivo     = basename($banners[$indice]);
+    $bannerUrl   = '/public/assets/img/login-banners/' . $arquivo;
+    $bannerVideo = in_array(strtolower(pathinfo($arquivo, PATHINFO_EXTENSION)), ['mp4', 'webm']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -119,40 +132,60 @@ if (!isset($_SESSION['csrf_token'])) {
 </head>
 <body>
 
-<div class="login-container">
-    <div class="logo">
-        <img src="/public/assets/img/logo.png" alt="Impakto Mídia" class="logo-img">
+<div class="login-left">
+    <div class="login-container">
+        <h1 class="login-titulo">Login</h1>
+
+        <?php if ($erro): ?>
+            <div class="erro">
+                <span>⚠️</span>
+                <?= htmlspecialchars($erro) ?>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST">
+            <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
+
+            <div class="form-group">
+                <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M3 6l9 7 9-7"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
+                <input type="text"
+                       name="usuario"
+                       placeholder="Usuário"
+                       required
+                       autocomplete="username"
+                       value="<?= htmlspecialchars($_POST['usuario'] ?? '') ?>" />
+            </div>
+
+            <div class="form-group">
+                <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                <input type="password"
+                       name="senha"
+                       placeholder="Senha"
+                       required
+                       autocomplete="current-password" />
+            </div>
+
+            <button type="submit">Entrar</button>
+        </form>
+
+        <a href="mailto:master@impaktomidia.com.br" class="esqueci">Esqueci minha senha</a>
+
+        <div class="rodape">&copy; <?= date('Y') ?> Impakto Mídia OOH · Todos os direitos reservados</div>
     </div>
+</div>
 
-    <?php if ($erro): ?>
-        <div class="erro">
-            <span>⚠️</span>
-            <?= htmlspecialchars($erro) ?>
-        </div>
+<div class="login-right">
+    <div class="dot-grid topo-esq"></div>
+    <div class="dot-grid fundo-dir"></div>
+
+    <img src="/public/assets/img/logo_branca.png" alt="Impakto Mídia" class="logo-marca">
+    <div class="tagline">Gestão de mídia exterior (OOH)</div>
+
+    <?php if ($bannerUrl && $bannerVideo): ?>
+        <video class="banner-img" src="<?= htmlspecialchars($bannerUrl) ?>" autoplay muted loop playsinline></video>
+    <?php elseif ($bannerUrl): ?>
+        <img src="<?= htmlspecialchars($bannerUrl) ?>" alt="" class="banner-img">
     <?php endif; ?>
-
-    <form method="POST">
-        <input type="hidden" name="_token" value="<?= $_SESSION['csrf_token'] ?>">
-
-        <div class="form-group">
-            <input type="text"
-                   name="usuario"
-                   placeholder="Nome de usuário"
-                   required
-                   autocomplete="username"
-                   value="<?= htmlspecialchars($_POST['usuario'] ?? '') ?>" />
-        </div>
-
-        <div class="form-group">
-            <input type="password"
-                   name="senha"
-                   placeholder="Senha"
-                   required
-                   autocomplete="current-password" />
-        </div>
-
-        <button type="submit">Entrar no Sistema</button>
-    </form>
 </div>
 
 </body>
