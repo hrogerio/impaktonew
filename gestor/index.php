@@ -77,9 +77,9 @@ $stmtReg = $pdo->query("
 ");
 $regioes = $stmtReg->fetchAll(PDO::FETCH_ASSOC);
 
-// ── Vencimentos próximos 30 dias (campanhas ativas) ──────────
+// ── Vencimentos próximos 30 dias + já vencidos recentes (campanhas ativas) ──
 $stmtVenc = $pdo->query("
-    SELECT p.id, p.numero, p.logradouro, p.cidade,
+    SELECT p.id, p.numero, p.logradouro, p.cidade, p.tipo, p.situacao,
            c.cliente AS cliente,
            COALESCE(
                CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
@@ -88,21 +88,23 @@ $stmtVenc = $pdo->query("
            DATEDIFF(COALESCE(
                CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
                CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
-           ), CURDATE()) AS dias_restantes
+           ), CURDATE()) AS dias_restantes,
+           EXISTS(SELECT 1 FROM checking_fotos cf WHERE cf.ponto_id = p.id AND cf.situacao = 'Ocupado') AS tem_checking
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
     WHERE (p.ativo=1 OR p.ativo IS NULL)
-      AND p.situacao NOT IN ('Disponivel','Disponível')
+      AND p.situacao IN ('Ocupado','Vencido')
       AND COALESCE(
                CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
                CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
-          ) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+          ) BETWEEN DATE_SUB(CURDATE(), INTERVAL 45 DAY) AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
     ORDER BY fim_contrato ASC
     LIMIT 15
 ");
 $vencimentos  = $stmtVenc->fetchAll(PDO::FETCH_ASSOC);
-$venc7dias    = array_filter($vencimentos, function($v) { return (int)$v['dias_restantes'] <= 7; });
+$venc7dias    = array_filter($vencimentos, function($v) { $d = (int)$v['dias_restantes']; return $d >= 0 && $d <= 7; });
 $venc7count   = count($venc7dias);
+$venc30count  = count(array_filter($vencimentos, function($v) { return (int)$v['dias_restantes'] >= 0; }));
 
 // ── Reservas pendentes (pre_selecoes aguardando confirmação) ──
 try {
@@ -130,6 +132,10 @@ try {
 }
 
 // ── Pontos por região (para o gráfico de barras) ──────────────
+$mesesAbrev = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+$agora = new DateTime();
+$dataHoraTopo = $agora->format('d') . ' ' . $mesesAbrev[(int)$agora->format('n') - 1] . ', ' . $agora->format('H') . 'h';
+
 $CORES_SIT = [
     'Disponivel' => '#1a9059', 'Disponível' => '#1a9059',
     'Ocupado'    => '#dc3545',
@@ -151,131 +157,190 @@ $CORES_SIT = [
     <link rel="stylesheet" href="/public/assets/css/gestor.css">
     <title>Dashboard — Impakto Mídia</title>
     <style>
-        .db-page { max-width:1200px; margin:0 auto; padding:1.5rem 1.5rem 3rem; }
+        .db-page {
+            --ok:#1a9059;      --ok-soft:#e3f5ec;
+            --warn:#b06a00;    --warn-soft:#fdf1dc;
+            --crit:#c0392b;    --crit-soft:#fbe4e1;
+            --accent-soft:#fdeae7; --accent-ink:#b3271b;
+            --db-shadow: 0 1px 2px rgba(26,29,35,0.06), 0 8px 24px -12px rgba(26,29,35,0.14);
+            --db-radius: 14px;
+            max-width:1280px; margin:0 auto; padding:1.75rem 1.75rem 3.5rem;
+            display:flex; flex-direction:column; gap:1.5rem;
+        }
+        .db-page .num { font-variant-numeric: tabular-nums; }
 
         /* ── Alerta login ── */
         .db-alert {
             background:#dcfce7; border:1px solid #86efac; border-radius:8px;
-            padding:0.75rem 1rem; margin-bottom:1.25rem;
+            padding:0.75rem 1rem;
             font-size:0.83rem; font-weight:600; color:#166534;
         }
 
-        /* ── Título ── */
-        .db-header { margin-bottom:1.5rem; }
-        .db-header h1 { font-size:1.3rem; font-weight:800; color:var(--color-text-dark); margin:0; }
-        .db-header p  { font-size:0.82rem; color:var(--color-text-muted); margin-top:0.25rem; }
+        /* ── Cabeçalho ── */
+        .db-header { display:flex; align-items:baseline; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+        .db-header-title { display:flex; align-items:baseline; gap:0.75rem; flex-wrap:wrap; }
+        .db-header h1 { font-size:1.5rem; font-weight:800; letter-spacing:-0.02em; color:var(--color-text-dark); margin:0; }
+        .db-header-time { font-size:0.85rem; color:var(--color-text-muted); font-weight:600; }
+        .db-live-pill {
+            display:inline-flex; align-items:center; gap:0.4rem;
+            font-size:0.72rem; font-weight:700; color:var(--ok);
+            background:var(--ok-soft); padding:0.35rem 0.7rem; border-radius:20px;
+        }
+        .db-live-dot { width:6px; height:6px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 3px var(--ok-soft); }
 
         /* ── Grid de KPIs ── */
-        .db-kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:0.85rem; margin-bottom:1.5rem; }
+        .db-kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:0.85rem; }
         @media(max-width:1100px) { .db-kpis { grid-template-columns:repeat(3,1fr); } }
         @media(max-width:600px)  { .db-kpis { grid-template-columns:repeat(2,1fr); } }
 
         .kpi {
-            background:white; border:1px solid var(--color-border); border-radius:10px;
-            padding:1rem; display:flex; flex-direction:column; gap:0.3rem;
-            border-top:3px solid transparent;
+            background:white; border:1px solid var(--color-border); border-radius:var(--db-radius);
+            box-shadow:var(--db-shadow);
+            padding:1rem 1.1rem; display:flex; flex-direction:column; gap:0.5rem;
         }
-        .kpi-label { font-size:0.65rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.5px; }
-        .kpi-valor { font-size:1.9rem; font-weight:800; line-height:1; }
-        .kpi-sub   { font-size:0.7rem; color:var(--color-text-muted); }
+        .kpi-top { display:flex; align-items:center; justify-content:space-between; }
+        .kpi-label { font-size:0.66rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.07em; }
+        .kpi-icon { font-size:0.9rem; opacity:0.85; }
+        .kpi-valor { font-size:2rem; font-weight:800; letter-spacing:-0.03em; line-height:1; }
+        .kpi-sub   { font-size:0.74rem; color:var(--color-text-muted); font-weight:600; }
+        .kpi-sub b { font-weight:800; }
+        .kpi-bar   { height:5px; border-radius:3px; background:var(--color-bg-primary); overflow:hidden; margin-top:0.1rem; }
+        .kpi-bar > span { display:block; height:100%; border-radius:3px; }
 
-        .kpi-total     { border-top-color:#1a1a1a; }  .kpi-total .kpi-valor     { color:#1a1a1a; }
-        .kpi-disponivel{ border-top-color:#1a9059; }  .kpi-disponivel .kpi-valor{ color:#1a9059; }
-        .kpi-ocupado   { border-top-color:#dc3545; }  .kpi-ocupado .kpi-valor   { color:#dc3545; }
-        .kpi-reservado { border-top-color:#fd7e14; }  .kpi-reservado .kpi-valor { color:#fd7e14; }
-        .kpi-vencido   { border-top-color:#6c757d; }  .kpi-vencido .kpi-valor   { color:#6c757d; }
-        .kpi-ocup-pct  { border-top-color:#c0392b; }  .kpi-ocup-pct .kpi-valor  { color:#c0392b; }
+        .kpi-total      .kpi-valor { color:#1a1a1a; }
+        .kpi-disponivel .kpi-valor { color:var(--ok); }
+        .kpi-ocupado    .kpi-valor { color:var(--crit); }
+        .kpi-reservado  .kpi-valor { color:var(--warn); }
+        .kpi-pendente   .kpi-valor { color:var(--warn); }
+
+        .kpi.kpi-hero {
+            background:var(--color-text-dark); border-color:var(--color-text-dark); color:white;
+        }
+        .kpi.kpi-hero .kpi-label { color:rgba(255,255,255,0.62); }
+        .kpi.kpi-hero .kpi-valor { color:#fff; }
+        .kpi.kpi-hero .kpi-sub   { color:rgba(255,255,255,0.72); }
+        .kpi.kpi-hero.kpi-hero-crit { background:var(--crit); border-color:var(--crit); }
+        .kpi.kpi-hero.kpi-hero-crit .kpi-label { color:rgba(255,255,255,0.75); }
+        .kpi.kpi-hero.kpi-hero-crit .kpi-sub   { color:rgba(255,255,255,0.85); }
+
+        /* ── Atalhos ── */
+        .db-atalhos { display:grid; grid-template-columns:repeat(4,1fr); gap:0.85rem; }
+        @media(max-width:700px) { .db-atalhos { grid-template-columns:repeat(2,1fr); } }
+        .atalho {
+            display:flex; align-items:center; gap:0.85rem;
+            background:white; border:1px solid var(--color-border); border-radius:var(--db-radius);
+            padding:0.95rem 1.05rem; text-decoration:none;
+            transition:border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+        }
+        .atalho:hover { border-color:var(--color-accent-primary); transform:translateY(-2px); box-shadow:var(--db-shadow); }
+        .atalho-icon {
+            width:38px; height:38px; border-radius:10px; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center; font-size:1.05rem;
+            background:var(--accent-soft); color:var(--accent-ink);
+        }
+        .atalho-label { font-size:0.85rem; font-weight:800; color:var(--color-text-dark); }
+        .atalho-sub   { font-size:0.72rem; color:var(--color-text-muted); font-weight:600; margin-top:1px; }
 
         /* ── Grid 2 colunas ── */
-        .db-grid { display:grid; grid-template-columns:1fr 380px; gap:1.25rem; margin-bottom:1.25rem; }
-        @media(max-width:900px) { .db-grid { grid-template-columns:1fr; } }
+        .db-grid { display:grid; grid-template-columns:1.15fr 1fr; gap:1.1rem; align-items:start; }
+        @media(max-width:940px) { .db-grid { grid-template-columns:1fr; } }
 
         /* ── Card genérico ── */
-        .db-card { background:white; border:1px solid var(--color-border); border-radius:10px; overflow:hidden; }
+        .db-card { background:white; border:1px solid var(--color-border); border-radius:var(--db-radius); box-shadow:var(--db-shadow); overflow:hidden; }
         .db-card-header {
-            padding:0.65rem 1rem; background:var(--color-bg-primary);
+            padding:0.9rem 1.15rem;
             border-bottom:1px solid var(--color-border);
             display:flex; align-items:center; justify-content:space-between;
         }
-        .db-card-title { font-size:0.78rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.5px; }
-        .db-card-link  { font-size:0.75rem; font-weight:700; color:var(--color-accent-primary); text-decoration:none; }
+        .db-card-title { font-size:0.82rem; font-weight:800; color:var(--color-text-dark); display:flex; align-items:center; gap:0.5rem; }
+        .db-card-title .chip {
+            font-size:0.62rem; font-weight:800; padding:2px 7px; border-radius:20px;
+            background:var(--warn-soft); color:var(--warn); text-transform:uppercase; letter-spacing:0.04em;
+        }
+        .db-card-title .chip.chip-crit { background:var(--crit-soft); color:var(--crit); }
+        .db-card-link  { font-size:0.76rem; font-weight:700; color:var(--color-accent-primary); text-decoration:none; }
         .db-card-link:hover { text-decoration:underline; }
-        .db-card-body  { padding:1rem; }
+        .db-card-body  { padding:1.1rem 1.15rem; }
 
         /* ── Regiões ── */
-        .reg-item { margin-bottom:0.85rem; }
+        .reg-item { margin-bottom:1rem; }
         .reg-item:last-child { margin-bottom:0; }
-        .reg-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.3rem; }
-        .reg-nome   { font-size:0.8rem; font-weight:700; color:var(--color-text-dark); }
-        .reg-nums   { font-size:0.72rem; color:var(--color-text-muted); }
-        .reg-bar    { height:8px; background:#f0f0f0; border-radius:4px; overflow:hidden; display:flex; }
-        .reg-bar-ocup { background:#dc3545; border-radius:4px 0 0 4px; transition:width 0.5s; }
-        .reg-bar-disp { background:#1a9059; transition:width 0.5s; }
+        .reg-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.4rem; }
+        .reg-nome   { font-size:0.85rem; font-weight:800; color:var(--color-text-dark); }
+        .reg-nums   { font-size:0.74rem; color:var(--color-text-muted); font-weight:600; }
+        .reg-bar    { height:9px; background:var(--color-bg-primary); border-radius:5px; overflow:hidden; display:flex; }
+        .reg-bar-ocup { background:var(--crit); }
+        .reg-bar-disp { background:var(--ok); }
 
-        /* ── Vencimentos ── */
-        .venc-table { width:100%; border-collapse:collapse; font-size:0.8rem; }
-        .venc-table th { padding:0.4rem 0.75rem; font-size:0.65rem; font-weight:700; color:var(--color-text-muted); text-transform:uppercase; border-bottom:1.5px solid var(--color-border); text-align:left; background:var(--color-bg-primary); }
-        .venc-table td { padding:0.5rem 0.75rem; border-bottom:1px solid var(--color-border); vertical-align:middle; }
-        .venc-table tbody tr:last-child td { border-bottom:none; }
-        .venc-table tbody tr:hover { background:#fafafa; }
-        .venc-num { font-weight:800; color:var(--color-accent-primary); }
-        .venc-cli { font-size:0.72rem; color:var(--color-text-muted); }
-        .dias-badge {
-            display:inline-block; padding:2px 7px; border-radius:10px;
-            font-size:0.68rem; font-weight:800; white-space:nowrap;
+        /* ── Vencimentos: seção + cards horizontais ── */
+        .db-section-head { display:flex; align-items:center; justify-content:space-between; }
+        .db-section-head h2 { font-size:1rem; font-weight:800; color:var(--color-text-dark); margin:0; }
+        .db-section-head .db-card-link { font-size:0.8rem; }
+
+        .venc-scroll { display:flex; gap:0.9rem; overflow-x:auto; padding-bottom:0.35rem; scroll-snap-type:x proximity; }
+        .venc-card {
+            scroll-snap-align:start; flex:0 0 240px;
+            background:white; border:1px solid var(--color-border); border-radius:var(--db-radius);
+            box-shadow:var(--db-shadow); padding:1rem 1.05rem;
+            display:flex; flex-direction:column; gap:0.5rem;
+            text-decoration:none; color:var(--color-text-dark);
+            transition:border-color 0.15s, transform 0.15s;
         }
-        .dias-urgente { background:#fee2e2; color:#991b1b; }
-        .dias-atencao { background:#ffedd5; color:#9a3412; }
-        .dias-ok      { background:#dcfce7; color:#166534; }
+        .venc-card:hover { border-color:var(--color-accent-primary); transform:translateY(-2px); }
+        .venc-card-top { display:flex; align-items:center; justify-content:space-between; }
+        .venc-tag { font-size:0.66rem; font-weight:700; color:var(--color-text-muted); background:var(--color-bg-primary); padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:0.04em; }
+        .venc-card-title { font-size:0.95rem; font-weight:800; }
+        .venc-card-sub { font-size:0.76rem; color:var(--color-text-muted); font-weight:600; }
+        .venc-card-qty { font-size:0.74rem; color:var(--color-text-muted); }
+        .venc-card-chips { display:flex; gap:0.4rem; flex-wrap:wrap; }
+        .chip-mini { font-size:0.65rem; font-weight:800; padding:3px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:0.03em; }
+        .chip-checking { background:var(--color-bg-primary); color:var(--color-text-muted); }
+        .dias-urgente { background:var(--crit-soft); color:var(--crit); }
+        .dias-atencao { background:var(--warn-soft); color:var(--warn); }
+        .dias-ok      { background:var(--ok-soft); color:var(--ok); }
+        .venc-card-cta { font-size:0.78rem; font-weight:800; color:var(--color-accent-primary); margin-top:0.2rem; }
 
         /* ── Reservas recentes ── */
         .res-item {
-            display:flex; align-items:center; gap:0.75rem;
-            padding:0.6rem 0; border-bottom:1px solid var(--color-border);
+            display:flex; align-items:center; gap:0.8rem;
+            padding:0.65rem 0; border-bottom:1px solid var(--color-border);
         }
         .res-item:last-child { border-bottom:none; }
-        .res-info { flex:1; min-width:0; }
-        .res-cli  { font-size:0.82rem; font-weight:700; color:var(--color-text-dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .res-sub  { font-size:0.7rem; color:var(--color-text-muted); margin-top:1px; }
-        .res-pts  { font-size:0.72rem; font-weight:700; color:var(--color-text-muted); white-space:nowrap; }
-
-        .status-badge { display:inline-block; padding:2px 7px; border-radius:10px; font-size:0.62rem; font-weight:800; text-transform:uppercase; }
-        .status-rascunho { background:#f1f5f9; color:#475569; }
-        .status-enviada  { background:#dbeafe; color:#1e40af; }
-        .status-aprovada { background:#dcfce7; color:#166534; }
-        .status-recusada { background:#fee2e2; color:#991b1b; }
-
-        /* ── Atalhos ── */
-        .db-atalhos { display:grid; grid-template-columns:repeat(4,1fr); gap:0.85rem; margin-bottom:1.25rem; }
-        @media(max-width:700px) { .db-atalhos { grid-template-columns:repeat(2,1fr); } }
-        .atalho {
-            background:white; border:1px solid var(--color-border); border-radius:10px;
-            padding:1.1rem; text-align:center; text-decoration:none;
-            transition:all 0.15s; display:flex; flex-direction:column; align-items:center; gap:0.4rem;
+        .res-avatar {
+            width:34px; height:34px; border-radius:9px; flex-shrink:0;
+            background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center;
+            font-weight:800; font-size:0.78rem; color:var(--color-text-dark);
         }
-        .atalho:hover { border-color:var(--color-accent-primary); transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.08); }
-        .atalho-icon { font-size:1.6rem; }
-        .atalho-label { font-size:0.78rem; font-weight:700; color:var(--color-text-dark); }
-        .atalho-sub   { font-size:0.68rem; color:var(--color-text-muted); }
+        .res-info { flex:1; min-width:0; }
+        .res-cli  { font-size:0.83rem; font-weight:800; color:var(--color-text-dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .res-sub  { font-size:0.72rem; color:var(--color-text-muted); font-weight:600; margin-top:1px; }
+        .res-pts  { font-size:0.75rem; font-weight:800; color:var(--color-text-dark); white-space:nowrap; }
+
+        .status-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:0.63rem; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; }
+        .status-rascunho { background:var(--color-bg-primary); color:var(--color-text-muted); }
+        .status-enviada  { background:var(--warn-soft); color:var(--warn); }
+        .status-aprovada { background:var(--ok-soft); color:var(--ok); }
+        .status-recusada { background:var(--crit-soft); color:var(--crit); }
 
         .db-empty { padding:1.5rem; text-align:center; color:var(--color-text-muted); font-size:0.82rem; }
+        .db-section-label { font-size:0.63rem; font-weight:800; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:0.08em; padding-bottom:0.4rem; border-bottom:1px dashed var(--color-border); margin-bottom:0.5rem; }
 
         /* ── Banners de alerta urgente ── */
-        .db-alertas { display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.25rem; }
+        .db-alertas { display:flex; flex-direction:column; gap:0.6rem; }
         .db-alerta-banner {
-            border-radius:9px; padding:0.75rem 1rem;
-            display:flex; align-items:center; gap:0.75rem;
-            font-size:0.82rem; font-weight:600;
+            border-radius:10px; padding:0.85rem 1.1rem; border-left:5px solid var(--crit);
+            display:flex; align-items:center; gap:0.85rem;
+            font-size:0.86rem; font-weight:600; background:var(--crit-soft); color:var(--color-text-dark);
         }
-        .db-alerta-banner a { font-weight:800; text-decoration:underline; }
-        .alerta-urgente { background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; }
-        .alerta-urgente a { color:#7f1d1d; }
-        .alerta-pendente { background:#fffbeb; border:1px solid #fcd34d; color:#92400e; }
-        .alerta-pendente a { color:#78350f; }
-        .alerta-icon { font-size:1.15rem; flex-shrink:0; }
-
-        /* ── KPI: reservas pendentes ── */
-        .kpi-pendente { border-top-color:#d97706; }  .kpi-pendente .kpi-valor { color:#d97706; }
+        .db-alerta-banner a { font-weight:800; color:var(--crit); border-bottom:1.5px solid currentColor; text-decoration:none; }
+        .db-alerta-banner.alerta-pendente { border-left-color:var(--warn); background:var(--warn-soft); }
+        .db-alerta-banner.alerta-pendente a { color:var(--warn); }
+        .db-alerta-badge {
+            flex-shrink:0; width:26px; height:26px; border-radius:7px;
+            display:flex; align-items:center; justify-content:center;
+            background:var(--crit); color:#fff; font-weight:800; font-size:0.78rem;
+        }
+        .db-alerta-banner.alerta-pendente .db-alerta-badge { background:var(--warn); }
     </style>
 </head>
 <body>
@@ -296,19 +361,22 @@ $CORES_SIT = [
     <?php endif; ?>
 
     <div class="db-header">
-        <h1>Dashboard</h1>
-        <p>Visão geral do inventário — atualizado agora</p>
+        <div class="db-header-title">
+            <h1>Dashboard</h1>
+            <span class="db-header-time"><?= $dataHoraTopo ?> · hoje em Recife</span>
+        </div>
+        <span class="db-live-pill"><span class="db-live-dot"></span>Atualizado agora</span>
     </div>
 
     <!-- ── Alertas urgentes ── -->
     <?php if ($venc7count > 0 || !empty($reservasPendentes)): ?>
     <div class="db-alertas">
         <?php if ($venc7count > 0): ?>
-        <div class="db-alerta-banner alerta-urgente">
-            <span class="alerta-icon">🔴</span>
+        <div class="db-alerta-banner">
+            <div class="db-alerta-badge">!</div>
             <span>
                 <strong><?= $venc7count ?> contrato<?= $venc7count > 1 ? 's' : '' ?></strong>
-                <?= $venc7count > 1 ? 'vencem' : 'vence' ?> nos próximos <strong>7 dias</strong>!
+                <?= $venc7count > 1 ? 'vencem' : 'vence' ?> nos próximos <strong>7 dias</strong>. Renove ou encerre antes que o ponto fique parado.
                 <a href="#vencimentos">Ver detalhes ↓</a>
             </span>
         </div>
@@ -316,7 +384,7 @@ $CORES_SIT = [
         <?php if (!empty($reservasPendentes)): ?>
         <?php $nPend = count($reservasPendentes); ?>
         <div class="db-alerta-banner alerta-pendente">
-            <span class="alerta-icon">⏳</span>
+            <div class="db-alerta-badge">⏳</div>
             <span>
                 <strong><?= $nPend ?> pré-seleção<?= $nPend > 1 ? 'ões' : '' ?></strong>
                 aguardando confirmação do cliente.
@@ -328,68 +396,68 @@ $CORES_SIT = [
     <?php endif; ?>
 
     <!-- ── KPIs ── -->
+    <?php
+        $pctDisp = $totalPontos > 0 ? round($disponivel/$totalPontos*100) : 0;
+        $pctOcup = $totalPontos > 0 ? round($ocupado/$totalPontos*100)   : 0;
+        $pctRes  = $totalPontos > 0 ? round($reservado/$totalPontos*100) : 0;
+    ?>
     <div class="db-kpis">
         <div class="kpi kpi-total">
-            <div class="kpi-label">Total de pontos</div>
-            <div class="kpi-valor"><?= $totalPontos ?></div>
+            <div class="kpi-top"><span class="kpi-label">Total de pontos</span><span class="kpi-icon">📍</span></div>
+            <div class="kpi-valor num"><?= $totalPontos ?></div>
             <div class="kpi-sub">ativos no sistema</div>
         </div>
         <div class="kpi kpi-disponivel">
-            <div class="kpi-label">Disponíveis</div>
-            <div class="kpi-valor"><?= $disponivel ?></div>
-            <div class="kpi-sub"><?= $totalPontos > 0 ? round($disponivel/$totalPontos*100) : 0 ?>% do total</div>
+            <div class="kpi-top"><span class="kpi-label">Disponíveis</span><span class="kpi-icon">✓</span></div>
+            <div class="kpi-valor num"><?= $disponivel ?></div>
+            <div class="kpi-sub"><?= $pctDisp ?>% do total</div>
+            <div class="kpi-bar"><span style="width:<?= $pctDisp ?>%;background:var(--ok)"></span></div>
         </div>
         <div class="kpi kpi-ocupado">
-            <div class="kpi-label">Ocupados</div>
-            <div class="kpi-valor"><?= $ocupado ?></div>
-            <div class="kpi-sub"><?= $totalPontos > 0 ? round($ocupado/$totalPontos*100) : 0 ?>% do total</div>
+            <div class="kpi-top"><span class="kpi-label">Ocupados</span><span class="kpi-icon">●</span></div>
+            <div class="kpi-valor num"><?= $ocupado ?></div>
+            <div class="kpi-sub"><?= $pctOcup ?>% do total</div>
+            <div class="kpi-bar"><span style="width:<?= $pctOcup ?>%;background:var(--crit)"></span></div>
         </div>
         <div class="kpi kpi-reservado">
-            <div class="kpi-label">Reservados</div>
-            <div class="kpi-valor"><?= $reservado ?></div>
-            <div class="kpi-sub"><?= $totalPontos > 0 ? round($reservado/$totalPontos*100) : 0 ?>% do total</div>
-        </div>
-        <div class="kpi kpi-vencido" style="<?= $venc7count > 0 ? 'border-top-color:#dc3545' : '' ?>">
-            <div class="kpi-label">Vencendo em 30d</div>
-            <div class="kpi-valor" style="<?= $venc7count > 0 ? 'color:#dc3545' : '' ?>"><?= count($vencimentos) ?></div>
-            <div class="kpi-sub">
-                <?php if ($venc7count > 0): ?>
-                    <span style="color:#dc3545;font-weight:700"><?= $venc7count ?> urgente<?= $venc7count > 1 ? 's' : '' ?> (≤7d)</span>
-                <?php else: ?>
-                    contratos a vencer
-                <?php endif; ?>
-            </div>
-        </div>
-        <div class="kpi kpi-pendente">
-            <div class="kpi-label">Aguard. confirmação</div>
-            <div class="kpi-valor"><?= count($reservasPendentes) ?></div>
-            <div class="kpi-sub"><?= count($reservasPendentes) > 0 ? 'pré-seleções enviadas' : 'nenhuma pendente' ?></div>
+            <div class="kpi-top"><span class="kpi-label">Reservados</span><span class="kpi-icon">◐</span></div>
+            <div class="kpi-valor num"><?= $reservado ?></div>
+            <div class="kpi-sub"><?= $pctRes ?>% do total</div>
         </div>
     </div>
 
-    <!-- ── Atalhos rápidos ── -->
-    <div class="db-atalhos">
-        <a href="/gestor/pontos" class="atalho">
-            <div class="atalho-icon">📍</div>
-            <div class="atalho-label">Pontos</div>
-            <div class="atalho-sub">Ver todos</div>
-        </a>
-        <a href="/gestor/pre-selecao" class="atalho">
-            <div class="atalho-icon">🛒</div>
-            <div class="atalho-label">Pré-Seleção</div>
-            <div class="atalho-sub">Nova proposta</div>
-        </a>
-        <a href="/gestor/reservas" class="atalho">
-            <div class="atalho-icon">📋</div>
-            <div class="atalho-label">Reservas</div>
-            <div class="atalho-sub"><?= count($reservasRecentes) > 0 ? 'Ver histórico' : 'Nenhuma ainda' ?></div>
-        </a>
-        <a href="/gestor/mapa" class="atalho">
-            <div class="atalho-icon">🗺️</div>
-            <div class="atalho-label">Mapa</div>
-            <div class="atalho-sub">Ver no mapa</div>
-        </a>
+    <!-- ── Pontos com contrato vencendo ── -->
+    <?php if (!empty($vencimentos)): ?>
+    <div id="vencimentos" style="display:flex;flex-direction:column;gap:0.9rem;">
+        <div class="db-section-head">
+            <h2>Pontos com contrato vencendo <span style="color:var(--color-text-muted);font-weight:600;font-size:0.82rem">(<?= $venc30count ?> nos próximos 30 dias)</span></h2>
+            <a href="/gestor/pontos?situacao=Ocupado" class="db-card-link">Ver todos →</a>
+        </div>
+        <div class="venc-scroll">
+            <?php foreach ($vencimentos as $v):
+                $dias = (int)$v['dias_restantes'];
+                if ($dias < 0) { $cls = 'dias-urgente'; $label = 'Expirado'; }
+                elseif ($dias <= 7) { $cls = 'dias-urgente'; $label = $dias === 0 ? 'Vence hoje' : "Vence em {$dias}d"; }
+                elseif ($dias <= 15) { $cls = 'dias-atencao'; $label = "Vence em {$dias}d"; }
+                else { $cls = 'dias-ok'; $label = 'Em dia'; }
+            ?>
+            <a href="/gestor/pontos/detalhes?id=<?= $v['id'] ?>" class="venc-card">
+                <div class="venc-card-top">
+                    <span class="venc-tag"><?= htmlspecialchars($v['tipo'] ?: 'Ponto') ?></span>
+                </div>
+                <div class="venc-card-title"><?= htmlspecialchars($v['cliente'] ?: ('Ponto ' . $v['numero'])) ?></div>
+                <div class="venc-card-sub"><?= htmlspecialchars($v['logradouro']) ?> · <?= htmlspecialchars($v['cidade'] ?? '—') ?></div>
+                <div class="venc-card-qty">1 ponto</div>
+                <div class="venc-card-chips">
+                    <?php if ($v['tem_checking']): ?><span class="chip-mini chip-checking">Checking</span><?php endif; ?>
+                    <span class="chip-mini <?= $cls ?>"><?= $label ?></span>
+                </div>
+                <span class="venc-card-cta">Renovar contrato →</span>
+            </a>
+            <?php endforeach; ?>
+        </div>
     </div>
+    <?php endif; ?>
 
     <!-- ── Regiões + Reservas ── -->
     <div class="db-grid">
@@ -397,7 +465,7 @@ $CORES_SIT = [
         <!-- Ocupação por região -->
         <div class="db-card">
             <div class="db-card-header">
-                <span class="db-card-title">📊 Ocupação por Região</span>
+                <span class="db-card-title">Ocupação por Região</span>
                 <a href="/gestor/relatorios" class="db-card-link">Relatórios →</a>
             </div>
             <div class="db-card-body">
@@ -429,21 +497,28 @@ $CORES_SIT = [
         <div class="db-card">
             <div class="db-card-header">
                 <span class="db-card-title">
-                    📋 Pré-Seleções
+                    Pré-Seleções
                     <?php if (!empty($reservasPendentes)): ?>
-                    <span style="margin-left:0.4rem;background:#fef3c7;color:#92400e;border-radius:10px;padding:1px 7px;font-size:0.62rem;font-weight:800">
-                        <?= count($reservasPendentes) ?> pendente<?= count($reservasPendentes) > 1 ? 's' : '' ?>
-                    </span>
+                    <span class="chip"><?= count($reservasPendentes) ?> pendente<?= count($reservasPendentes) > 1 ? 's' : '' ?></span>
                     <?php endif; ?>
                 </span>
                 <a href="/gestor/reservas" class="db-card-link">Ver todas →</a>
             </div>
             <div class="db-card-body">
+                <?php
+                    function db_iniciais($nome) {
+                        $partes = preg_split('/\s+/', trim($nome));
+                        $ini = strtoupper(mb_substr($partes[0] ?? '', 0, 1));
+                        if (count($partes) > 1) $ini .= strtoupper(mb_substr(end($partes), 0, 1));
+                        return $ini ?: '—';
+                    }
+                ?>
                 <?php if (!empty($reservasPendentes)): ?>
                 <!-- pendentes primeiro, destacadas -->
-                <div style="font-size:0.63rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;padding-bottom:0.3rem;border-bottom:1px dashed #fcd34d;">⏳ Aguardando confirmação</div>
+                <div class="db-section-label">⏳ Aguardando confirmação</div>
                 <?php foreach ($reservasPendentes as $res): ?>
-                <div class="res-item" style="background:#fffbeb;margin:0 -1rem;padding:0.55rem 1rem;border-bottom:1px solid #fef3c7;">
+                <div class="res-item" style="background:var(--warn-soft);margin:0 -1.15rem;padding:0.65rem 1.15rem;">
+                    <div class="res-avatar"><?= db_iniciais($res['cliente']) ?></div>
                     <div class="res-info">
                         <div class="res-cli"><?= htmlspecialchars($res['cliente']) ?></div>
                         <div class="res-sub">
@@ -452,17 +527,17 @@ $CORES_SIT = [
                                 $diasEsperando = (int)floor((time() - strtotime($res['criado_em'])) / 86400);
                             ?>
                             <?php if ($diasEsperando >= 3): ?>
-                            · <span style="color:#dc3545;font-weight:700"><?= $diasEsperando ?>d aguardando</span>
+                            · <span style="color:var(--crit);font-weight:700"><?= $diasEsperando ?>d aguardando</span>
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div class="res-pts"><?= $res['total_pontos'] ?> pt<?= $res['total_pontos'] != 1 ? 's' : '' ?></div>
+                    <div class="res-pts num"><?= $res['total_pontos'] ?> pt<?= $res['total_pontos'] != 1 ? 's' : '' ?></div>
                     <a href="/gestor/reservas/ver?id=<?= $res['id'] ?>"
                        style="font-size:0.75rem;font-weight:700;color:var(--color-accent-primary);text-decoration:none">Ver →</a>
                 </div>
                 <?php endforeach; ?>
                 <?php if (!empty($reservasRecentes)): ?>
-                <div style="font-size:0.63rem;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin:0.7rem 0 0.4rem;padding-bottom:0.3rem;border-bottom:1px solid var(--color-border);">Histórico recente</div>
+                <div class="db-section-label" style="margin-top:0.9rem">Histórico recente</div>
                 <?php endif; ?>
                 <?php endif; ?>
 
@@ -474,6 +549,7 @@ $CORES_SIT = [
                     $statusLabel = ['rascunho'=>'Rascunho','aprovada'=>'Aprovada','recusada'=>'Recusada'][$status] ?? $status;
                 ?>
                 <div class="res-item">
+                    <div class="res-avatar"><?= db_iniciais($res['cliente']) ?></div>
                     <div class="res-info">
                         <div class="res-cli"><?= htmlspecialchars($res['cliente']) ?></div>
                         <div class="res-sub">
@@ -482,7 +558,7 @@ $CORES_SIT = [
                             <span class="status-badge status-<?= $status ?>"><?= $statusLabel ?></span>
                         </div>
                     </div>
-                    <div class="res-pts"><?= $res['total_pontos'] ?> pt<?= $res['total_pontos'] != 1 ? 's' : '' ?></div>
+                    <div class="res-pts num"><?= $res['total_pontos'] ?> pt<?= $res['total_pontos'] != 1 ? 's' : '' ?></div>
                     <a href="/gestor/reservas/ver?id=<?= $res['id'] ?>"
                        style="font-size:0.75rem;font-weight:700;color:var(--color-accent-primary);text-decoration:none">Ver →</a>
                 </div>
@@ -491,56 +567,6 @@ $CORES_SIT = [
         </div>
 
     </div>
-
-    <!-- ── Vencimentos próximos ── -->
-    <?php if (!empty($vencimentos)): ?>
-    <div class="db-card" id="vencimentos">
-        <div class="db-card-header">
-            <span class="db-card-title">
-                <?= $venc7count > 0 ? '🔴' : '⚠️' ?>
-                Contratos vencendo nos próximos 30 dias
-                <?php if ($venc7count > 0): ?>
-                    <span style="margin-left:0.5rem;background:#fee2e2;color:#991b1b;border-radius:10px;padding:1px 8px;font-size:0.68rem;font-weight:800">
-                        <?= $venc7count ?> URGENTE<?= $venc7count > 1 ? 'S' : '' ?>
-                    </span>
-                <?php endif; ?>
-            </span>
-            <a href="/gestor/pontos?situacao=Ocupado" class="db-card-link">Ver pontos →</a>
-        </div>
-        <table class="venc-table">
-            <thead>
-                <tr>
-                    <th style="width:50px">Nº</th>
-                    <th>Logradouro</th>
-                    <th style="width:140px">Cidade</th>
-                    <th style="width:150px">Cliente</th>
-                    <th style="width:110px">Vencimento</th>
-                    <th style="width:90px;text-align:center">Restam</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php foreach ($vencimentos as $v):
-                $dias = (int)$v['dias_restantes'];
-                $cls  = $dias <= 7 ? 'dias-urgente' : ($dias <= 15 ? 'dias-atencao' : 'dias-ok');
-            ?>
-            <tr <?= $dias <= 7 ? 'style="background:#fff8f8"' : '' ?>>
-                <td><a href="/gestor/pontos/detalhes?id=<?= $v['id'] ?>"
-                       class="venc-num" style="text-decoration:none"><?= htmlspecialchars($v['numero']) ?></a></td>
-                <td><?= htmlspecialchars($v['logradouro']) ?></td>
-                <td><?= htmlspecialchars($v['cidade'] ?? '—') ?></td>
-                <td><?= htmlspecialchars($v['cliente'] ?? '—') ?></td>
-                <td><?= date('d/m/Y', strtotime($v['fim_contrato'])) ?></td>
-                <td style="text-align:center">
-                    <span class="dias-badge <?= $cls ?>">
-                        <?= $dias === 0 ? 'Hoje' : $dias . 'd' ?>
-                    </span>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-    <?php endif; ?>
 
 </div>
 

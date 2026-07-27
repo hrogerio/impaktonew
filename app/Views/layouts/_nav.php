@@ -36,8 +36,15 @@ $paginaAtual = $paginaAtual ?? '';
 .nav-saudacao {
     font-size: 0.83rem; font-weight: 600; color: var(--color-text-muted);
     white-space: nowrap;
+    display: flex; align-items: center; gap: 0.55rem;
 }
 .nav-saudacao strong { color: var(--color-text-dark); font-weight: 700; }
+.nav-avatar {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--color-accent-primary), #ff8a70);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.78rem;
+}
 </style>
 
 <div class="header">
@@ -56,7 +63,14 @@ $paginaAtual = $paginaAtual ?? '';
         </nav>
 
         <div class="user-info">
-            <span class="nav-saudacao">Olá, <strong><?= htmlspecialchars($_SESSION['usuario'] ?? '') ?></strong></span>
+            <?php
+            $nomeUsuario = $_SESSION['usuario'] ?? '';
+            $iniciaisUsuario = strtoupper(mb_substr(trim($nomeUsuario), 0, 1)) ?: '?';
+            ?>
+            <span class="nav-saudacao">
+                <span class="nav-avatar"><?= htmlspecialchars($iniciaisUsuario) ?></span>
+                Olá, <strong><?= htmlspecialchars($nomeUsuario) ?></strong>
+            </span>
 
             <!-- ⚙ Dropdown Auditoria / Backup -->
             <?php

@@ -263,6 +263,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/pontos_exclusivos_pdf.php';
         break;
 
+    // ── API: LIBERAR/BLOQUEAR PONTO EXCLUSIVO P/ COMERCIALIZAÇÃO (POST) ──
+    case 'gestor/pontos/toggle-liberado':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/toggle_liberado_exclusivo.php';
+        break;
+
     // ── RELATÓRIOS ──────────────────────────────────────────
     case 'gestor/relatorios':
         auth_required();
