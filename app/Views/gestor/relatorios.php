@@ -359,7 +359,7 @@ function tabelaCampanhas(array $lista) {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#f9f0ff;">🔴</div>
                 <div class="kpi-body">
-                    <div class="kpi-value" style="color:#8e44ad"><?= count($contratos['vencidos']) ?></div>
+                    <div class="kpi-value" style="color:#8e44ad"><?= count($contratos['vencidos_agrupado']) ?></div>
                     <div class="kpi-label">Já Vencidos</div>
                 </div>
             </div>
