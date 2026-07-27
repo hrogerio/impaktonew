@@ -180,7 +180,9 @@ function diasR($fim) {
         }
         .cp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
         .cp-card.encerrada { opacity: 0.65; }
-        .cp-card.vencida   { border-color: #9ca3af; box-shadow: 0 0 0 2px #e5e7eb; }
+        .cp-card.vencida   { background: #fef9c3; border-color: #9ca3af; box-shadow: 0 0 0 2px #e5e7eb; }
+        .cp-card.vencida .cp-card-footer { background: #fef3c7; }
+        .cp-card.vencida .cp-acordeon-toggle:hover { background: #fef3c7; }
 
         /* Faixa colorida topo */
         .cp-card-faixa {
@@ -472,14 +474,14 @@ function diasR($fim) {
          data-cliente="<?= htmlspecialchars(strtolower($g['cliente'])) ?>"
          data-campanha="<?= $dataCard ?>">
 
-        <div class="cp-card-faixa" style="background:<?= $cor ?>"></div>
+        <div class="cp-card-faixa" style="background:<?= !$g['ativo'] ? '#9ca3af' : $cor ?>"></div>
 
         <div class="cp-card-head">
             <div class="cp-card-top">
                 <?php if (!$g['ativo']): ?>
                 <span class="sit-badge" style="background:#6b7280">Encerrada</span>
                 <?php elseif ($isVencida): ?>
-                <span class="sit-badge" style="background:#dc2626"><?= htmlspecialchars($g['situacao']) ?></span>
+                <span class="sit-badge" style="background:#6c757d"><?= htmlspecialchars($g['situacao']) ?></span>
                 <?php else: ?>
                 <span class="sit-badge" style="background:<?= $cor ?>"><?= htmlspecialchars($g['situacao']) ?></span>
                 <?php endif; ?>
