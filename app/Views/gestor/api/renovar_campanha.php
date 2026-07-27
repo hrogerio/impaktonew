@@ -58,6 +58,7 @@ $sp->execute([$pontoId]);
 if (!$sp->fetch()) respRenovar(['erro' => 'ponto_nao_encontrado']);
 
 $situacao = $campAntiga['situacao'] ?? 'Ocupado';
+if ($situacao === 'Vencido') $situacao = 'Ocupado';
 $cliente  = $campAntiga['cliente']  ?? null;
 $agencia  = $campAntiga['agencia']  ?? null;
 $campanha = $campAntiga['campanha'] ?? null;
