@@ -467,6 +467,7 @@ function diasR($fim) {
         ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
     ?>
     <div class="cp-card <?= !$g['ativo'] ? 'encerrada' : ($isVencida ? 'vencida' : '') ?>"
+         data-key="<?= htmlspecialchars(implode('_', $campIds)) ?>"
          data-busca="<?= htmlspecialchars($buscaStr) ?>"
          data-situacao="<?= htmlspecialchars($g['situacao']) ?>"
          data-status="<?= $g['ativo'] ?>"
@@ -698,7 +699,11 @@ function diasR($fim) {
 // situacao === ''          -> só ativas (padrão ao carregar)
 // situacao === 'Encerradas' -> só encerradas (status=0)
 // situacao === 'Vencidas'   -> ativas com contrato vencido (data-vencida=1)
+var FILTROS_KEY = 'impakto_campanhas_filtros_v1';
 var filtros = { busca:'', cliente:'', situacao:'' };
+function salvarFiltros() {
+    try { sessionStorage.setItem(FILTROS_KEY, JSON.stringify(filtros)); } catch(e) {}
+}
 
 function filtrar() {
     var temFiltro = filtros.busca || filtros.cliente || filtros.situacao;
@@ -732,22 +737,37 @@ var debTimer;
     if (buscaUrl) {
         document.getElementById('cpBusca').value = buscaUrl;
         filtros.busca = buscaUrl.toLowerCase().trim();
+        salvarFiltros();
         filtrar();
+        return;
     }
+    // Sem parâmetro na URL: restaura o último filtro usado (ex: ao voltar da tela anterior)
+    var salvo;
+    try { salvo = JSON.parse(sessionStorage.getItem(FILTROS_KEY) || 'null'); } catch(e) { salvo = null; }
+    if (!salvo) return;
+    filtros = Object.assign({ busca:'', cliente:'', situacao:'' }, salvo);
+    document.getElementById('cpBusca').value = filtros.busca;
+    document.getElementById('cpFiltroCliente').value = filtros.cliente;
+    document.getElementById('cpFiltroCliente').className = 'cp-sel' + (filtros.cliente ? ' ativo' : '');
+    document.getElementById('cpFiltroSit').value = filtros.situacao;
+    document.getElementById('cpFiltroSit').className = 'cp-sel' + (filtros.situacao ? ' ativo' : '');
+    filtrar();
 })();
 document.getElementById('cpBusca').addEventListener('input', function() {
     clearTimeout(debTimer);
     var val = this.value.toLowerCase().trim();
-    debTimer = setTimeout(function() { filtros.busca = val; filtrar(); }, 150);
+    debTimer = setTimeout(function() { filtros.busca = val; salvarFiltros(); filtrar(); }, 150);
 });
 document.getElementById('cpFiltroCliente').addEventListener('change', function() {
     filtros.cliente = this.value;
     this.className = 'cp-sel' + (this.value ? ' ativo' : '');
+    salvarFiltros();
     filtrar();
 });
 document.getElementById('cpFiltroSit').addEventListener('change', function() {
     filtros.situacao = this.value;
     this.className = 'cp-sel' + (this.value ? ' ativo' : '');
+    salvarFiltros();
     filtrar();
 });
 function limparFiltros() {
@@ -757,17 +777,47 @@ function limparFiltros() {
         document.getElementById(id).value = '';
         document.getElementById(id).className = 'cp-sel';
     });
+    salvarFiltros();
     filtrar();
 }
 
 // ── Acordeão de pontos ─────────────────────────────────────────
+var ACORDEOES_KEY = 'impakto_campanhas_acordeoes_v1';
+function salvarAcordeoes() {
+    var abertos = [];
+    document.querySelectorAll('#cpGrid .cp-card').forEach(function(card) {
+        var painel = card.querySelector('.cp-card-paineis');
+        if (painel && !painel.classList.contains('fechado')) abertos.push(card.dataset.key);
+    });
+    try { sessionStorage.setItem(ACORDEOES_KEY, JSON.stringify(abertos)); } catch(e) {}
+}
 function toggleAcordeon(btn) {
     var painel = btn.nextElementSibling;
     var seta   = btn.querySelector('.cp-acordeon-seta');
     var aberto = !painel.classList.contains('fechado');
     painel.classList.toggle('fechado', aberto);
     seta.classList.toggle('aberta', !aberto);
+    salvarAcordeoes();
 }
+// ── Restaurar acordeões abertos e a rolagem ao voltar para esta página ──
+(function restaurarAcordeoes() {
+    var abertos;
+    try { abertos = JSON.parse(sessionStorage.getItem(ACORDEOES_KEY) || '[]'); } catch(e) { abertos = []; }
+    if (!abertos.length) return;
+    var primeiro = null;
+    abertos.forEach(function(key) {
+        var card = document.querySelector('#cpGrid .cp-card[data-key="' + key + '"]');
+        if (!card) return;
+        var painel = card.querySelector('.cp-card-paineis');
+        var seta   = card.querySelector('.cp-acordeon-seta');
+        if (painel) painel.classList.remove('fechado');
+        if (seta) seta.classList.add('aberta');
+        if (!primeiro) primeiro = card;
+    });
+    if (primeiro) {
+        setTimeout(function() { primeiro.scrollIntoView({ block: 'center' }); }, 0);
+    }
+})();
 
 // ── Modal de edição ───────────────────────────────────────────
 var _modalCard = null; // card DOM atualmente no modal

@@ -145,7 +145,8 @@ $recentes = $pdo->query(
         .col-sit        { max-width:0; }
         .sit-badges     { display:flex; flex-wrap:wrap; gap:3px; align-items:center; }
         .badge-excl-wrap { margin-top:3px; }
-        .badge-excl     { display:inline-block; padding:2px 7px; border-radius:20px; font-size:0.62rem; font-weight:700; white-space:nowrap; background:#1e293b; color:#f8fafc; }
+        .badge-excl     { display:inline-block; padding:2px 7px; border-radius:20px; font-size:0.62rem; font-weight:700; white-space:nowrap; background:#1e293b; color:#f8fafc; border:none; font-family:'Montserrat', sans-serif; cursor:pointer; transition:filter 0.15s; }
+        .badge-excl:hover { filter:brightness(1.2); }
         .badge-excl.liberado { background:#78350f; color:#fef3c7; }
         /* ── Dropdown de ações de exclusivos ── */
         .dropdown-excl { position:relative; }
@@ -387,7 +388,11 @@ var CART_KEY = 'impakto_cart';
 var selecao  = new Set(JSON.parse(localStorage.getItem(CART_KEY) || '[]'));
 var sortCol  = 'numero', sortDir = 'asc';
 var listaVisivelAtual = []; // pontos atualmente renderizados na tabela (vazio no estado padrão sem filtro)
+var FILTROS_KEY = 'impakto_pontos_filtros_v1';
 var filtros  = { busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', vencimento:'' };
+function salvarFiltros() {
+    try { sessionStorage.setItem(FILTROS_KEY, JSON.stringify(filtros)); } catch(e) {}
+}
 var pontosMap = {};
 PONTOS.forEach(function(p) { pontosMap[String(p.id)] = p; });
 
@@ -435,9 +440,40 @@ function badgeExclusivo(p) {
     if (!p.exclusivo || parseInt(p.exclusivo) !== 1) return '';
     var titulo = p.cliente_exclusivo ? 'Exclusivo de ' + p.cliente_exclusivo : 'Exclusivo';
     if (parseInt(p.liberado_comercializacao) === 1) {
-        return '<div class="badge-excl-wrap"><span class="badge-excl liberado" title="'+esc(titulo)+', mas liberado para comercialização">🔓 Liberado p/ comerc.</span></div>';
+        return '<div class="badge-excl-wrap"><button type="button" class="badge-excl liberado" onclick="event.stopPropagation();toggleLiberadoExclusivo('+p.id+')" title="'+esc(titulo)+', liberado para comercialização — clique para bloquear de novo">🔓 Liberado p/ comerc.</button></div>';
     }
-    return '<div class="badge-excl-wrap"><span class="badge-excl" title="'+esc(titulo)+'">🔒 Exclusivo</span></div>';
+    return '<div class="badge-excl-wrap"><button type="button" class="badge-excl" onclick="event.stopPropagation();toggleLiberadoExclusivo('+p.id+')" title="'+esc(titulo)+' — clique para liberar para comercialização">🔒 Exclusivo</button></div>';
+}
+
+// ── Liberar/bloquear ponto exclusivo p/ comercialização (inline) ──
+function toggleLiberadoExclusivo(id) {
+    fetch('/gestor/pontos/toggle-liberado', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: id})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+        if (!data.ok) {
+            mostrarAviso('⚠️ Não foi possível alterar a liberação deste ponto.', 'laranja');
+            return;
+        }
+        var ponto = PONTOS.find(function(p){ return String(p.id) === String(id); });
+        if (ponto) {
+            ponto.liberado_comercializacao = data.liberado_comercializacao;
+            var liberado = parseInt(data.liberado_comercializacao) === 1;
+            mostrarAviso(
+                liberado
+                    ? '🔓 Ponto ' + (ponto.numero||id) + ' liberado — já pode ser incluído numa pré-seleção junto com pontos comuns.'
+                    : '🔒 Ponto ' + (ponto.numero||id) + ' bloqueado de novo para comercialização.',
+                liberado ? 'verde' : 'laranja'
+            );
+        }
+        renderTabela();
+    })
+    .catch(function() {
+        mostrarAviso('⚠️ Erro de comunicação ao alterar a liberação.', 'laranja');
+    });
 }
 
 // ── Relatório interno de painéis exclusivos (não é o fluxo de comercialização) ──
@@ -748,12 +784,13 @@ document.getElementById('searchInput').addEventListener('input', function() {
     clearTimeout(debTimer);
     var v = this.value;
     document.getElementById('searchClear').className = 'search-clear'+(v?' visible':'');
-    debTimer = setTimeout(function(){ filtros.busca = v; renderTabela(); }, 120);
+    debTimer = setTimeout(function(){ filtros.busca = v; salvarFiltros(); renderTabela(); }, 120);
 });
 document.getElementById('searchClear').addEventListener('click', function() {
     document.getElementById('searchInput').value = '';
     this.className = 'search-clear';
     filtros.busca = '';
+    salvarFiltros();
     renderTabela();
     document.getElementById('searchInput').focus();
 });
@@ -763,6 +800,7 @@ Object.keys(mapaFiltros).forEach(function(id) {
     document.getElementById(id).addEventListener('change', function() {
         filtros[mapaFiltros[id]] = this.value;
         this.className = 'filtro-select'+(this.value?' ativo':'');
+        salvarFiltros();
         renderTabela();
     });
 });
@@ -774,8 +812,25 @@ document.getElementById('btnLimpar').addEventListener('click', function() {
         document.getElementById(id).value = '';
         document.getElementById(id).className = 'filtro-select';
     });
+    salvarFiltros();
     renderTabela();
 });
+
+// ── Restaurar filtros ao voltar para esta página (sessionStorage) ──
+(function restaurarFiltros() {
+    var salvo;
+    try { salvo = JSON.parse(sessionStorage.getItem(FILTROS_KEY) || 'null'); } catch(e) { salvo = null; }
+    if (!salvo) return;
+    filtros = Object.assign({ busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', vencimento:'' }, salvo);
+    document.getElementById('searchInput').value = filtros.busca;
+    document.getElementById('searchClear').className = 'search-clear'+(filtros.busca?' visible':'');
+    Object.keys(mapaFiltros).forEach(function(id) {
+        var val = filtros[mapaFiltros[id]];
+        document.getElementById(id).value = val;
+        document.getElementById(id).className = 'filtro-select'+(val?' ativo':'');
+    });
+    renderTabela();
+})();
 
 // ── Ordenação ────────────────────────────────────────────────
 document.querySelectorAll('.table thead th[data-col]').forEach(function(th) {

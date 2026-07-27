@@ -171,7 +171,27 @@ $centroLng = count($pontos) ? array_sum(array_column($pontos, 'longitude')) / co
 
 <script>
 var PONTOS  = <?= $pontosJson ?>;
+var FILTROS_KEY = 'impakto_mapa_filtros_v1';
 var filtros = { busca: '', situacao: '', cidade: '', tipo: '', cliente: '' };
+function salvarFiltros() {
+    try { sessionStorage.setItem(FILTROS_KEY, JSON.stringify(filtros)); } catch(e) {}
+}
+// ── Restaurar filtros ao voltar para esta página (sessionStorage) ──
+(function restaurarFiltros() {
+    var salvo;
+    try { salvo = JSON.parse(sessionStorage.getItem(FILTROS_KEY) || 'null'); } catch(e) { salvo = null; }
+    if (!salvo) return;
+    filtros = Object.assign({ busca:'', situacao:'', cidade:'', tipo:'', cliente:'' }, salvo);
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('mapaBusca').value = filtros.busca;
+        var mapaIds = { situacao:'mapaFiltroSit', cidade:'mapaFiltroCidade', tipo:'mapaFiltroTipo', cliente:'mapaFiltroCliente' };
+        Object.keys(mapaIds).forEach(function(key) {
+            var el = document.getElementById(mapaIds[key]);
+            el.value = filtros[key];
+            el.className = 'mapa-select' + (filtros[key] ? ' ativo' : '');
+        });
+    });
+})();
 var _visiveis  = [];
 var _markers   = []; // google.maps.Marker[]
 var map, infoWindow;
@@ -369,13 +389,14 @@ var debTimer;
 document.getElementById('mapaBusca').addEventListener('input', function() {
     clearTimeout(debTimer);
     var val = this.value;
-    debTimer = setTimeout(function() { filtros.busca = val; renderizar(); }, 150);
+    debTimer = setTimeout(function() { filtros.busca = val; salvarFiltros(); renderizar(); }, 150);
 });
 ['mapaFiltroSit','mapaFiltroCidade','mapaFiltroTipo','mapaFiltroCliente'].forEach(function(id) {
     document.getElementById(id).addEventListener('change', function() {
         var key = { mapaFiltroSit:'situacao', mapaFiltroCidade:'cidade', mapaFiltroTipo:'tipo', mapaFiltroCliente:'cliente' }[id];
         filtros[key] = this.value;
         this.className = 'mapa-select' + (this.value ? ' ativo' : '');
+        salvarFiltros();
         renderizar();
     });
 });
@@ -387,6 +408,7 @@ function limparFiltros() {
         document.getElementById(id).value = '';
         document.getElementById(id).className = 'mapa-select';
     });
+    salvarFiltros();
     renderizar();
 }
 

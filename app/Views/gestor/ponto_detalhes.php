@@ -168,7 +168,7 @@ if ($campVencida) { $sitCor = '#6c757d'; $sitLabel = 'Vencido'; }
             <div class="det-hero-actions">
                 <a href="/gestor/pontos/editar?id=<?= (int)$ponto['id'] ?>" class="btn-det btn-editar">✏️ Editar</a>
                 <button class="btn-det btn-cart" id="btnCart" onclick="toggleCart()">🛒 Adicionar</button>
-                <a href="/gestor/pontos" class="btn-det btn-voltar">← Pontos</a>
+                <a href="/gestor/pontos" class="btn-det btn-voltar" id="btnVoltarPonto">← Pontos</a>
             </div>
             <?php endif; ?>
         </div>
@@ -659,6 +659,32 @@ function toggleCart() {
 }
 atualizarBtnCart();
 <?php endif; ?>
+
+// ── Voltar contextual: se veio de outra tela do sistema (campanha, mapa,
+// dashboard, reserva...), volta pra lá em vez de sempre ir pra lista de Pontos ──
+(function() {
+    var btn = document.getElementById('btnVoltarPonto');
+    if (!btn) return;
+    var ref = document.referrer;
+    if (!ref || ref.indexOf(location.origin) !== 0 || window.history.length <= 1) return;
+
+    var rotulos = {
+        '/gestor'             : 'Dashboard',
+        '/gestor/pontos'      : 'Pontos',
+        '/gestor/campanhas'   : 'Campanhas',
+        '/gestor/mapa'        : 'Mapa',
+        '/gestor/reservas'    : 'Reservas',
+        '/gestor/reservas/ver': 'Reserva',
+        '/gestor/relatorios'  : 'Relatórios',
+    };
+    var base = ref.replace(location.origin, '').split('?')[0].split('#')[0];
+    btn.textContent = '← ' + (rotulos[base] || 'Voltar');
+    btn.href = ref;
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        history.back();
+    });
+})();
 
 // ── Toast ─────────────────────────────────────────────────
 function mostrarToast(msg) {
