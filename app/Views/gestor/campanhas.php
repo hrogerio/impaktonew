@@ -180,7 +180,7 @@ function diasR($fim) {
         }
         .cp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
         .cp-card.encerrada { opacity: 0.65; }
-        .cp-card.vencida   { border-color: #fca5a5; box-shadow: 0 0 0 2px #fee2e2; }
+        .cp-card.vencida   { border-color: #9ca3af; box-shadow: 0 0 0 2px #e5e7eb; }
 
         /* Faixa colorida topo */
         .cp-card-faixa {
