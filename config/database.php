@@ -2,6 +2,8 @@
 // config/database.php — compatível com PHP 7.x
 // Credenciais lidas do .env — NUNCA coloque senhas diretamente aqui
 
+date_default_timezone_set('America/Recife');
+
 function loadEnv($path) {
     if (!file_exists($path)) return;
     $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);

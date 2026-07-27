@@ -245,7 +245,7 @@ tituloSecao($pdf, 'Contratos e Tempo de Contrato', $CW, $MX, $VERM, $PRETO, $MUT
 kpis($pdf, [
     ['Duracao Media Geral', round($ct['duracao_agregada']['media_geral_dias'] / 30, 1) . ' meses'],
     ['Contratos Ativos', count($ct['campanhas_ativas'])],
-    ['Ja Vencidos', count($ct['vencidos'])],
+    ['Ja Vencidos', count($ct['vencidos_agrupado'])],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
 subtitulo($pdf, 'Historico Anual - Contratos Ativos por Mes', $CW, $MUTED);
