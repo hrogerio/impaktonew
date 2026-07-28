@@ -465,7 +465,7 @@ $CORES_SIT = [
     <div id="vencimentos" style="display:flex;flex-direction:column;gap:0.9rem;">
         <div class="db-section-head">
             <h2>Contratos com vencimento <span style="color:var(--color-text-muted);font-weight:600;font-size:0.82rem">(<?= $venc30count ?> vencidos ou vencendo em <?= $mesesCompletos[(int)date('n') - 1] ?>)</span></h2>
-            <a href="/gestor/pontos?situacao=Ocupado" class="db-card-link">Ver todos →</a>
+            <a href="/gestor/pontos?vencimento=mes_atual" class="db-card-link">Ver todos →</a>
         </div>
         <div class="venc-scroll">
             <?php foreach ($vencimentos as $v):

@@ -323,6 +323,7 @@ $recentes = $pdo->query(
             </select>
             <select class="filtro-select" id="filtroVencimento">
                 <option value="">Todos os prazos</option>
+                <option value="mes_atual">🔴 Vencidos ou vencendo este mês</option>
                 <option value="7">⚠️ Vencendo em 7 dias</option>
                 <option value="15">Vencendo em 15 dias</option>
                 <option value="30">Vencendo em 30 dias</option>
@@ -577,6 +578,10 @@ function filtrar(lista) {
                 if (fim) return false;
             } else if (filtros.vencimento === 'vencido') {
                 if (!fim || fim >= hoje) return false;
+            } else if (filtros.vencimento === 'mes_atual') {
+                if (!fim) return false;
+                var fimDoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+                if (fim > fimDoMes) return false;
             } else {
                 var dias = parseInt(filtros.vencimento, 10);
                 var limite = new Date(hoje); limite.setDate(hoje.getDate() + dias);
@@ -816,12 +821,23 @@ document.getElementById('btnLimpar').addEventListener('click', function() {
     renderTabela();
 });
 
-// ── Restaurar filtros ao voltar para esta página (sessionStorage) ──
+// ── Restaurar filtros ao voltar para esta página (sessionStorage), ou aplicar
+//    filtros vindos por link (?situacao=...&vencimento=...), que têm prioridade ──
 (function restaurarFiltros() {
     var salvo;
     try { salvo = JSON.parse(sessionStorage.getItem(FILTROS_KEY) || 'null'); } catch(e) { salvo = null; }
-    if (!salvo) return;
-    filtros = Object.assign({ busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', vencimento:'' }, salvo);
+
+    var params = new URLSearchParams(window.location.search);
+    var doUrl = {};
+    var temParamUrl = false;
+    Object.keys(mapaFiltros).forEach(function(id) {
+        var chave = mapaFiltros[id];
+        if (params.has(chave)) { doUrl[chave] = params.get(chave); temParamUrl = true; }
+    });
+    if (params.has('busca')) { doUrl.busca = params.get('busca'); temParamUrl = true; }
+
+    if (!salvo && !temParamUrl) return;
+    filtros = Object.assign({ busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', vencimento:'' }, salvo, temParamUrl ? doUrl : {});
     document.getElementById('searchInput').value = filtros.busca;
     document.getElementById('searchClear').className = 'search-clear'+(filtros.busca?' visible':'');
     Object.keys(mapaFiltros).forEach(function(id) {
@@ -829,6 +845,7 @@ document.getElementById('btnLimpar').addEventListener('click', function() {
         document.getElementById(id).value = val;
         document.getElementById(id).className = 'filtro-select'+(val?' ativo':'');
     });
+    salvarFiltros();
     renderTabela();
 })();
 
