@@ -319,8 +319,8 @@ $CORES_SIT = [
             transition:border-color 0.15s, transform 0.15s;
         }
         .venc-card:hover { border-color:var(--color-accent-primary); transform:translateY(-2px); }
-        .venc-card-expirado { background:#fef9e7; border-color:#f5e6a3; }
-        .venc-card-expirado:hover { border-color:#e0c94f; }
+        .venc-card-expirado { background:var(--crit-soft); border-color:#f0c4bd; }
+        .venc-card-expirado:hover { border-color:var(--crit); }
         .venc-card-top { display:flex; align-items:center; justify-content:space-between; }
         .venc-tag { font-size:0.66rem; font-weight:700; color:var(--color-text-muted); background:var(--color-bg-primary); padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:0.04em; }
         .venc-card-title { font-size:0.95rem; font-weight:800; }
