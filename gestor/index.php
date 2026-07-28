@@ -77,10 +77,10 @@ $stmtReg = $pdo->query("
 ");
 $regioes = $stmtReg->fetchAll(PDO::FETCH_ASSOC);
 
-// ── Vencimentos próximos 30 dias + já vencidos recentes (campanhas ativas) ──
+// ── Vencidos + vencendo no mês vigente (campanhas ativas) ──
 $stmtVenc = $pdo->query("
     SELECT p.id, p.numero, p.logradouro, p.cidade, p.tipo, p.situacao,
-           c.cliente AS cliente,
+           c.cliente AS cliente, c.campanha AS campanha, c.agencia AS agencia, c.inicio AS inicio_contrato,
            COALESCE(
                CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
                CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
@@ -94,17 +94,48 @@ $stmtVenc = $pdo->query("
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
     WHERE (p.ativo=1 OR p.ativo IS NULL)
       AND p.situacao IN ('Ocupado','Vencido')
-      AND COALESCE(
-               CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
-               CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
-          ) BETWEEN DATE_SUB(CURDATE(), INTERVAL 45 DAY) AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+      AND (
+               COALESCE(
+                   CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
+                   CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
+               ) < CURDATE()
+            OR
+               (
+                   YEAR(COALESCE(
+                       CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
+                       CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
+                   )) = YEAR(CURDATE())
+               AND
+                   MONTH(COALESCE(
+                       CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
+                       CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
+                   )) = MONTH(CURDATE())
+               )
+          )
     ORDER BY fim_contrato ASC
-    LIMIT 15
 ");
-$vencimentos  = $stmtVenc->fetchAll(PDO::FETCH_ASSOC);
+$vencimentosPontos = $stmtVenc->fetchAll(PDO::FETCH_ASSOC);
+
+// Agrupa por contrato (cliente+campanha+agência+período), somando os pontos vinculados —
+// um mesmo contrato pode cobrir vários pontos e não deve virar um card por ponto.
+$vencGrupos = [];
+foreach ($vencimentosPontos as $v) {
+    $chave = mb_strtolower(trim(implode('|', [
+        $v['cliente'] ?? '', $v['campanha'] ?? '', $v['agencia'] ?? '',
+        $v['inicio_contrato'] ?? '', $v['fim_contrato'] ?? '',
+    ])));
+    if (!isset($vencGrupos[$chave])) {
+        $vencGrupos[$chave] = $v;
+        $vencGrupos[$chave]['qtd_pontos'] = 0;
+        $vencGrupos[$chave]['tem_checking'] = false;
+    }
+    $vencGrupos[$chave]['qtd_pontos']++;
+    if ($v['tem_checking']) $vencGrupos[$chave]['tem_checking'] = true;
+}
+$vencimentos  = array_slice(array_values($vencGrupos), 0, 15);
 $venc7dias    = array_filter($vencimentos, function($v) { $d = (int)$v['dias_restantes']; return $d >= 0 && $d <= 7; });
 $venc7count   = count($venc7dias);
-$venc30count  = count(array_filter($vencimentos, function($v) { return (int)$v['dias_restantes'] >= 0; }));
+$venc30count  = count($vencimentos);
 
 // ── Reservas pendentes (pre_selecoes aguardando confirmação) ──
 try {
@@ -132,7 +163,8 @@ try {
 }
 
 // ── Pontos por região (para o gráfico de barras) ──────────────
-$mesesAbrev = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+$mesesAbrev    = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+$mesesCompletos = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 $agora = new DateTime();
 $dataHoraTopo = $agora->format('d') . ' ' . $mesesAbrev[(int)$agora->format('n') - 1] . ', ' . $agora->format('H') . 'h';
 
@@ -277,7 +309,7 @@ $CORES_SIT = [
         .db-section-head h2 { font-size:1rem; font-weight:800; color:var(--color-text-dark); margin:0; }
         .db-section-head .db-card-link { font-size:0.8rem; }
 
-        .venc-scroll { display:flex; gap:0.9rem; overflow-x:auto; padding-bottom:0.35rem; scroll-snap-type:x proximity; }
+        .venc-scroll { display:flex; gap:0.9rem; overflow-x:auto; overflow-y:visible; padding-top:0.25rem; padding-bottom:0.35rem; scroll-snap-type:x proximity; }
         .venc-card {
             scroll-snap-align:start; flex:0 0 240px;
             background:white; border:1px solid var(--color-border); border-radius:var(--db-radius);
@@ -430,7 +462,7 @@ $CORES_SIT = [
     <?php if (!empty($vencimentos)): ?>
     <div id="vencimentos" style="display:flex;flex-direction:column;gap:0.9rem;">
         <div class="db-section-head">
-            <h2>Pontos com contrato vencendo <span style="color:var(--color-text-muted);font-weight:600;font-size:0.82rem">(<?= $venc30count ?> nos próximos 30 dias)</span></h2>
+            <h2>Contratos com vencimento <span style="color:var(--color-text-muted);font-weight:600;font-size:0.82rem">(<?= $venc30count ?> vencidos ou vencendo em <?= $mesesCompletos[(int)date('n') - 1] ?>)</span></h2>
             <a href="/gestor/pontos?situacao=Ocupado" class="db-card-link">Ver todos →</a>
         </div>
         <div class="venc-scroll">
@@ -447,7 +479,7 @@ $CORES_SIT = [
                 </div>
                 <div class="venc-card-title"><?= htmlspecialchars($v['cliente'] ?: ('Ponto ' . $v['numero'])) ?></div>
                 <div class="venc-card-sub"><?= htmlspecialchars($v['logradouro']) ?> · <?= htmlspecialchars($v['cidade'] ?? '—') ?></div>
-                <div class="venc-card-qty">1 ponto</div>
+                <div class="venc-card-qty"><?= $v['qtd_pontos'] ?> <?= $v['qtd_pontos'] == 1 ? 'ponto' : 'pontos' ?></div>
                 <div class="venc-card-chips">
                     <?php if ($v['tem_checking']): ?><span class="chip-mini chip-checking">Checking</span><?php endif; ?>
                     <span class="chip-mini <?= $cls ?>"><?= $label ?></span>
