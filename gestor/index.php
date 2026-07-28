@@ -319,6 +319,8 @@ $CORES_SIT = [
             transition:border-color 0.15s, transform 0.15s;
         }
         .venc-card:hover { border-color:var(--color-accent-primary); transform:translateY(-2px); }
+        .venc-card-expirado { background:#fef9e7; border-color:#f5e6a3; }
+        .venc-card-expirado:hover { border-color:#e0c94f; }
         .venc-card-top { display:flex; align-items:center; justify-content:space-between; }
         .venc-tag { font-size:0.66rem; font-weight:700; color:var(--color-text-muted); background:var(--color-bg-primary); padding:2px 8px; border-radius:20px; text-transform:uppercase; letter-spacing:0.04em; }
         .venc-card-title { font-size:0.95rem; font-weight:800; }
@@ -473,7 +475,7 @@ $CORES_SIT = [
                 elseif ($dias <= 15) { $cls = 'dias-atencao'; $label = "Vence em {$dias}d"; }
                 else { $cls = 'dias-ok'; $label = 'Em dia'; }
             ?>
-            <a href="/gestor/pontos/detalhes?id=<?= $v['id'] ?>" class="venc-card">
+            <a href="/gestor/pontos/detalhes?id=<?= $v['id'] ?>" class="venc-card<?= $dias < 0 ? ' venc-card-expirado' : '' ?>">
                 <div class="venc-card-top">
                     <span class="venc-tag"><?= htmlspecialchars($v['tipo'] ?: 'Ponto') ?></span>
                 </div>
