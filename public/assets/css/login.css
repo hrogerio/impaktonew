@@ -87,6 +87,25 @@ input::placeholder {
     color: #a9b1bb;
 }
 
+.lembrar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.83rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    margin-top: 0.2rem;
+}
+
+.lembrar input {
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
 button {
     width: 100%;
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);

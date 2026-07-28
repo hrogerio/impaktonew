@@ -43,6 +43,16 @@ if ($basePath !== '' && strpos($uri, $basePath) === 0) {
 }
 $uri = trim($uri, '/');
 
+// "Manter conectado": tenta autenticar via cookie persistente antes de rotear
+if (!isset($_SESSION['usuario']) && !empty($_COOKIE['remember_token'])) {
+    require_once __DIR__ . '/config/remember.php';
+    try {
+        remember_tentar_login(getDatabase());
+    } catch (Exception $e) {
+        error_log('REMEMBER_LOGIN ERRO (index): ' . $e->getMessage());
+    }
+}
+
 function auth_required() {
     if (!isset($_SESSION['usuario'])) {
         header("Location: " . BASE . "/?erro=nao_logado");
@@ -119,6 +129,14 @@ switch ($uri) {
     case 'logout':
         if (isset($_SESSION['usuario'])) {
             error_log("Logout: {$_SESSION['usuario']}");
+        }
+        if (!empty($_COOKIE['remember_token'])) {
+            require_once __DIR__ . '/config/remember.php';
+            try {
+                remember_esquecer(getDatabase());
+            } catch (Exception $e) {
+                error_log('REMEMBER_LOGOUT ERRO: ' . $e->getMessage());
+            }
         }
         $_SESSION = [];
         if (ini_get("session.use_cookies")) {

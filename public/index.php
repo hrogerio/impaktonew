@@ -75,6 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ->execute([$user['id']]);
                     login_registrar($pdo, $usuario, true, 'ok', $ip, $ua);
 
+                    if (!empty($_POST['lembrar'])) {
+                        require_once __DIR__ . '/../config/remember.php';
+                        remember_emitir($pdo, (int)$user['id']);
+                    }
+
                     header("Location: " . BASE . "/gestor?logado=1");
                     exit;
                 } else {
@@ -164,6 +169,11 @@ if ($banners) {
                        required
                        autocomplete="current-password" />
             </div>
+
+            <label class="lembrar">
+                <input type="checkbox" name="lembrar" value="1" <?= !empty($_POST['lembrar']) ? 'checked' : '' ?>>
+                Manter conectado neste dispositivo
+            </label>
 
             <button type="submit">Entrar</button>
         </form>
