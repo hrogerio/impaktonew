@@ -84,7 +84,7 @@ function tabelaCampanhas(array $lista) {
                     // Nem toda campanha usa os 3 tipos (normalmente é só Contrato OU P.I., e P.P. é opcional) —
                     // então o status mostra o documento de maior prioridade já enviado, não uma checklist dos 3.
                     $tiposPresentes = array_unique(array_column($docsGrupo, 'tipo'));
-                    $labelsTipo = ['CONTRATO' => 'Contrato', 'PP' => 'P.P.', 'PI' => 'P.I.'];
+                    $labelsTipo = ['CONTRATO' => 'CT', 'PP' => 'P.P.', 'PI' => 'P.I.'];
                     $tipoPrioritario = null;
                     foreach (['CONTRATO', 'PP', 'PI'] as $t) {
                         if (in_array($t, $tiposPresentes, true)) { $tipoPrioritario = $t; break; }
