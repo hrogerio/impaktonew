@@ -82,13 +82,11 @@ function tabelaCampanhas(array $lista) {
                     ], JSON_HEX_APOS | JSON_HEX_QUOT);
 
                     // Nem toda campanha usa os 3 tipos (normalmente é só Contrato OU P.I., e P.P. é opcional) —
-                    // então o status mostra o documento de maior prioridade já enviado, não uma checklist dos 3.
+                    // então o status lista os documentos já enviados, em ordem de prioridade (CT > P.P. > P.I.),
+                    // não uma checklist exigindo os 3.
                     $tiposPresentes = array_unique(array_column($docsGrupo, 'tipo'));
                     $labelsTipo = ['CONTRATO' => 'CT', 'PP' => 'P.P.', 'PI' => 'P.I.'];
-                    $tipoPrioritario = null;
-                    foreach (['CONTRATO', 'PP', 'PI'] as $t) {
-                        if (in_array($t, $tiposPresentes, true)) { $tipoPrioritario = $t; break; }
-                    }
+                    $tiposEmOrdem = array_values(array_filter(['CONTRATO', 'PP', 'PI'], fn($t) => in_array($t, $tiposPresentes, true)));
                 ?>
                 <tr class="rel-row-clicavel" onclick='abrirDetalhesContrato(<?= $dadosContrato ?>)' title="Ver detalhes do contrato">
                     <td><strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong></td>
@@ -100,8 +98,8 @@ function tabelaCampanhas(array $lista) {
                     <td><?= fmtDuracao($c['duracao_dias']) ?></td>
                     <td style="text-align:right"><strong style="color:var(--color-accent-primary)"><?= $c['qtd_pontos'] ?></strong></td>
                     <td>
-                        <?php if ($tipoPrioritario): ?>
-                        <span class="docs-status docs-ok" title="Documentos enviados: <?= htmlspecialchars(implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposPresentes))) ?>">✅ <?= htmlspecialchars($labelsTipo[$tipoPrioritario]) ?></span>
+                        <?php if (!empty($tiposEmOrdem)): ?>
+                        <span class="docs-status docs-ok" title="Documentos enviados: <?= htmlspecialchars(implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposEmOrdem))) ?>">✅ <?= htmlspecialchars(implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposEmOrdem))) ?></span>
                         <?php else: ?>
                         <span class="docs-status docs-falta" title="Nenhum documento enviado ainda">⚠️ Sem doc</span>
                         <?php endif; ?>
