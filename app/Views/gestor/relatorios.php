@@ -593,12 +593,6 @@ function tabelaCampanhas(array $lista) {
                 <button type="button" id="relDetalheDocsBtn" class="cp-btn cp-btn-docs" onclick="abrirDocumentosRelatorio()" title="Documentos financeiros (Contrato / P.I. / P.P.)">📎 Docs (0)</button>
             </div>
         </div>
-        <div class="cp-card-footer" style="border-top:none; justify-content:flex-end;">
-            <div class="cp-acoes">
-                <a href="#" target="_blank" id="relDetalheEditar" class="cp-btn cp-btn-editar" title="Editar campanha (abre em Campanhas)">✏️ Editar</a>
-                <a href="#" target="_blank" id="relDetalheRenovar" class="cp-btn cp-btn-renovar" title="Renovar campanha (abre em Campanhas)">🔄 Renovar</a>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -755,17 +749,6 @@ function abrirDetalhesContrato(c) {
     _ultimoContrato = c;
     var documentos = c.documentos || [];
     document.getElementById('relDetalheDocsBtn').textContent = '📎 Docs (' + documentos.length + ')';
-
-    var alvoParams = new URLSearchParams();
-    alvoParams.set('cliente', c.cliente || '');
-    alvoParams.set('agencia', c.agencia || '');
-    alvoParams.set('campanha', c.campanha || '');
-    alvoParams.set('situacao', c.situacao || '');
-    alvoParams.set('inicio', (c.inicio_contrato || '').substring(0, 10));
-    alvoParams.set('fim', (c.fim_contrato || '').substring(0, 10));
-
-    document.getElementById('relDetalheEditar').href  = '/gestor/campanhas?acao=editar&'  + alvoParams.toString();
-    document.getElementById('relDetalheRenovar').href = '/gestor/campanhas?acao=renovar&' + alvoParams.toString();
 
     document.getElementById('relDetalheOverlay').classList.add('aberto');
 }
