@@ -62,11 +62,12 @@ function tabelaCampanhas(array $lista) {
     <div class="table-container">
         <table class="rel-table">
             <thead>
-                <tr><th>Cliente</th><th>Campanha</th><th>Agência</th><th>Contato</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:right">Pontos</th></tr>
+                <tr><th>Cliente</th><th>Campanha</th><th>Agência</th><th>Contato</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:right">Pontos</th><th>Docs</th></tr>
             </thead>
             <tbody>
                 <?php foreach ($lista as $c):
                     $docChave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') . '|' . ($c['inicio_contrato'] ?? '') . '|' . ($c['fim_contrato'] ?? ''));
+                    $docsGrupo = $documentosPorGrupo[$docChave] ?? [];
                     $dadosContrato = json_encode([
                         'cliente'         => $c['cliente'] ?? '-',
                         'agencia'         => $c['agencia'] ?? '',
@@ -77,8 +78,18 @@ function tabelaCampanhas(array $lista) {
                         'inicio_fmt'      => fmtData($c['inicio_contrato'] ?? null),
                         'fim_fmt'         => fmtData($c['fim_contrato'] ?? null),
                         'pontos'          => $c['pontos'] ?? [],
-                        'documentos'      => $documentosPorGrupo[$docChave] ?? [],
-                    ], JSON_HEX_APOS | JSON_HEX_QUOT); ?>
+                        'documentos'      => $docsGrupo,
+                    ], JSON_HEX_APOS | JSON_HEX_QUOT);
+
+                    // Nem toda campanha usa os 3 tipos (normalmente é só Contrato OU P.I., e P.P. é opcional) —
+                    // então o status mostra o documento de maior prioridade já enviado, não uma checklist dos 3.
+                    $tiposPresentes = array_unique(array_column($docsGrupo, 'tipo'));
+                    $labelsTipo = ['CONTRATO' => 'Contrato', 'PP' => 'P.P.', 'PI' => 'P.I.'];
+                    $tipoPrioritario = null;
+                    foreach (['CONTRATO', 'PP', 'PI'] as $t) {
+                        if (in_array($t, $tiposPresentes, true)) { $tipoPrioritario = $t; break; }
+                    }
+                ?>
                 <tr class="rel-row-clicavel" onclick='abrirDetalhesContrato(<?= $dadosContrato ?>)' title="Ver detalhes do contrato">
                     <td><strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong></td>
                     <td><?= htmlspecialchars($c['campanha'] ?? '-') ?></td>
@@ -88,6 +99,13 @@ function tabelaCampanhas(array $lista) {
                     <td><?= fmtData($c['fim_contrato']) ?></td>
                     <td><?= fmtDuracao($c['duracao_dias']) ?></td>
                     <td style="text-align:right"><strong style="color:var(--color-accent-primary)"><?= $c['qtd_pontos'] ?></strong></td>
+                    <td>
+                        <?php if ($tipoPrioritario): ?>
+                        <span class="docs-status docs-ok" title="Documentos enviados: <?= htmlspecialchars(implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposPresentes))) ?>">✅ <?= htmlspecialchars($labelsTipo[$tipoPrioritario]) ?></span>
+                        <?php else: ?>
+                        <span class="docs-status docs-falta" title="Nenhum documento enviado ainda">⚠️ Sem doc</span>
+                        <?php endif; ?>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -110,6 +128,10 @@ function tabelaCampanhas(array $lista) {
     <link rel="stylesheet" href="/public/assets/css/gestor.css">
     <link rel="stylesheet" href="/public/assets/css/relatorios.css">
     <style>
+        .docs-status { display:inline-block; padding:2px 8px; border-radius:8px; font-size:0.68rem; font-weight:700; white-space:nowrap; }
+        .docs-status.docs-ok    { background:#dcfce7; color:#166534; }
+        .docs-status.docs-falta { background:#fef3c7; color:#92400e; }
+
         .rel-row-clicavel { cursor:pointer; }
         .rel-row-clicavel:hover { background:#f9fafb; }
         .rel-row-clicavel:hover td { color:var(--color-accent-primary) !important; font-weight:700; }
@@ -125,10 +147,13 @@ function tabelaCampanhas(array $lista) {
             background:#fff; border:1px solid var(--color-border); border-radius:12px;
             overflow:hidden; display:flex; flex-direction:column;
         }
-        .cp-card.cp-modal {
+        .cp-modal {
+            background:#fff; border-radius:14px; padding:1.5rem;
             width:480px; max-width:95vw; max-height:90vh; overflow-y:auto;
-            box-shadow:0 20px 60px rgba(0,0,0,0.3); border-radius:14px;
-            position:relative;
+            box-shadow:0 20px 60px rgba(0,0,0,0.3);
+        }
+        .cp-card.cp-modal {
+            padding:0; position:relative;
         }
         .rel-modal-fechar {
             position:absolute; top:0.75rem; right:0.75rem; z-index:1;
@@ -189,6 +214,35 @@ function tabelaCampanhas(array $lista) {
             border:1px solid var(--color-border); border-radius:8px;
             font-family:'Montserrat',sans-serif; font-size:0.85rem; cursor:pointer;
         }
+
+        .cp-modal-title { font-size:1rem; font-weight:800; color:var(--color-text-dark); margin-bottom:0.25rem; }
+        .cp-modal-sub   { font-size:0.78rem; color:var(--color-text-muted); margin-bottom:1.25rem; }
+        .cp-modal-divider { height:1px; background:var(--color-border); margin:1rem 0; }
+        .cp-modal-actions { display:flex; gap:0.75rem; justify-content:flex-end; margin-top:1.25rem; }
+
+        .cp-docs-tipo-titulo { font-size:0.8rem; font-weight:800; color:var(--color-text-dark); margin-bottom:0.5rem; }
+        .cp-docs-lista { display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.6rem; }
+        .cp-docs-vazio { font-size:0.78rem; color:var(--color-text-muted); font-style:italic; }
+        .cp-docs-item {
+            display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
+            background:#f8fafc; border:1px solid var(--color-border); border-radius:6px;
+            padding:0.4rem 0.6rem; font-size:0.78rem;
+        }
+        .cp-docs-item a { color:#0f766e; font-weight:700; text-decoration:none; }
+        .cp-docs-item a:hover { text-decoration:underline; }
+        .cp-docs-item-data { color:var(--color-text-muted); font-size:0.72rem; }
+        .cp-docs-item-excluir {
+            background:none; border:none; color:#c0392b; cursor:pointer;
+            font-size:0.85rem; padding:0 0.25rem; line-height:1;
+        }
+        .cp-docs-upload {
+            display:inline-flex; align-items:center; gap:0.4rem; cursor:pointer;
+            font-size:0.78rem; font-weight:700; color:#0f766e;
+            background:#eefdf6; border:1px solid #99f6e4; border-radius:6px;
+            padding:0.45rem 0.75rem;
+        }
+        .cp-docs-upload:hover { background:#ccfbf1; }
+        .cp-docs-upload input[type="file"] { display:none; }
     </style>
 </head>
 <body>
@@ -538,8 +592,7 @@ function tabelaCampanhas(array $lista) {
             <span id="relDetalheQtd"></span>
             <div class="cp-acoes">
                 <a href="#" target="_blank" id="relDetalheChecking" class="cp-btn cp-btn-checking" title="Checking fotográfico desta campanha">📸 Checking</a>
-                <a href="#" target="_blank" id="relDetalhePi" class="cp-btn cp-btn-docs desabilitado" title="Nenhum P.I. enviado ainda">📄 P.I.</a>
-                <a href="#" target="_blank" id="relDetalhePp" class="cp-btn cp-btn-docs desabilitado" title="Nenhum P.P. enviado ainda">📄 P.P.</a>
+                <button type="button" id="relDetalheDocsBtn" class="cp-btn cp-btn-docs" onclick="abrirDocumentosRelatorio()" title="Documentos financeiros (Contrato / P.I. / P.P.)">📎 Docs (0)</button>
             </div>
         </div>
         <div class="cp-card-footer" style="border-top:none; justify-content:flex-end;">
@@ -551,7 +604,62 @@ function tabelaCampanhas(array $lista) {
     </div>
 </div>
 
+<!-- ── Modal de documentos financeiros (Contrato / P.I. / P.P.) ── -->
+<div class="cp-modal-overlay" id="relDocsOverlay">
+    <div class="cp-modal">
+        <div class="cp-modal-title">📎 Documentos Financeiros</div>
+        <div class="cp-modal-sub" id="relDocsSub"></div>
+
+        <div class="cp-docs-secao">
+            <div class="cp-docs-tipo-titulo">Contrato</div>
+            <div class="cp-docs-lista" id="relDocsListaCONTRATO"></div>
+            <label class="cp-docs-upload">
+                📤 Enviar novo contrato
+                <input type="file" accept="application/pdf" id="relDocsInputCONTRATO" onchange="enviarDocumentoRelatorio('CONTRATO', this)">
+            </label>
+        </div>
+
+        <div class="cp-modal-divider"></div>
+
+        <div class="cp-docs-secao">
+            <div class="cp-docs-tipo-titulo">Pedido de Inserção (P.I.)</div>
+            <div class="cp-docs-lista" id="relDocsListaPI"></div>
+            <label class="cp-docs-upload">
+                📤 Enviar novo P.I.
+                <input type="file" accept="application/pdf" id="relDocsInputPI" onchange="enviarDocumentoRelatorio('PI', this)">
+            </label>
+        </div>
+
+        <div class="cp-modal-divider"></div>
+
+        <div class="cp-docs-secao">
+            <div class="cp-docs-tipo-titulo">Pedido de Produção (P.P.)</div>
+            <div class="cp-docs-lista" id="relDocsListaPP"></div>
+            <label class="cp-docs-upload">
+                📤 Enviar novo P.P.
+                <input type="file" accept="application/pdf" id="relDocsInputPP" onchange="enviarDocumentoRelatorio('PP', this)">
+            </label>
+        </div>
+
+        <div class="cp-modal-actions">
+            <button class="cp-btn-cancelar" onclick="document.getElementById('relDocsOverlay').classList.remove('aberto')">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="relToast" style="
+    position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;
+    background:#1a9059;color:white;padding:0.7rem 1.25rem;
+    border-radius:8px;font-size:0.83rem;font-weight:700;
+    box-shadow:0 4px 16px rgba(0,0,0,0.2);
+    transform:translateY(80px);opacity:0;transition:all 0.3s ease;
+    pointer-events:none;max-width:340px;
+"></div>
+
 <script>
+var _ultimoContrato = null; // último contrato aberto no modal de detalhes
+
 function switchTab(name, btn) {
     document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
     document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
@@ -646,20 +754,9 @@ function abrirDetalhesContrato(c) {
 
     document.getElementById('relDetalheChecking').href = '/gestor/campanhas/checking?' + params.toString();
 
+    _ultimoContrato = c;
     var documentos = c.documentos || [];
-    ['PI', 'PP'].forEach(function(tipo) {
-        var docs = documentos.filter(function(d){ return d.tipo === tipo; });
-        var el = document.getElementById(tipo === 'PI' ? 'relDetalhePi' : 'relDetalhePp');
-        if (docs.length === 0) {
-            el.href = '#';
-            el.classList.add('desabilitado');
-            el.title = 'Nenhum ' + tipo.replace('PI','P.I.').replace('PP','P.P.') + ' enviado ainda';
-        } else {
-            el.href = '/' + docs[0].caminho;
-            el.classList.remove('desabilitado');
-            el.title = docs.length > 1 ? (docs.length + ' arquivos — abrindo o mais recente') : 'Ver arquivo';
-        }
-    });
+    document.getElementById('relDetalheDocsBtn').textContent = '📎 Docs (' + documentos.length + ')';
 
     var alvoParams = new URLSearchParams();
     alvoParams.set('cliente', c.cliente || '');
@@ -683,7 +780,113 @@ document.getElementById('relDetalheOverlay').addEventListener('click', function(
     if (e.target === this) fecharDetalhesContrato();
 });
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') fecharDetalhesContrato();
+    if (e.key === 'Escape') {
+        fecharDetalhesContrato();
+        document.getElementById('relDocsOverlay').classList.remove('aberto');
+    }
+});
+
+// ── Modal de documentos financeiros (Contrato / P.I. / P.P.) ──
+var _relDocsGrupo = null; // {cliente, agencia, campanha, inicio, fim}
+
+function abrirDocumentosRelatorio() {
+    if (!_ultimoContrato) return;
+    var c = _ultimoContrato;
+    _relDocsGrupo = {
+        cliente:  c.cliente  || '',
+        agencia:  c.agencia  || '',
+        campanha: c.campanha || '',
+        inicio:   (c.inicio_contrato || '').substring(0, 10),
+        fim:      (c.fim_contrato    || '').substring(0, 10),
+    };
+    document.getElementById('relDocsSub').textContent = c.cliente + (c.campanha && c.campanha !== '-' ? ' — ' + c.campanha : '');
+    var documentos = c.documentos || [];
+    renderizarDocsRelatorio('CONTRATO', documentos);
+    renderizarDocsRelatorio('PI', documentos);
+    renderizarDocsRelatorio('PP', documentos);
+    document.getElementById('relDocsOverlay').classList.add('aberto');
+}
+
+function renderizarDocsRelatorio(tipo, documentos) {
+    var lista = documentos.filter(function(d) { return d.tipo === tipo; });
+    var el = document.getElementById('relDocsLista' + tipo);
+    if (lista.length === 0) {
+        el.innerHTML = '<div class="cp-docs-vazio">Nenhum arquivo enviado ainda</div>';
+        return;
+    }
+    el.innerHTML = lista.map(function(d) {
+        var data = new Date(d.criado_em.replace(' ', 'T')).toLocaleDateString('pt-BR');
+        return '<div class="cp-docs-item">' +
+            '<a href="/' + d.caminho + '" target="_blank">📄 ' + (d.nome_original || 'arquivo.pdf') + '</a>' +
+            '<span class="cp-docs-item-data">' + data + '</span>' +
+            '<button class="cp-docs-item-excluir" onclick="excluirDocumentoRelatorio(' + d.id + ')" title="Excluir">✕</button>' +
+        '</div>';
+    }).join('');
+}
+
+function enviarDocumentoRelatorio(tipo, inputEl) {
+    if (!inputEl.files || !inputEl.files[0]) return;
+    var fd = new FormData();
+    fd.append('cliente',  _relDocsGrupo.cliente);
+    fd.append('agencia',  _relDocsGrupo.agencia);
+    fd.append('campanha', _relDocsGrupo.campanha);
+    fd.append('inicio',   _relDocsGrupo.inicio);
+    fd.append('fim',      _relDocsGrupo.fim);
+    fd.append('tipo',     tipo);
+    fd.append('arquivo',  inputEl.files[0]);
+
+    fetch('/gestor/campanhas/documentos/upload', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            inputEl.value = '';
+            if (!resp.ok) {
+                mostrarToastRelatorio('Erro ao enviar arquivo (' + (resp.erro || 'desconhecido') + ')', 'err');
+                return;
+            }
+            mostrarToastRelatorio('Documento enviado com sucesso!');
+            location.reload();
+        })
+        .catch(function() {
+            mostrarToastRelatorio('Erro de conexão ao enviar arquivo', 'err');
+        });
+}
+
+function excluirDocumentoRelatorio(docId) {
+    if (!confirm('Excluir este documento?')) return;
+    var fd = new FormData();
+    fd.append('action', 'excluir');
+    fd.append('doc_id', docId);
+
+    fetch('/gestor/campanhas/documentos/upload', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            if (!resp.ok) {
+                mostrarToastRelatorio('Erro ao excluir (' + (resp.erro || 'desconhecido') + ')', 'err');
+                return;
+            }
+            mostrarToastRelatorio('Documento excluído.');
+            location.reload();
+        })
+        .catch(function() {
+            mostrarToastRelatorio('Erro de conexão ao excluir', 'err');
+        });
+}
+
+function mostrarToastRelatorio(msg, tipo) {
+    var t = document.getElementById('relToast');
+    t.textContent = msg;
+    t.style.background = tipo === 'err' ? '#dc3545' : '#1a9059';
+    t.style.transform  = 'translateY(0)';
+    t.style.opacity    = '1';
+    clearTimeout(t._tmr);
+    t._tmr = setTimeout(function() {
+        t.style.transform = 'translateY(80px)';
+        t.style.opacity   = '0';
+    }, 3500);
+}
+
+document.getElementById('relDocsOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('aberto');
 });
 </script>
 
