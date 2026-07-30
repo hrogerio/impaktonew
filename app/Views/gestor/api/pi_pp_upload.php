@@ -57,7 +57,7 @@ $tipo     = strtoupper(trim($_POST['tipo'] ?? ''));
 $usuario  = $_SESSION['usuario'] ?? '';
 
 if (!$cliente) docJson(['ok' => false, 'erro' => 'cliente_invalido']);
-if (!in_array($tipo, ['PI', 'PP'], true)) docJson(['ok' => false, 'erro' => 'tipo_invalido']);
+if (!in_array($tipo, ['CONTRATO', 'PI', 'PP'], true)) docJson(['ok' => false, 'erro' => 'tipo_invalido']);
 if (!isset($_FILES['arquivo'])) docJson(['ok' => false, 'erro' => 'nenhum_arquivo']);
 
 $file = $_FILES['arquivo'];

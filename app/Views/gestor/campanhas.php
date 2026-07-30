@@ -659,6 +659,17 @@ function diasR($fim) {
         <div class="cp-modal-sub" id="cpDocsSub"></div>
 
         <div class="cp-docs-secao">
+            <div class="cp-docs-tipo-titulo">Contrato</div>
+            <div class="cp-docs-lista" id="cpDocsListaCONTRATO"></div>
+            <label class="cp-docs-upload">
+                📤 Enviar novo contrato
+                <input type="file" accept="application/pdf" id="cpDocsInputCONTRATO" onchange="enviarDocumento('CONTRATO', this)">
+            </label>
+        </div>
+
+        <div class="cp-modal-divider"></div>
+
+        <div class="cp-docs-secao">
             <div class="cp-docs-tipo-titulo">Pedido de Inserção (P.I.)</div>
             <div class="cp-docs-lista" id="cpDocsListaPI"></div>
             <label class="cp-docs-upload">
@@ -876,6 +887,7 @@ function abrirDocumentos(card) {
         fim:      dados.fim      || '',
     };
     document.getElementById('cpDocsSub').textContent = dados.cliente + (dados.nome ? ' — ' + dados.nome : '');
+    renderizarDocs('CONTRATO', dados.documentos || []);
     renderizarDocs('PI', dados.documentos || []);
     renderizarDocs('PP', dados.documentos || []);
     document.getElementById('cpDocsOverlay').classList.add('aberto');
