@@ -52,6 +52,14 @@ try {
 
     if ($campanhaId > 0) {
         // ── EDITAR campanha existente ──────────────────────
+        // checking_fotos e campanha_documentos são vinculados por chave composta
+        // (cliente/campanha/situacao/inicio/fim), não por campanha_id. Precisamos
+        // buscar os valores antigos para poder "migrar" os arquivos já enviados
+        // para a nova chave, senão eles ficam órfãos e somem da tela.
+        $so = $pdo->prepare("SELECT cliente, agencia, campanha, situacao, inicio, fim FROM campanhas WHERE id=? AND ponto_id=? LIMIT 1");
+        $so->execute([$campanhaId, $pontoId]);
+        $antiga = $so->fetch(PDO::FETCH_ASSOC);
+
         $stmt = $pdo->prepare("
             UPDATE campanhas
             SET cliente=?, agencia=?, campanha=?, situacao=?,
@@ -63,6 +71,27 @@ try {
             $inicio ?: null,  $fim ?: null,     $contato ?: null,  $obs ?: null,
             $campanhaId, $pontoId
         ]);
+
+        if ($antiga) {
+            $pdo->prepare("
+                UPDATE checking_fotos
+                SET cliente=?, agencia=?, campanha=?, situacao=?, inicio=?, fim=?
+                WHERE ponto_id=? AND cliente<=>? AND campanha<=>? AND situacao<=>? AND inicio<=>? AND fim<=>?
+            ")->execute([
+                $cliente ?: '', $agencia ?: '', $campanha ?: '', $situacao, $inicio ?: null, $fim ?: null,
+                $pontoId,
+                $antiga['cliente'], $antiga['campanha'], $antiga['situacao'], $antiga['inicio'], $antiga['fim'],
+            ]);
+
+            $pdo->prepare("
+                UPDATE campanha_documentos
+                SET cliente=?, agencia=?, campanha=?, inicio=?, fim=?
+                WHERE cliente<=>? AND agencia<=>? AND campanha<=>? AND inicio<=>? AND fim<=>?
+            ")->execute([
+                $cliente ?: '', $agencia ?: '', $campanha ?: '', $inicio ?: null, $fim ?: null,
+                $antiga['cliente'], $antiga['agencia'], $antiga['campanha'], $antiga['inicio'], $antiga['fim'],
+            ]);
+        }
     } else {
         // ── NOVA campanha: encerra a atual (se houver) ─────
         $pdo->prepare("
