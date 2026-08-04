@@ -64,18 +64,19 @@ $permuta    = $porSituacao['Permuta']   ?? 0;
 $bisemana   = $porSituacao['Bisemana']  ?? 0;
 $ocupacaoTotal = $totalPontos > 0 ? round(($ocupado + $reservado + $bisemana + $permuta) / $totalPontos * 100) : 0;
 
-// ── Ocupação por região ───────────────────────────────────────
-$stmtReg = $pdo->query("
-    SELECT regiao,
-           COUNT(*) as total,
-           SUM(CASE WHEN situacao IN ('Ocupado','Reservado','Bisemana','Permuta') THEN 1 ELSE 0 END) as ocupados,
-           SUM(CASE WHEN situacao IN ('Disponivel','Disponível') THEN 1 ELSE 0 END) as disponiveis
-    FROM pontos
-    WHERE (ativo=1 OR ativo IS NULL) AND regiao IS NOT NULL AND regiao != ''
-    GROUP BY regiao
-    ORDER BY total DESC
+// ── Pontos disponíveis para oferecer (inventário vendável) ─────
+$stmtDisp = $pdo->query("
+    SELECT p.id, p.numero, p.logradouro, p.cidade, p.regiao, p.tipo, p.formato, p.descricao,
+           COALESCE(
+               (SELECT pf.caminho FROM ponto_fotos pf WHERE pf.ponto_id = p.id AND pf.principal = 1 LIMIT 1),
+               p.foto
+           ) AS foto
+    FROM pontos p
+    WHERE (p.ativo=1 OR p.ativo IS NULL) AND p.situacao IN ('Disponivel','Disponível')
+    ORDER BY p.updated_at DESC
+    LIMIT 6
 ");
-$regioes = $stmtReg->fetchAll(PDO::FETCH_ASSOC);
+$pontosDisponiveis = $stmtDisp->fetchAll(PDO::FETCH_ASSOC);
 
 // ── Vencidos + vencendo no mês vigente (campanhas ativas) ──
 $stmtVenc = $pdo->query("
@@ -362,15 +363,32 @@ $CORES_SIT = [
         .db-card-link:hover { text-decoration:underline; }
         .db-card-body  { padding:1.1rem 1.15rem; }
 
-        /* ── Regiões ── */
-        .reg-item { margin-bottom:1rem; }
-        .reg-item:last-child { margin-bottom:0; }
-        .reg-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.4rem; }
-        .reg-nome   { font-size:0.85rem; font-weight:800; color:var(--color-text-dark); }
-        .reg-nums   { font-size:0.74rem; color:var(--color-text-muted); font-weight:600; }
-        .reg-bar    { height:9px; background:var(--color-bg-primary); border-radius:5px; overflow:hidden; display:flex; }
-        .reg-bar-ocup { background:var(--crit); }
-        .reg-bar-disp { background:var(--ok); }
+        /* ── Pontos disponíveis ── */
+        .disp-item { display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0; border-bottom:1px solid var(--color-border); }
+        .disp-item:last-child { border-bottom:none; }
+        .disp-thumb {
+            width:48px; height:48px; border-radius:9px; flex-shrink:0; overflow:hidden;
+            background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center;
+            font-size:1.1rem; color:var(--color-text-muted); padding:0; border:none; cursor:zoom-in;
+        }
+        .disp-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+        button.disp-thumb { -webkit-appearance:none; appearance:none; }
+        .disp-info  { flex:1; min-width:0; }
+        .disp-title { font-size:0.83rem; font-weight:800; color:var(--color-text-dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .disp-title .disp-num { font-weight:800; color:var(--color-accent-primary); }
+        .disp-sub   { font-size:0.72rem; color:var(--color-text-muted); font-weight:600; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .disp-add {
+            flex-shrink:0; font-size:0.72rem; font-weight:800; color:var(--color-accent-primary);
+            background:var(--accent-soft); border:none; border-radius:20px; padding:0.4rem 0.8rem;
+            cursor:pointer; white-space:nowrap; transition:background 0.15s, color 0.15s;
+        }
+        .disp-add:hover { background:var(--color-accent-primary); color:#fff; }
+        .disp-add.disp-added { background:var(--ok-soft); color:var(--ok); cursor:default; }
+
+        /* ── Lightbox ── */
+        .db-lb-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:2000; align-items:center; justify-content:center; cursor:zoom-out; }
+        .db-lb-overlay.aberto { display:flex; }
+        .db-lb-img { max-width:90vw; max-height:88vh; border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
 
         /* ── Vencimentos: seção + cards horizontais ── */
         .db-section-head { display:flex; align-items:center; justify-content:space-between; }
@@ -588,32 +606,29 @@ $CORES_SIT = [
     <!-- ── Regiões + Reservas ── -->
     <div class="db-grid">
 
-        <!-- Ocupação por região -->
+        <!-- Pontos disponíveis para oferecer -->
         <div class="db-card">
             <div class="db-card-header">
-                <span class="db-card-title">Ocupação por Região</span>
-                <a href="/gestor/relatorios" class="db-card-link">Relatórios →</a>
+                <span class="db-card-title">Pontos Disponíveis <span style="color:var(--color-text-muted);font-weight:600">· <?= $disponivel ?></span></span>
+                <a href="/gestor/pontos?situacao=Disponivel" class="db-card-link">Ver todos →</a>
             </div>
             <div class="db-card-body">
-                <?php if (empty($regioes)): ?>
-                <div class="db-empty">Nenhuma região cadastrada.</div>
-                <?php else: foreach ($regioes as $reg):
-                    $pctOcup = $reg['total'] > 0 ? round($reg['ocupados'] / $reg['total'] * 100) : 0;
-                    $pctDisp = $reg['total'] > 0 ? round($reg['disponiveis'] / $reg['total'] * 100) : 0;
-                ?>
-                <div class="reg-item">
-                    <div class="reg-header">
-                        <span class="reg-nome"><?= htmlspecialchars($reg['regiao']) ?></span>
-                        <span class="reg-nums">
-                            <span style="color:#dc3545;font-weight:700"><?= $reg['ocupados'] ?></span>
-                            /<?= $reg['total'] ?> pontos
-                            · <strong><?= $pctOcup ?>%</strong>
-                        </span>
+                <?php if (empty($pontosDisponiveis)): ?>
+                <div class="db-empty">Nenhum ponto disponível no momento.</div>
+                <?php else: foreach ($pontosDisponiveis as $p): ?>
+                <div class="disp-item">
+                    <?php if (!empty($p['foto'])): ?>
+                    <button type="button" class="disp-thumb" onclick="dbAbrirLb('/<?= htmlspecialchars($p['foto']) ?>')" title="Ampliar foto">
+                        <img src="/<?= htmlspecialchars($p['foto']) ?>" alt="" loading="lazy" onerror="this.parentElement.outerHTML='<div class=&quot;disp-thumb&quot; style=&quot;cursor:default&quot;>📷</div>'">
+                    </button>
+                    <?php else: ?>
+                    <div class="disp-thumb" style="cursor:default">📷</div>
+                    <?php endif; ?>
+                    <div class="disp-info">
+                        <div class="disp-title"><span class="disp-num">#<?= htmlspecialchars($p['numero']) ?></span> <?= htmlspecialchars($p['logradouro']) ?></div>
+                        <div class="disp-sub"><?= htmlspecialchars($p['descricao'] ?: '—') ?> · <?= htmlspecialchars($p['cidade'] ?? '—') ?></div>
                     </div>
-                    <div class="reg-bar">
-                        <div class="reg-bar-ocup" style="width:<?= $pctOcup ?>%"></div>
-                        <div class="reg-bar-disp" style="width:<?= $pctDisp ?>%"></div>
-                    </div>
+                    <button type="button" class="disp-add" data-ponto-id="<?= $p['id'] ?>" onclick="dbAdicionarCarrinho(this)">+ Adicionar</button>
                 </div>
                 <?php endforeach; endif; ?>
             </div>
@@ -694,6 +709,10 @@ $CORES_SIT = [
 
     </div>
 
+</div>
+
+<div class="db-lb-overlay" id="dbLbOverlay" onclick="dbFecharLb()">
+    <img class="db-lb-img" id="dbLbImg" src="" alt="">
 </div>
 
 <script>
@@ -810,6 +829,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// ── Lightbox de foto ──
+function dbAbrirLb(foto) {
+    document.getElementById('dbLbImg').src = foto;
+    document.getElementById('dbLbOverlay').classList.add('aberto');
+}
+function dbFecharLb() {
+    document.getElementById('dbLbOverlay').classList.remove('aberto');
+    document.getElementById('dbLbImg').src = '';
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') dbFecharLb();
+});
+
+// ── Adicionar ponto disponível à pré-seleção (mesmo carrinho da tela Pontos) ──
+var CART_KEY = 'impakto_cart';
+function dbAdicionarCarrinho(btn) {
+    var id = btn.dataset.pontoId;
+    var selecao;
+    try { selecao = new Set(JSON.parse(localStorage.getItem(CART_KEY) || '[]')); } catch(e) { selecao = new Set(); }
+    if (selecao.has(id)) return;
+    selecao.add(id);
+    localStorage.setItem(CART_KEY, JSON.stringify(Array.from(selecao)));
+    btn.textContent = '✓ Adicionado';
+    btn.classList.add('disp-added');
+    btn.disabled = true;
+}
 </script>
 
 </body>
