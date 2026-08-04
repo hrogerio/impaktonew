@@ -438,7 +438,14 @@ function tabelaCampanhas(array $lista) {
         </div>
         <?php endif; ?>
 
-        <div class="section-title">📋 Contratos Ativos por Cliente</div>
+        <div class="section-title" style="justify-content:space-between;">
+            <span>📋 Contratos Ativos por Cliente</span>
+            <select id="filtroDocs" onchange="filtrarPorDocs()" style="font-size:0.78rem;font-weight:700;color:var(--color-text-dark);border:1px solid var(--color-border);border-radius:6px;padding:0.3rem 0.5rem;font-family:'Montserrat',sans-serif;">
+                <option value="todos">📎 Documentos: Todos</option>
+                <option value="com">✅ Com documentos</option>
+                <option value="sem">⚠️ Sem documentos</option>
+            </select>
+        </div>
         <?php tabelaCampanhas($contratos['campanhas_ativas']); ?>
 
         <div class="section-title" style="margin-top:1.5rem">🔴 Contratos Vencidos (<?= count($contratos['vencidos_agrupado']) ?>)</div>
@@ -675,6 +682,16 @@ function switchTab(name, btn) {
         document.querySelectorAll('.tab-btn')[idx].classList.add('active');
     }
 })();
+
+function filtrarPorDocs() {
+    var valor = document.getElementById('filtroDocs').value;
+    var linhas = document.querySelectorAll('#tab-contratos tr.rel-row-clicavel');
+    linhas.forEach(function(tr) {
+        var temDoc = !!tr.querySelector('.docs-ok');
+        var mostrar = valor === 'todos' || (valor === 'com' && temDoc) || (valor === 'sem' && !temDoc);
+        tr.style.display = mostrar ? '' : 'none';
+    });
+}
 
 function exportCSV(tableId, filename) {
     var table = document.getElementById(tableId);
