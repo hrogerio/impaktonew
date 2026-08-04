@@ -357,6 +357,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/campanhas.php';
         break;
 
+    // ── CAMPANHAS: BUSCAR (AJAX, GET) ─────────────────────
+    case 'gestor/campanhas/buscar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/campanhas_buscar.php';
+        break;
+
     // ── CAMPANHAS: SALVAR (POST) ──────────────────────────
     case 'gestor/campanhas/salvar':
         auth_required();

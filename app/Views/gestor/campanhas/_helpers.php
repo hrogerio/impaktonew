@@ -1,0 +1,248 @@
+<?php
+// Helpers compartilhados entre a tela de Campanhas e o endpoint de busca AJAX.
+
+$CORES = [
+    'Ocupado'   => '#dc3545', 'Reservado' => '#fd7e14',
+    'Permuta'   => '#51086e', 'Bisemana'  => '#0284c7',
+    'Vencido'   => '#6c757d',
+];
+function corSit($s, $cores) { return $cores[$s] ?? '#888'; }
+function fmtD($d) {
+    if (!$d || $d === '0000-00-00') return null;
+    try { return (new DateTime($d))->format('d/m/Y'); } catch(Exception $e) { return null; }
+}
+function diasR($fim) {
+    if (!$fim || $fim === '0000-00-00') return null;
+    $hoje = new DateTime(); $fimDt = new DateTime($fim);
+    $diff = (int)$hoje->diff($fimDt)->days;
+    return $fimDt >= $hoje ? $diff : -$diff;
+}
+
+/**
+ * Busca campanhas agrupadas (cliente + campanha + situacao + periodo) filtrando
+ * por situacao já no SQL, pra nunca puxar a tabela inteira sem necessidade.
+ * $situacaoFiltro: '' (ativas), 'Encerradas', 'Vencidas'
+ */
+function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
+    $hoje = date('Y-m-d');
+
+    $sql = "
+        SELECT
+            c.id, c.ponto_id, c.cliente, c.agencia, c.campanha,
+            c.situacao, c.inicio, c.fim, c.ativo, c.encerrado_em, c.criado_em,
+            p.numero, p.logradouro, p.cidade, p.regiao
+        FROM campanhas c
+        JOIN pontos p ON p.id = c.ponto_id AND (p.ativo = 1 OR p.ativo IS NULL)
+        WHERE c.situacao != 'Reservado'
+    ";
+    if ($situacaoFiltro === 'Encerradas') {
+        $sql .= " AND c.ativo = 0";
+    } elseif ($situacaoFiltro === 'Vencidas') {
+        $sql .= " AND c.ativo = 1 AND c.fim IS NOT NULL AND c.fim <> '0000-00-00' AND c.fim < :hoje";
+    } else {
+        $sql .= " AND c.ativo = 1";
+    }
+    $sql .= "
+        ORDER BY
+            c.ativo DESC,
+            COALESCE(NULLIF(TRIM(c.cliente),''), 'ZZZZ') ASC,
+            c.criado_em DESC
+    ";
+    $stmt = $pdo->prepare($sql);
+    if ($situacaoFiltro === 'Vencidas') $stmt->bindValue(':hoje', $hoje);
+    $stmt->execute();
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Documentos financeiros (P.I./P.P.) — vinculados ao contrato (cliente+agência+campanha+período)
+    $docKey = fn($cliente, $agencia, $campanha, $inicio, $fim) => md5(
+        trim($cliente) . '|' . trim($agencia) . '|' . trim($campanha) . '|' . ($inicio ?? '') . '|' . ($fim ?? '')
+    );
+    $documentosPorGrupo = [];
+    $docsRows = $pdo->query("SELECT * FROM campanha_documentos ORDER BY criado_em DESC")->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($docsRows as $d) {
+        $dk = $docKey($d['cliente'], $d['agencia'], $d['campanha'], $d['inicio'], $d['fim']);
+        $documentosPorGrupo[$dk][] = $d;
+    }
+
+    // Agrupar: Cliente → CampanhaKey → dados + painéis
+    $grupos = [];
+    foreach ($rows as $r) {
+        $cli  = trim($r['cliente']  ?? '') ?: '— Sem cliente —';
+        $camp = trim($r['campanha'] ?? '') ?: '—';
+        $campKey = md5($cli . '|' . $camp . '|' . $r['situacao'] . '|' . ($r['inicio'] ?? '') . '|' . ($r['fim'] ?? '') . '|' . $r['ativo']);
+
+        if (!isset($grupos[$campKey])) {
+            $grupos[$campKey] = [
+                'cliente'    => $cli,
+                'agencia'    => trim($r['agencia'] ?? ''),
+                'nome'       => $camp,
+                'situacao'   => $r['situacao'],
+                'ativo'      => (int)$r['ativo'],
+                'inicio'     => $r['inicio'],
+                'fim'        => $r['fim'],
+                'rows'       => [],
+                'documentos' => $documentosPorGrupo[$docKey($cli, $r['agencia'] ?? '', $camp, $r['inicio'], $r['fim'])] ?? [],
+            ];
+        }
+        $grupos[$campKey]['rows'][] = $r;
+    }
+
+    usort($grupos, function($a, $b) {
+        if ($a['ativo'] !== $b['ativo']) return $b['ativo'] - $a['ativo'];
+        return strcmp($a['cliente'], $b['cliente']);
+    });
+
+    return $grupos;
+}
+
+/** String de busca (cliente, agência, campanha, situação, pontos) usada pro filtro textual */
+function campanhaBuscaStr(array $g): string {
+    return strtolower(
+        $g['cliente'] . ' ' . $g['agencia'] . ' ' . $g['nome'] . ' ' . $g['situacao']
+        . ' ' . implode(' ', array_column($g['rows'], 'numero'))
+        . ' ' . implode(' ', array_column($g['rows'], 'logradouro'))
+        . ' ' . implode(' ', array_column($g['rows'], 'cidade'))
+    );
+}
+
+/** Renderiza o HTML de um card de campanha */
+function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
+    $cor     = corSit($g['situacao'], $CORES);
+    $ini     = fmtD($g['inicio']);
+    $fim     = fmtD($g['fim']);
+    $dias    = $g['fim'] ? diasR($g['fim']) : null;
+    $nPain   = count($g['rows']);
+    $buscaStr = campanhaBuscaStr($g);
+
+    $campIds  = array_column($g['rows'], 'id');
+    $pontoIds = array_column($g['rows'], 'ponto_id');
+    $isVencida = $g['ativo'] && $g['fim'] && substr($g['fim'], 0, 10) < $hoje;
+    $dataCard = htmlspecialchars(json_encode([
+        'campIds'    => $campIds,
+        'pontoIds'   => $pontoIds,
+        'cliente'    => $g['cliente'],
+        'agencia'    => $g['agencia'],
+        'nome'       => $g['nome'],
+        'situacao'   => $g['situacao'],
+        'inicio'     => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
+        'fim'        => $g['fim']    ? substr($g['fim'],    0, 10) : '',
+        'isVencida'  => (bool)$isVencida,
+        'documentos' => array_map(fn($d) => [
+            'id'            => (int)$d['id'],
+            'tipo'          => $d['tipo'],
+            'caminho'       => $d['caminho'],
+            'nome_original' => $d['nome_original'],
+            'criado_em'     => $d['criado_em'],
+        ], $g['documentos']),
+    ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
+
+    ob_start();
+    ?>
+    <div class="cp-card <?= !$g['ativo'] ? 'encerrada' : ($isVencida ? 'vencida' : '') ?>"
+         data-key="<?= htmlspecialchars(implode('_', $campIds)) ?>"
+         data-busca="<?= htmlspecialchars($buscaStr) ?>"
+         data-situacao="<?= htmlspecialchars($g['situacao']) ?>"
+         data-status="<?= $g['ativo'] ?>"
+         data-vencida="<?= $isVencida ? 1 : 0 ?>"
+         data-cliente="<?= htmlspecialchars(strtolower($g['cliente'])) ?>"
+         data-campanha="<?= $dataCard ?>">
+
+        <div class="cp-card-faixa" style="background:<?= !$g['ativo'] ? '#9ca3af' : $cor ?>"></div>
+
+        <div class="cp-card-head">
+            <div class="cp-card-top">
+                <?php if (!$g['ativo']): ?>
+                <span class="sit-badge" style="background:#6b7280">Encerrada</span>
+                <?php elseif ($isVencida): ?>
+                <span class="sit-badge" style="background:#6c757d"><?= htmlspecialchars($g['situacao']) ?></span>
+                <?php else: ?>
+                <span class="sit-badge" style="background:<?= $cor ?>"><?= htmlspecialchars($g['situacao']) ?></span>
+                <?php endif; ?>
+                <span class="cp-card-nome"><?= htmlspecialchars($g['nome'] !== '—' ? $g['nome'] : 'Sem nome') ?></span>
+            </div>
+            <div class="cp-card-cliente"><?= htmlspecialchars($g['cliente']) ?></div>
+            <?php if ($g['agencia']): ?><div class="cp-card-agencia"><?= htmlspecialchars($g['agencia']) ?></div><?php endif; ?>
+            <div class="cp-card-meta">
+                <?php if ($ini || $fim): ?>
+                <span class="cp-card-periodo">
+                    <?= $ini ?? '?' ?> → <?= $fim ?? '?' ?>
+                </span>
+                <?php endif; ?>
+                <?php if ($g['ativo'] && $dias !== null && $dias >= 0 && $dias <= 30):
+                    $cls = $dias <= 7 ? 'prazo-urg' : 'prazo-ale'; ?>
+                <span class="<?= $cls ?>"><?= $dias ?>d</span>
+                <?php endif; ?>
+                <?php if ($g['ativo']): ?>
+                <span class="status-ativa">Ativa</span>
+                <?php else: ?>
+                <span class="status-encerrada">Encerrada</span>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <button type="button" class="cp-acordeon-toggle" onclick="toggleAcordeon(this)">
+            <span class="cp-acordeon-toggle-label">📍 <?= $nPain ?> ponto<?= $nPain > 1 ? 's' : '' ?></span>
+            <span class="cp-acordeon-seta">▾</span>
+        </button>
+        <div class="cp-card-paineis fechado">
+            <?php foreach ($g['rows'] as $r): ?>
+            <div class="cp-painel-row">
+                <span class="cp-painel-num"><?= str_pad($r['numero'], 3, '0', STR_PAD_LEFT) ?></span>
+                <div class="cp-painel-end">
+                    <div class="cp-painel-log" title="<?= htmlspecialchars($r['logradouro']) ?>"><?= htmlspecialchars($r['logradouro']) ?></div>
+                    <div class="cp-painel-cid"><?= htmlspecialchars(implode(' · ', array_filter([$r['cidade'] ?? '', $r['regiao'] ?? '']))) ?></div>
+                </div>
+                <a href="/gestor/pontos/detalhes?id=<?= $r['ponto_id'] ?>" class="cp-painel-link" title="Ver ponto">→</a>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="cp-card-footer">
+            <div class="cp-acoes">
+            <?php
+                $ckQ = http_build_query([
+                    'cliente'  => $g['cliente'],
+                    'agencia'  => $g['agencia'],
+                    'campanha' => $g['nome'],
+                    'situacao' => $g['situacao'],
+                    'inicio'   => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
+                    'fim'      => $g['fim']    ? substr($g['fim'],    0, 10) : '',
+                ]);
+                foreach ($pontoIds as $pid) { $ckQ .= '&pontoIds[]=' . (int)$pid; }
+                $checkUrl   = '/gestor/campanhas/checking?' . $ckQ;
+                $espelhoUrl = '/gestor/campanhas/espelho/pdf?' . $ckQ;
+            ?>
+                <a href="<?= htmlspecialchars($checkUrl) ?>"
+                   class="cp-btn cp-btn-checking"
+                   title="Checking fotográfico desta campanha">📸 Checking</a>
+                <a href="<?= htmlspecialchars($espelhoUrl) ?>"
+                   target="_blank"
+                   class="cp-btn cp-btn-espelho"
+                   title="Gerar PDF Espelho de Colagem">🗂️ Espelho</a>
+                <button class="cp-btn cp-btn-docs"
+                        onclick="abrirDocumentos(this.closest('.cp-card'))"
+                        title="Documentos financeiros (P.I. / P.P.)">📎 Docs (<?= count($g['documentos']) ?>)</button>
+            <?php if ($g['ativo']): ?>
+                <?php if ($isVencida): ?>
+                <button class="cp-btn cp-btn-renovar"
+                        onclick="abrirRenovacao(this.closest('.cp-card'))"
+                        title="Renovar contrato com novas datas">🔄 Renovar</button>
+                <?php else: ?>
+                <button class="cp-btn cp-btn-editar"
+                        onclick="abrirEdicao(this.closest('.cp-card'))"
+                        title="Editar datas e dados da campanha">✏️ Editar</button>
+                <?php endif; ?>
+                <button class="cp-btn cp-btn-encerrar"
+                        onclick="encerrarGrupo(this.closest('.cp-card'), this)"
+                        title="Encerrar campanha e liberar pontos">🔒 Encerrar</button>
+            <?php else: ?>
+                <button class="cp-btn cp-btn-renovar"
+                        onclick="abrirRenovacao(this.closest('.cp-card'))"
+                        title="Criar nova campanha com estes dados">🔄 Renovar</button>
+            <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+    return ob_get_clean();
+}

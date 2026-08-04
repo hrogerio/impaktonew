@@ -7,102 +7,29 @@ if (!isset($_SESSION['usuario'])) {
 $paginaAtual = 'campanhas';
 
 require_once __DIR__ . '/../../../config/database.php';
+require_once __DIR__ . '/campanhas/_helpers.php';
 $pdo = getDatabase();
 
-// ── Todas as campanhas com dados do ponto ─────────────────────
-$rows = $pdo->query("
-    SELECT
-        c.id, c.ponto_id, c.cliente, c.agencia, c.campanha,
-        c.situacao, c.inicio, c.fim, c.ativo, c.encerrado_em, c.criado_em,
-        p.numero, p.logradouro, p.cidade, p.regiao
-    FROM campanhas c
-    JOIN pontos p ON p.id = c.ponto_id AND (p.ativo = 1 OR p.ativo IS NULL)
-    WHERE c.situacao != 'Reservado'
-    ORDER BY
-        c.ativo DESC,
-        COALESCE(NULLIF(TRIM(c.cliente),''), 'ZZZZ') ASC,
-        c.criado_em DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+// A lista de campanhas NÃO é carregada aqui — só via AJAX (gestor/campanhas/buscar)
+// quando o usuário aplica um filtro. Aqui só buscamos o necessário pra montar
+// os KPIs e o dropdown de clientes, sem renderizar nenhum card.
+$hoje = date('Y-m-d');
+$gruposAtivos     = campanhasBuscarGrupos($pdo, '');
+$gruposEncerrados = campanhasBuscarGrupos($pdo, 'Encerradas');
 
-// Documentos financeiros (P.I./P.P.) — vinculados ao contrato (cliente+agência+campanha+período),
-// não a uma linha específica de campanhas, pra sobreviver a adição/remoção de pontos no contrato.
-$docKey = fn($cliente, $agencia, $campanha, $inicio, $fim) => md5(
-    trim($cliente) . '|' . trim($agencia) . '|' . trim($campanha) . '|' . ($inicio ?? '') . '|' . ($fim ?? '')
-);
-$documentosPorGrupo = [];
-$docsRows = $pdo->query("SELECT * FROM campanha_documentos ORDER BY criado_em DESC")->fetchAll(PDO::FETCH_ASSOC);
-foreach ($docsRows as $d) {
-    $dk = $docKey($d['cliente'], $d['agencia'], $d['campanha'], $d['inicio'], $d['fim']);
-    $documentosPorGrupo[$dk][] = $d;
+$totalAtivas = count($gruposAtivos);
+$totalEncerradas = count($gruposEncerrados);
+$totalVencidos = 0;
+foreach ($gruposAtivos as $g) {
+    if ($g['fim'] && substr($g['fim'], 0, 10) < $hoje) $totalVencidos++;
 }
 
-// Agrupar: Cliente → CampanhaKey → dados + painéis
-$grupos = [];
-foreach ($rows as $r) {
-    $cli  = trim($r['cliente']  ?? '') ?: '— Sem cliente —';
-    $camp = trim($r['campanha'] ?? '') ?: '—';
-    $campKey = md5($cli . '|' . $camp . '|' . $r['situacao'] . '|' . ($r['inicio'] ?? '') . '|' . ($r['fim'] ?? '') . '|' . $r['ativo']);
-
-    if (!isset($grupos[$campKey])) {
-        $grupos[$campKey] = [
-            'cliente'    => $cli,
-            'agencia'    => trim($r['agencia'] ?? ''),
-            'nome'       => $camp,
-            'situacao'   => $r['situacao'],
-            'ativo'      => (int)$r['ativo'],
-            'inicio'     => $r['inicio'],
-            'fim'        => $r['fim'],
-            'rows'       => [],
-            'documentos' => $documentosPorGrupo[$docKey($cli, $r['agencia'] ?? '', $camp, $r['inicio'], $r['fim'])] ?? [],
-        ];
-    }
-    $grupos[$campKey]['rows'][] = $r;
-}
-
-// Ordena: ativas primeiro, depois por cliente
-usort($grupos, function($a, $b) {
-    if ($a['ativo'] !== $b['ativo']) return $b['ativo'] - $a['ativo'];
-    return strcmp($a['cliente'], $b['cliente']);
-});
-
-// Clientes únicos para filtro
 $listaClientes = [];
-foreach ($grupos as $g) {
+foreach ([...$gruposAtivos, ...$gruposEncerrados] as $g) {
     if ($g['cliente'] !== '— Sem cliente —') $listaClientes[$g['cliente']] = true;
 }
 ksort($listaClientes);
 $listaClientes = array_keys($listaClientes);
-
-// KPIs por campanha agrupada (não por linha ponto-campanha)
-$hoje = date('Y-m-d');
-$totalAtivas = 0;
-$totalEncerradas = 0;
-$totalVencidos = 0;
-foreach ($grupos as $g) {
-    if ($g['ativo']) {
-        $totalAtivas++;
-        if ($g['fim'] && substr($g['fim'], 0, 10) < $hoje) $totalVencidos++;
-    } else {
-        $totalEncerradas++;
-    }
-}
-
-$CORES = [
-    'Ocupado'   => '#dc3545', 'Reservado' => '#fd7e14',
-    'Permuta'   => '#51086e', 'Bisemana'  => '#0284c7',
-    'Vencido'   => '#6c757d',
-];
-function corSit($s, $cores) { return $cores[$s] ?? '#888'; }
-function fmtD($d) {
-    if (!$d || $d === '0000-00-00') return null;
-    try { return (new DateTime($d))->format('d/m/Y'); } catch(Exception $e) { return null; }
-}
-function diasR($fim) {
-    if (!$fim || $fim === '0000-00-00') return null;
-    $hoje = new DateTime(); $fimDt = new DateTime($fim);
-    $diff = (int)$hoje->diff($fimDt)->days;
-    return $fimDt >= $hoje ? $diff : -$diff;
-}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -357,6 +284,7 @@ function diasR($fim) {
         .cp-docs-upload input[type="file"] { display:none; }
 
         .cp-empty { padding:3rem; text-align:center; color:var(--color-text-muted); font-size:0.85rem; }
+        .cp-prompt { padding:3rem; text-align:center; color:var(--color-text-muted); font-size:0.88rem; font-weight:600; }
 
         @media(max-width:700px) {
             .cp-grid  { grid-template-columns:1fr; }
@@ -428,151 +356,11 @@ function diasR($fim) {
         <button class="cp-limpar" id="cpLimpar" onclick="limparFiltros()">✕ Limpar</button>
     </div>
 
-    <!-- ── Grid de cards ── -->
-    <div class="cp-grid" id="cpGrid">
-    <?php foreach ($grupos as $g):
-        $cor     = corSit($g['situacao'], $CORES);
-        $ini     = fmtD($g['inicio']);
-        $fim     = fmtD($g['fim']);
-        $dias    = $g['fim'] ? diasR($g['fim']) : null;
-        $nPain   = count($g['rows']);
-        $buscaStr = strtolower(
-            $g['cliente'] . ' ' . $g['agencia'] . ' ' . $g['nome'] . ' ' . $g['situacao']
-            . ' ' . implode(' ', array_column($g['rows'], 'numero'))
-            . ' ' . implode(' ', array_column($g['rows'], 'logradouro'))
-            . ' ' . implode(' ', array_column($g['rows'], 'cidade'))
-        );
-    ?>
-    <?php
-        $campIds  = array_column($g['rows'], 'id');
-        $pontoIds = array_column($g['rows'], 'ponto_id');
-        $isVencida = $g['ativo'] && $g['fim'] && substr($g['fim'], 0, 10) < $hoje;
-        $dataCard = htmlspecialchars(json_encode([
-            'campIds'    => $campIds,
-            'pontoIds'   => $pontoIds,
-            'cliente'    => $g['cliente'],
-            'agencia'    => $g['agencia'],
-            'nome'       => $g['nome'],
-            'situacao'   => $g['situacao'],
-            'inicio'     => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
-            'fim'        => $g['fim']    ? substr($g['fim'],    0, 10) : '',
-            'isVencida'  => (bool)$isVencida,
-            'documentos' => array_map(fn($d) => [
-                'id'            => (int)$d['id'],
-                'tipo'          => $d['tipo'],
-                'caminho'       => $d['caminho'],
-                'nome_original' => $d['nome_original'],
-                'criado_em'     => $d['criado_em'],
-            ], $g['documentos']),
-        ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
-    ?>
-    <div class="cp-card <?= !$g['ativo'] ? 'encerrada' : ($isVencida ? 'vencida' : '') ?>"
-         data-key="<?= htmlspecialchars(implode('_', $campIds)) ?>"
-         data-busca="<?= htmlspecialchars($buscaStr) ?>"
-         data-situacao="<?= htmlspecialchars($g['situacao']) ?>"
-         data-status="<?= $g['ativo'] ?>"
-         data-vencida="<?= $isVencida ? 1 : 0 ?>"
-         data-cliente="<?= htmlspecialchars(strtolower($g['cliente'])) ?>"
-         data-campanha="<?= $dataCard ?>">
+    <!-- ── Grid de cards (preenchido via AJAX ao aplicar um filtro) ── -->
+    <div class="cp-grid" id="cpGrid"></div>
 
-        <div class="cp-card-faixa" style="background:<?= !$g['ativo'] ? '#9ca3af' : $cor ?>"></div>
-
-        <div class="cp-card-head">
-            <div class="cp-card-top">
-                <?php if (!$g['ativo']): ?>
-                <span class="sit-badge" style="background:#6b7280">Encerrada</span>
-                <?php elseif ($isVencida): ?>
-                <span class="sit-badge" style="background:#6c757d"><?= htmlspecialchars($g['situacao']) ?></span>
-                <?php else: ?>
-                <span class="sit-badge" style="background:<?= $cor ?>"><?= htmlspecialchars($g['situacao']) ?></span>
-                <?php endif; ?>
-                <span class="cp-card-nome"><?= htmlspecialchars($g['nome'] !== '—' ? $g['nome'] : 'Sem nome') ?></span>
-            </div>
-            <div class="cp-card-cliente"><?= htmlspecialchars($g['cliente']) ?></div>
-            <?php if ($g['agencia']): ?><div class="cp-card-agencia"><?= htmlspecialchars($g['agencia']) ?></div><?php endif; ?>
-            <div class="cp-card-meta">
-                <?php if ($ini || $fim): ?>
-                <span class="cp-card-periodo">
-                    <?= $ini ?? '?' ?> → <?= $fim ?? '?' ?>
-                </span>
-                <?php endif; ?>
-                <?php if ($g['ativo'] && $dias !== null && $dias >= 0 && $dias <= 30):
-                    $cls = $dias <= 7 ? 'prazo-urg' : 'prazo-ale'; ?>
-                <span class="<?= $cls ?>"><?= $dias ?>d</span>
-                <?php endif; ?>
-                <?php if ($g['ativo']): ?>
-                <span class="status-ativa">Ativa</span>
-                <?php else: ?>
-                <span class="status-encerrada">Encerrada</span>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <button type="button" class="cp-acordeon-toggle" onclick="toggleAcordeon(this)">
-            <span class="cp-acordeon-toggle-label">📍 <?= $nPain ?> ponto<?= $nPain > 1 ? 's' : '' ?></span>
-            <span class="cp-acordeon-seta">▾</span>
-        </button>
-        <div class="cp-card-paineis fechado">
-            <?php foreach ($g['rows'] as $r): ?>
-            <div class="cp-painel-row">
-                <span class="cp-painel-num"><?= str_pad($r['numero'], 3, '0', STR_PAD_LEFT) ?></span>
-                <div class="cp-painel-end">
-                    <div class="cp-painel-log" title="<?= htmlspecialchars($r['logradouro']) ?>"><?= htmlspecialchars($r['logradouro']) ?></div>
-                    <div class="cp-painel-cid"><?= htmlspecialchars(implode(' · ', array_filter([$r['cidade'] ?? '', $r['regiao'] ?? '']))) ?></div>
-                </div>
-                <a href="/gestor/pontos/detalhes?id=<?= $r['ponto_id'] ?>" class="cp-painel-link" title="Ver ponto">→</a>
-            </div>
-            <?php endforeach; ?>
-        </div>
-
-        <div class="cp-card-footer">
-            <div class="cp-acoes">
-            <?php
-                // URL do checking para este grupo
-                $ckQ = http_build_query([
-                    'cliente'  => $g['cliente'],
-                    'agencia'  => $g['agencia'],
-                    'campanha' => $g['nome'],
-                    'situacao' => $g['situacao'],
-                    'inicio'   => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
-                    'fim'      => $g['fim']    ? substr($g['fim'],    0, 10) : '',
-                ]);
-                foreach ($pontoIds as $pid) { $ckQ .= '&pontoIds[]=' . (int)$pid; }
-                $checkUrl   = '/gestor/campanhas/checking?' . $ckQ;
-                $espelhoUrl = '/gestor/campanhas/espelho/pdf?' . $ckQ;
-            ?>
-                <a href="<?= htmlspecialchars($checkUrl) ?>"
-                   class="cp-btn cp-btn-checking"
-                   title="Checking fotográfico desta campanha">📸 Checking</a>
-                <a href="<?= htmlspecialchars($espelhoUrl) ?>"
-                   target="_blank"
-                   class="cp-btn cp-btn-espelho"
-                   title="Gerar PDF Espelho de Colagem">🗂️ Espelho</a>
-                <button class="cp-btn cp-btn-docs"
-                        onclick="abrirDocumentos(this.closest('.cp-card'))"
-                        title="Documentos financeiros (P.I. / P.P.)">📎 Docs (<?= count($g['documentos']) ?>)</button>
-            <?php if ($g['ativo']): ?>
-                <?php if ($isVencida): ?>
-                <button class="cp-btn cp-btn-renovar"
-                        onclick="abrirRenovacao(this.closest('.cp-card'))"
-                        title="Renovar contrato com novas datas">🔄 Renovar</button>
-                <?php else: ?>
-                <button class="cp-btn cp-btn-editar"
-                        onclick="abrirEdicao(this.closest('.cp-card'))"
-                        title="Editar datas e dados da campanha">✏️ Editar</button>
-                <?php endif; ?>
-                <button class="cp-btn cp-btn-encerrar"
-                        onclick="encerrarGrupo(this.closest('.cp-card'), this)"
-                        title="Encerrar campanha e liberar pontos">🔒 Encerrar</button>
-            <?php else: ?>
-                <button class="cp-btn cp-btn-renovar"
-                        onclick="abrirRenovacao(this.closest('.cp-card'))"
-                        title="Criar nova campanha com estes dados">🔄 Renovar</button>
-            <?php endif; ?>
-            </div>
-        </div>
-    </div>
-    <?php endforeach; ?>
+    <div class="cp-prompt" id="cpPrompt">
+        🔎 Use a busca ou os filtros acima para carregar as campanhas.
     </div>
 
     <div class="cp-empty" id="cpEmpty" style="display:none">
@@ -706,39 +494,61 @@ function diasR($fim) {
 "></div>
 
 <script>
-// ── Filtros ───────────────────────────────────────────────────
-// situacao === ''          -> só ativas (padrão ao carregar)
-// situacao === 'Encerradas' -> só encerradas (status=0)
-// situacao === 'Vencidas'   -> ativas com contrato vencido (data-vencida=1)
+// ── Filtros / busca via AJAX ────────────────────────────────────
+// A lista só é consultada quando o usuário aplica um filtro (busca,
+// cliente ou situação) — a página não carrega nada de cara.
+// situacao === ''          -> ativas (padrão)
+// situacao === 'Encerradas' -> encerradas
+// situacao === 'Vencidas'   -> ativas com contrato vencido
 var FILTROS_KEY = 'impakto_campanhas_filtros_v1';
 var filtros = { busca:'', cliente:'', situacao:'' };
+var _scrollAoAbrir = null; // key do card pra rolar até depois de renderizar
 function salvarFiltros() {
     try { sessionStorage.setItem(FILTROS_KEY, JSON.stringify(filtros)); } catch(e) {}
 }
 
-function filtrar() {
+function buscarCampanhas() {
     var temFiltro = filtros.busca || filtros.cliente || filtros.situacao;
     document.getElementById('cpLimpar').className = 'cp-limpar' + (temFiltro ? ' vis' : '');
+    document.getElementById('cpPrompt').style.display = 'none';
+    document.getElementById('cpEmpty').style.display = 'none';
 
-    var total = 0;
-    document.querySelectorAll('#cpGrid .cp-card').forEach(function(card) {
-        var ok = true;
-        if (filtros.busca   && card.dataset.busca.indexOf(filtros.busca) === -1) ok = false;
-        if (filtros.cliente && card.dataset.cliente !== filtros.cliente)         ok = false;
+    var grid = document.getElementById('cpGrid');
+    grid.innerHTML = '<div class="cp-prompt">⏳ Buscando campanhas...</div>';
 
-        if (filtros.situacao === 'Encerradas') {
-            if (card.dataset.status !== '0') ok = false;
-        } else if (filtros.situacao === 'Vencidas') {
-            if (card.dataset.vencida !== '1') ok = false;
-        } else {
-            if (card.dataset.status !== '1') ok = false;
-        }
-
-        card.style.display = ok ? '' : 'none';
-        if (ok) total++;
+    var qs = new URLSearchParams({
+        busca: filtros.busca || '',
+        cliente: filtros.cliente || '',
+        situacao: filtros.situacao || '',
     });
 
-    document.getElementById('cpEmpty').style.display = total === 0 ? 'block' : 'none';
+    return fetch('/gestor/campanhas/buscar?' + qs.toString())
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            if (!resp.ok) {
+                grid.innerHTML = '';
+                mostrarToast('❌ Erro ao buscar campanhas', 'err');
+                return;
+            }
+            grid.innerHTML = resp.html;
+            document.getElementById('cpEmpty').style.display = resp.total === 0 ? 'block' : 'none';
+            restaurarAcordeoes();
+            if (_scrollAoAbrir) {
+                var card = document.querySelector('#cpGrid .cp-card[data-key="' + _scrollAoAbrir + '"]');
+                _scrollAoAbrir = null;
+                if (card) card.scrollIntoView({ block: 'center' });
+            }
+        })
+        .catch(function() {
+            grid.innerHTML = '';
+            mostrarToast('❌ Erro de comunicação ao buscar campanhas', 'err');
+        });
+}
+
+function mostrarPrompt() {
+    document.getElementById('cpGrid').innerHTML = '';
+    document.getElementById('cpEmpty').style.display = 'none';
+    document.getElementById('cpPrompt').style.display = 'block';
 }
 
 var debTimer;
@@ -749,37 +559,37 @@ var debTimer;
         document.getElementById('cpBusca').value = buscaUrl;
         filtros.busca = buscaUrl.toLowerCase().trim();
         salvarFiltros();
-        filtrar();
+        buscarCampanhas();
         return;
     }
     // Sem parâmetro na URL: restaura o último filtro usado (ex: ao voltar da tela anterior)
     var salvo;
     try { salvo = JSON.parse(sessionStorage.getItem(FILTROS_KEY) || 'null'); } catch(e) { salvo = null; }
-    if (!salvo) return;
+    if (!salvo || !(salvo.busca || salvo.cliente || salvo.situacao)) { mostrarPrompt(); return; }
     filtros = Object.assign({ busca:'', cliente:'', situacao:'' }, salvo);
     document.getElementById('cpBusca').value = filtros.busca;
     document.getElementById('cpFiltroCliente').value = filtros.cliente;
     document.getElementById('cpFiltroCliente').className = 'cp-sel' + (filtros.cliente ? ' ativo' : '');
     document.getElementById('cpFiltroSit').value = filtros.situacao;
     document.getElementById('cpFiltroSit').className = 'cp-sel' + (filtros.situacao ? ' ativo' : '');
-    filtrar();
+    buscarCampanhas();
 })();
 document.getElementById('cpBusca').addEventListener('input', function() {
     clearTimeout(debTimer);
     var val = this.value.toLowerCase().trim();
-    debTimer = setTimeout(function() { filtros.busca = val; salvarFiltros(); filtrar(); }, 150);
+    debTimer = setTimeout(function() { filtros.busca = val; salvarFiltros(); buscarCampanhas(); }, 300);
 });
 document.getElementById('cpFiltroCliente').addEventListener('change', function() {
     filtros.cliente = this.value;
     this.className = 'cp-sel' + (this.value ? ' ativo' : '');
     salvarFiltros();
-    filtrar();
+    buscarCampanhas();
 });
 document.getElementById('cpFiltroSit').addEventListener('change', function() {
     filtros.situacao = this.value;
     this.className = 'cp-sel' + (this.value ? ' ativo' : '');
     salvarFiltros();
-    filtrar();
+    buscarCampanhas();
 });
 function limparFiltros() {
     filtros = { busca:'', cliente:'', situacao:'' };
@@ -789,7 +599,7 @@ function limparFiltros() {
         document.getElementById(id).className = 'cp-sel';
     });
     salvarFiltros();
-    filtrar();
+    buscarCampanhas();
 }
 
 // ── Acordeão de pontos ─────────────────────────────────────────
@@ -810,12 +620,11 @@ function toggleAcordeon(btn) {
     seta.classList.toggle('aberta', !aberto);
     salvarAcordeoes();
 }
-// ── Restaurar acordeões abertos e a rolagem ao voltar para esta página ──
-(function restaurarAcordeoes() {
+// ── Restaurar acordeões abertos após (re)renderizar os cards ──
+function restaurarAcordeoes() {
     var abertos;
     try { abertos = JSON.parse(sessionStorage.getItem(ACORDEOES_KEY) || '[]'); } catch(e) { abertos = []; }
     if (!abertos.length) return;
-    var primeiro = null;
     abertos.forEach(function(key) {
         var card = document.querySelector('#cpGrid .cp-card[data-key="' + key + '"]');
         if (!card) return;
@@ -823,12 +632,8 @@ function toggleAcordeon(btn) {
         var seta   = card.querySelector('.cp-acordeon-seta');
         if (painel) painel.classList.remove('fechado');
         if (seta) seta.classList.add('aberta');
-        if (!primeiro) primeiro = card;
     });
-    if (primeiro) {
-        setTimeout(function() { primeiro.scrollIntoView({ block: 'center' }); }, 0);
-    }
-})();
+}
 
 // ── Modal de edição ───────────────────────────────────────────
 var _modalCard = null; // card DOM atualmente no modal
@@ -1194,12 +999,9 @@ function liberarTodosVencidos(btn) {
     });
 }
 
-filtrar();
-
 // ── Auto-abrir Editar/Renovar ao chegar via link do relatório ──
-// Precisa rodar depois de _modalCard/_renovarCard serem declarados acima,
-// senão as declarações `var ... = null` mais abaixo no script zerariam
-// a referência já setada por abrirEdicao()/abrirRenovacao().
+// A tela não carrega a lista de cara, então aqui disparamos uma busca
+// (por cliente) e, quando os cards chegarem, localizamos o alvo exato.
 (function() {
     var qs = new URLSearchParams(location.search);
     var acao = qs.get('acao');
@@ -1214,19 +1016,36 @@ filtrar();
         inicio:   qs.get('inicio') || '',
         fim:      qs.get('fim') || '',
     };
-    var cards = document.querySelectorAll('#cpGrid .cp-card');
-    for (var i = 0; i < cards.length; i++) {
-        var d;
-        try { d = JSON.parse(cards[i].dataset.campanha || '{}'); } catch(e) { continue; }
-        if (norm(d.cliente) === alvo.cliente && norm(d.agencia) === alvo.agencia &&
-            norm(d.nome) === alvo.nome && norm(d.situacao) === alvo.situacao &&
-            (d.inicio || '') === alvo.inicio && (d.fim || '') === alvo.fim) {
-            cards[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
-            if (acao === 'editar') abrirEdicao(cards[i]);
-            else abrirRenovacao(cards[i]);
-            break;
+
+    function acharEAbrir() {
+        var cards = document.querySelectorAll('#cpGrid .cp-card');
+        for (var i = 0; i < cards.length; i++) {
+            var d;
+            try { d = JSON.parse(cards[i].dataset.campanha || '{}'); } catch(e) { continue; }
+            if (norm(d.cliente) === alvo.cliente && norm(d.agencia) === alvo.agencia &&
+                norm(d.nome) === alvo.nome && norm(d.situacao) === alvo.situacao &&
+                (d.inicio || '') === alvo.inicio && (d.fim || '') === alvo.fim) {
+                cards[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (acao === 'editar') abrirEdicao(cards[i]);
+                else abrirRenovacao(cards[i]);
+                return true;
+            }
         }
+        return false;
     }
+
+    filtros.cliente = alvo.cliente;
+    filtros.situacao = '';
+    document.getElementById('cpFiltroCliente').value = alvo.cliente;
+    document.getElementById('cpFiltroCliente').className = 'cp-sel' + (alvo.cliente ? ' ativo' : '');
+    buscarCampanhas().then(function() {
+        if (acharEAbrir()) return;
+        // Não achou entre as ativas (pode estar encerrada): tenta de novo
+        filtros.situacao = 'Encerradas';
+        document.getElementById('cpFiltroSit').value = 'Encerradas';
+        document.getElementById('cpFiltroSit').className = 'cp-sel ativo';
+        buscarCampanhas().then(acharEAbrir);
+    });
 })();
 </script>
 
