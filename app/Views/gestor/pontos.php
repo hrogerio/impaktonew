@@ -78,13 +78,10 @@ $recentes = $pdo->query(
     <link rel="stylesheet" href="/public/assets/css/gestor.css">
     <link rel="stylesheet" href="/public/assets/css/pontos.css">
     <style>
-        body { overflow: hidden; }
-
-        /* ── Layout full-viewport ── */
-        .pontos-page { display:flex; flex-direction:column; padding:0.5rem 1.2rem 0; overflow:hidden; box-sizing:border-box; }
-        .pontos-left { display:flex; flex-direction:column; min-height:0; overflow:hidden; flex:1; }
-        .table-container { flex:1; overflow-y:auto; min-height:0; scrollbar-width:none; }
-        .table-container::-webkit-scrollbar { display:none; }
+        /* ── Layout: página rola inteira, sem scroll interno na lista ── */
+        .pontos-page { display:flex; flex-direction:column; padding:0.5rem 1.2rem 2rem; box-sizing:border-box; }
+        .pontos-left { display:flex; flex-direction:column; }
+        .table-container { }
 
         /* ── Carrinho flutuante ── */
         .cart-btn {
@@ -895,7 +892,7 @@ document.addEventListener('click', function(e) {
 // ── Push bar ─────────────────────────────────────────────────
 function fecharPushBar() {
     var pb = document.getElementById('pushBar');
-    if (pb) { pb.style.display = 'none'; ajustarAltura(); }
+    if (pb) pb.style.display = 'none';
     sessionStorage.setItem('pushBarFechado', '1');
 }
 (function() {
@@ -904,17 +901,6 @@ function fecharPushBar() {
         if (pb) pb.style.display = 'none';
     }
 })();
-
-// ── Altura viewport ──────────────────────────────────────────
-function ajustarAltura() {
-    var header  = document.querySelector('.header');
-    var pushBar = document.getElementById('pushBar');
-    var used = (header ? header.offsetHeight : 60)
-             + (pushBar && pushBar.style.display !== 'none' ? pushBar.offsetHeight : 0);
-    document.getElementById('pontosPage').style.height = (window.innerHeight - used) + 'px';
-}
-ajustarAltura();
-window.addEventListener('resize', ajustarAltura);
 
 // ── Init ─────────────────────────────────────────────────────
 renderTabela();
