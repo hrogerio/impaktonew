@@ -168,6 +168,32 @@ $mesesCompletos = ['janeiro','fevereiro','março','abril','maio','junho','julho'
 $agora = new DateTime();
 $dataHoraTopo = $agora->format('d') . ' ' . $mesesAbrev[(int)$agora->format('n') - 1] . ', ' . $agora->format('H') . 'h';
 
+// ── Tabela de bi-semanas 2026 (apenas referência, não vem do banco) ──
+$bisemanas2026 = [
+    ['02/26','29/12 a 11/01'], ['04/26','12/01 a 25/01'], ['06/26','26/01 a 08/02'],
+    ['08/26','09/02 a 22/02'], ['10/26','23/02 a 08/03'], ['12/26','09/03 a 22/03'],
+    ['14/26','23/03 a 05/04'], ['16/26','06/04 a 19/04'], ['18/26','20/04 a 03/05'],
+    ['20/26','04/05 a 17/05'], ['22/26','18/05 a 31/05'], ['24/26','01/06 a 14/06'],
+    ['26/26','15/06 a 28/06'], ['28/26','29/06 a 12/07'], ['30/26','13/07 a 26/07'],
+    ['32/26','27/07 a 09/08'], ['34/26','10/08 a 23/08'], ['36/26','24/08 a 06/09'],
+    ['38/26','07/09 a 20/09'], ['40/26','21/09 a 04/10'], ['42/26','05/10 a 18/10'],
+    ['44/26','19/10 a 01/11'], ['46/26','02/11 a 15/11'], ['48/26','16/11 a 29/11'],
+    ['50/26','30/11 a 13/12'], ['52/26','14/12 a 27/12'],
+];
+
+// Descobre qual bi-semana contém a data de hoje (a primeira faixa começa em dez/2025)
+$biAtualIdx = null;
+foreach ($bisemanas2026 as $i => $bi) {
+    [$ini, $fim] = explode(' a ', $bi[1]);
+    [$di, $mi] = explode('/', $ini);
+    [$df, $mf] = explode('/', $fim);
+    $anoIni = ($i === 0) ? 2025 : 2026;
+    $dtIni = DateTime::createFromFormat('d/m/Y H:i:s', "$di/$mi/$anoIni 00:00:00");
+    $dtFim = DateTime::createFromFormat('d/m/Y H:i:s', "$df/$mf/2026 23:59:59");
+    if ($agora >= $dtIni && $agora <= $dtFim) { $biAtualIdx = $i; break; }
+}
+$biAtual = $biAtualIdx !== null ? $bisemanas2026[$biAtualIdx] : null;
+
 $CORES_SIT = [
     'Disponivel' => '#1a9059', 'Disponível' => '#1a9059',
     'Ocupado'    => '#dc3545',
@@ -219,6 +245,48 @@ $CORES_SIT = [
             background:var(--ok-soft); padding:0.35rem 0.7rem; border-radius:20px;
         }
         .db-live-dot { width:6px; height:6px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 3px var(--ok-soft); }
+        .db-clima-pill {
+            display:inline-flex; align-items:center; gap:0.4rem;
+            font-size:0.85rem; font-weight:600; color:var(--color-text-muted);
+            background:none; border:1px solid var(--color-border); border-radius:20px;
+            padding:0.3rem 0.75rem 0.3rem 0.6rem; cursor:pointer; font-family:inherit;
+        }
+        .db-clima-pill a { color:var(--color-accent-primary); text-decoration:underline; }
+        .db-clima-load { opacity:0.6; }
+
+        /* ── Bi-semanas: dropdown no cabeçalho ── */
+        .bi-dropdown { position:relative; }
+        .bi-dropdown-pill {
+            display:inline-flex; align-items:center; gap:0.5rem;
+            font-size:0.8rem; font-weight:700; color:var(--color-text-dark);
+            background:white; border:1px solid var(--color-border); border-radius:20px;
+            padding:0.35rem 0.8rem 0.35rem 0.35rem; cursor:pointer; font-family:inherit;
+        }
+        .bi-dropdown-pill:hover { border-color:var(--color-accent-primary); }
+        .bi-atual-tag {
+            font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em;
+            color:var(--crit); background:var(--crit-soft); padding:3px 9px; border-radius:20px;
+        }
+        .bi-atual-num { font-weight:800; }
+        .bi-atual-periodo { color:var(--color-text-muted); font-weight:600; }
+        .bi-chevron { font-size:0.7rem; color:var(--color-text-muted); transition:transform 0.15s; }
+        .bi-dropdown-pill.aberto .bi-chevron { transform:rotate(180deg); }
+
+        .bi-dropdown-panel {
+            position:absolute; top:calc(100% + 8px); left:0; z-index:200;
+            background:white; border:1px solid var(--color-border); border-radius:12px;
+            box-shadow:var(--db-shadow); padding:0.5rem;
+            width:280px; max-height:320px; overflow-y:auto;
+        }
+        .bi-dropdown-item {
+            display:flex; justify-content:space-between; gap:0.75rem;
+            padding:0.45rem 0.6rem; border-radius:8px;
+            font-size:0.8rem; font-weight:600; color:var(--color-text-dark);
+        }
+        .bi-dropdown-item:hover { background:var(--color-bg-primary); }
+        .bi-dropdown-item span:first-child { font-weight:800; color:var(--color-text-muted); }
+        .bi-dropdown-item-atual { background:var(--crit-soft); }
+        .bi-dropdown-item-atual span:first-child { color:var(--crit); }
 
         /* ── Grid de KPIs ── */
         .db-kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:0.85rem; }
@@ -397,9 +465,33 @@ $CORES_SIT = [
     <div class="db-header">
         <div class="db-header-title">
             <h1>Dashboard</h1>
-            <span class="db-header-time"><?= $dataHoraTopo ?> · hoje em Recife</span>
+            <span class="db-header-time"><span id="db-clock"><?= $dataHoraTopo ?></span></span>
+            <span id="db-clima-toggle" class="db-clima-pill">
+                <span id="db-clima-icone">⏳</span>
+                <span id="db-clima-texto" class="db-clima-load">carregando clima…</span>
+            </span>
         </div>
-        <span class="db-live-pill"><span class="db-live-dot"></span>Atualizado agora</span>
+        <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+            <?php if ($biAtual): ?>
+            <div class="bi-dropdown">
+                <button type="button" id="bi-dropdown-toggle" class="bi-dropdown-pill">
+                    <span class="bi-atual-tag">Bi-semanas</span>
+                    <span class="bi-atual-num"><?= htmlspecialchars($biAtual[0]) ?></span>
+                    <span class="bi-atual-periodo"><?= htmlspecialchars($biAtual[1]) ?></span>
+                    <span class="bi-chevron">▾</span>
+                </button>
+                <div id="bi-dropdown-panel" class="bi-dropdown-panel" hidden>
+                    <?php foreach ($bisemanas2026 as $i => $bi): ?>
+                    <div class="bi-dropdown-item<?= $i === $biAtualIdx ? ' bi-dropdown-item-atual' : '' ?>">
+                        <span><?= htmlspecialchars($bi[0]) ?></span>
+                        <span><?= htmlspecialchars($bi[1]) ?></span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+            <span class="db-live-pill"><span class="db-live-dot"></span>Atualizado agora</span>
+        </div>
     </div>
 
     <!-- ── Alertas urgentes ── -->
@@ -606,6 +698,98 @@ $CORES_SIT = [
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ── Relógio dinâmico ──
+    var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    function atualizarRelogio() {
+        var el = document.getElementById('db-clock');
+        if (!el) return;
+        var agora = new Date();
+        var texto = String(agora.getDate()).padStart(2, '0') + ' ' + meses[agora.getMonth()]
+            + ', ' + String(agora.getHours()).padStart(2, '0') + 'h'
+            + String(agora.getMinutes()).padStart(2, '0');
+        el.textContent = texto;
+    }
+    atualizarRelogio();
+    setInterval(atualizarRelogio, 30000);
+
+    // ── Localização + temperatura (Open-Meteo, sem chave de API) ──
+    var WMO_ICONE = {
+        0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️',
+        45:'🌫️', 48:'🌫️',
+        51:'🌦️', 53:'🌦️', 55:'🌦️', 56:'🌦️', 57:'🌦️',
+        61:'🌧️', 63:'🌧️', 65:'🌧️', 66:'🌧️', 67:'🌧️',
+        71:'🌨️', 73:'🌨️', 75:'🌨️', 77:'🌨️',
+        80:'🌦️', 81:'🌧️', 82:'⛈️',
+        85:'🌨️', 86:'🌨️',
+        95:'⛈️', 96:'⛈️', 99:'⛈️'
+    };
+
+    function carregarClima(lat, lon, nomeLocal) {
+        var textoEl = document.getElementById('db-clima-texto');
+        var iconeEl = document.getElementById('db-clima-icone');
+        var local = nomeLocal || 'sua região';
+
+        fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon
+            + '&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=1')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.daily) throw new Error('sem dados');
+                var max = Math.round(data.daily.temperature_2m_max[0]);
+                var min = Math.round(data.daily.temperature_2m_min[0]);
+                var icone = WMO_ICONE[data.daily.weathercode[0]] || '🌡️';
+
+                textoEl.classList.remove('db-clima-load');
+                iconeEl.textContent = icone;
+                textoEl.innerHTML = max + '° Máx. ' + min + '° Mín., hoje em <a href="https://www.google.com/search?q=clima+em+' + encodeURIComponent(local) + '" target="_blank" rel="noopener">' + local + '</a>';
+            })
+            .catch(function() {
+                textoEl.classList.remove('db-clima-load');
+                iconeEl.textContent = '—';
+                textoEl.textContent = 'Clima indisponível';
+            });
+    }
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                var lat = pos.coords.latitude, lon = pos.coords.longitude;
+                fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon + '&zoom=10')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        var addr = data.address || {};
+                        var cidade = addr.city || addr.town || addr.municipality || addr.county || 'Recife';
+                        carregarClima(lat, lon, cidade);
+                    })
+                    .catch(function() { carregarClima(lat, lon, 'sua região'); });
+            },
+            function() {
+                // permissão negada / indisponível: usa Recife como padrão
+                carregarClima(-8.0476, -34.8770, 'Recife');
+            },
+            { timeout: 5000 }
+        );
+    } else {
+        carregarClima(-8.0476, -34.8770, 'Recife');
+    }
+
+    // ── Dropdown de bi-semanas ──
+    var biBotao = document.getElementById('bi-dropdown-toggle');
+    var biPainel = document.getElementById('bi-dropdown-panel');
+    if (biBotao && biPainel) {
+        biBotao.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var aberto = !biPainel.hidden;
+            biPainel.hidden = aberto;
+            biBotao.classList.toggle('aberto', !aberto);
+        });
+        document.addEventListener('click', function(e) {
+            if (!biPainel.hidden && !biPainel.contains(e.target) && e.target !== biBotao) {
+                biPainel.hidden = true;
+                biBotao.classList.remove('aberto');
+            }
+        });
+    }
+
     // Remove parâmetro logado da URL após 3s
     if (window.location.search.includes('logado=1')) {
         setTimeout(function() {
