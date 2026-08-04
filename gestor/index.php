@@ -457,7 +457,7 @@ $CORES_SIT = [
 
     <?php if ($autoProcessados > 0): ?>
     <div class="db-alert" style="background:#fff7ed;border-color:#fdba74;color:#9a3412">
-        ⚠️ <strong><?= $autoProcessados ?> contrato<?= $autoProcessados > 1 ? 's' : '' ?> vencido<?= $autoProcessados > 1 ? 's' : '' ?></strong>
+        ⚠️ <strong><?= $autoProcessados ?> campanha<?= $autoProcessados > 1 ? 's' : '' ?> vencida<?= $autoProcessados > 1 ? 's' : '' ?></strong>
         <?= $autoProcessados > 1 ? 'aguardam decisão' : 'aguarda decisão' ?> — renove ou encerre manualmente em Campanhas.
     </div>
     <?php endif; ?>
@@ -501,7 +501,7 @@ $CORES_SIT = [
         <div class="db-alerta-banner">
             <div class="db-alerta-badge">!</div>
             <span>
-                <strong><?= $venc7count ?> contrato<?= $venc7count > 1 ? 's' : '' ?></strong>
+                <strong><?= $venc7count ?> campanha<?= $venc7count > 1 ? 's' : '' ?></strong>
                 <?= $venc7count > 1 ? 'vencem' : 'vence' ?> nos próximos <strong>7 dias</strong>. Renove ou encerre antes que o ponto fique parado.
                 <a href="#vencimentos">Ver detalhes ↓</a>
             </span>
@@ -556,7 +556,7 @@ $CORES_SIT = [
     <?php if (!empty($vencimentos)): ?>
     <div id="vencimentos" style="display:flex;flex-direction:column;gap:0.9rem;">
         <div class="db-section-head">
-            <h2>Contratos com vencimento <span style="color:var(--color-text-muted);font-weight:600;font-size:0.82rem">(<?= $venc30count ?> vencidos ou vencendo em <?= $mesesCompletos[(int)date('n') - 1] ?>)</span></h2>
+            <h2>Campanhas com vencimento <span style="color:var(--color-text-muted);font-weight:600;font-size:0.82rem">(<?= $venc30count ?> vencidas ou vencendo em <?= $mesesCompletos[(int)date('n') - 1] ?>)</span></h2>
             <a href="/gestor/pontos?vencimento=mes_atual" class="db-card-link">Ver todos →</a>
         </div>
         <div class="venc-scroll">
@@ -567,7 +567,7 @@ $CORES_SIT = [
                 elseif ($dias <= 15) { $cls = 'dias-atencao'; $label = "Vence em {$dias}d"; }
                 else { $cls = 'dias-ok'; $label = 'Em dia'; }
             ?>
-            <a href="/gestor/pontos/detalhes?id=<?= $v['id'] ?>" class="venc-card<?= $dias < 0 ? ' venc-card-expirado' : '' ?>">
+            <a href="/gestor/campanhas?busca=<?= urlencode(mb_strtolower(trim($v['numero']))) ?>" class="venc-card<?= $dias < 0 ? ' venc-card-expirado' : '' ?>">
                 <div class="venc-card-top">
                     <span class="venc-tag"><?= htmlspecialchars($v['tipo'] ?: 'Ponto') ?></span>
                 </div>
@@ -578,7 +578,7 @@ $CORES_SIT = [
                     <?php if ($v['tem_checking']): ?><span class="chip-mini chip-checking">Checking</span><?php endif; ?>
                     <span class="chip-mini <?= $cls ?>"><?= $label ?></span>
                 </div>
-                <span class="venc-card-cta">Renovar contrato →</span>
+                <span class="venc-card-cta">Renovar campanha →</span>
             </a>
             <?php endforeach; ?>
         </div>
