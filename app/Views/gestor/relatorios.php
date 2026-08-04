@@ -136,11 +136,13 @@ function tabelaCampanhas(array $lista) {
         .rel-row-clicavel:hover td:first-child strong { text-decoration:underline; }
 
         .cp-modal-overlay {
-            display:none; position:fixed; inset:0;
+            display:flex; position:fixed; inset:0;
             background:rgba(0,0,0,0.45); z-index:1000;
             align-items:center; justify-content:center;
+            opacity:0; visibility:hidden; pointer-events:none;
+            transition:opacity var(--duration-base,0.2s) var(--ease,ease), visibility var(--duration-base,0.2s);
         }
-        .cp-modal-overlay.aberto { display:flex; }
+        .cp-modal-overlay.aberto { opacity:1; visibility:visible; pointer-events:auto; }
         .cp-card {
             background:#fff; border:1px solid var(--color-border); border-radius:12px;
             overflow:hidden; display:flex; flex-direction:column;
@@ -149,7 +151,10 @@ function tabelaCampanhas(array $lista) {
             background:#fff; border-radius:14px; padding:1.5rem;
             width:480px; max-width:95vw; max-height:90vh; overflow-y:auto;
             box-shadow:0 20px 60px rgba(0,0,0,0.3);
+            transform:scale(0.95) translateY(8px);
+            transition:transform var(--duration-base,0.2s) var(--ease,ease);
         }
+        .cp-modal-overlay.aberto .cp-modal { transform:scale(1) translateY(0); }
         .cp-card.cp-modal {
             padding:0; position:relative;
         }

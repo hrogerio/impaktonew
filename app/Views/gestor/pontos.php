@@ -158,12 +158,15 @@ $recentes = $pdo->query(
         .dropdown-caret { font-size:0.65rem; transition:transform 0.15s; }
         .btn-dropdown-excl.aberto .dropdown-caret { transform:rotate(180deg); }
         .dropdown-excl-menu {
-            display:none; position:absolute; top:calc(100% + 6px); right:0; z-index:100;
+            display:block; position:absolute; top:calc(100% + 6px); right:0; z-index:100;
             background:white; border:1px solid var(--color-border); border-radius:8px;
             box-shadow:0 8px 24px rgba(0,0,0,0.12); min-width:230px; overflow:hidden;
             padding:0.3rem;
+            opacity:0; visibility:hidden; pointer-events:none;
+            transform:translateY(-6px) scale(0.98);
+            transition:opacity 0.15s var(--ease,ease), transform 0.15s var(--ease,ease), visibility 0.15s;
         }
-        .dropdown-excl-menu.aberto { display:block; }
+        .dropdown-excl-menu.aberto { opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0) scale(1); }
         .dropdown-excl-item {
             display:flex; align-items:center; gap:0.5rem; width:100%;
             background:none; border:none; text-align:left;
@@ -188,9 +191,22 @@ $recentes = $pdo->query(
         .link-editar:hover { color:var(--color-accent-primary); }
 
         /* ── Lightbox ── */
-        .lb-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:2000; align-items:center; justify-content:center; cursor:zoom-out; }
-        .lb-overlay.aberto { display:flex; }
-        .lb-img { max-width:90vw; max-height:88vh; border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+        .lb-overlay {
+            display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:2000;
+            align-items:center; justify-content:center; cursor:zoom-out;
+            opacity:0; visibility:hidden; pointer-events:none;
+            transition:opacity 0.2s var(--ease,ease), visibility 0.2s;
+        }
+        .lb-overlay.aberto { opacity:1; visibility:visible; pointer-events:auto; }
+        .lb-img {
+            max-width:90vw; max-height:88vh; border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,0.5);
+            transform:scale(0.92); transition:transform 0.2s var(--ease,ease);
+        }
+        .lb-overlay.aberto .lb-img { transform:scale(1); }
+
+        /* ── Fade-in leve nas linhas ao filtrar/ordenar ── */
+        @keyframes fadeInRow { from { opacity:0; } to { opacity:1; } }
+        #tabelaBody tr { animation: fadeInRow 0.15s var(--ease,ease); }
 
         mark { background:#fff3cd; padding:1px 2px; border-radius:2px; }
         .empty-row td { text-align:center; padding:3rem 1rem; color:var(--color-text-muted); font-size:0.85rem; }
@@ -438,13 +454,14 @@ function badgeExclusivo(p) {
     if (!p.exclusivo || parseInt(p.exclusivo) !== 1) return '';
     var titulo = p.cliente_exclusivo ? 'Exclusivo de ' + p.cliente_exclusivo : 'Exclusivo';
     if (parseInt(p.liberado_comercializacao) === 1) {
-        return '<div class="badge-excl-wrap"><button type="button" class="badge-excl liberado" onclick="event.stopPropagation();toggleLiberadoExclusivo('+p.id+')" title="'+esc(titulo)+', liberado para comercialização — clique para bloquear de novo">🔓 Liberado p/ comerc.</button></div>';
+        return '<div class="badge-excl-wrap"><button type="button" class="badge-excl liberado" onclick="event.stopPropagation();toggleLiberadoExclusivo(this,'+p.id+')" title="'+esc(titulo)+', liberado para comercialização — clique para bloquear de novo">🔓 Liberado p/ comerc.</button></div>';
     }
-    return '<div class="badge-excl-wrap"><button type="button" class="badge-excl" onclick="event.stopPropagation();toggleLiberadoExclusivo('+p.id+')" title="'+esc(titulo)+' — clique para liberar para comercialização">🔒 Exclusivo</button></div>';
+    return '<div class="badge-excl-wrap"><button type="button" class="badge-excl" onclick="event.stopPropagation();toggleLiberadoExclusivo(this,'+p.id+')" title="'+esc(titulo)+' — clique para liberar para comercialização">🔒 Exclusivo</button></div>';
 }
 
 // ── Liberar/bloquear ponto exclusivo p/ comercialização (inline) ──
-function toggleLiberadoExclusivo(id) {
+function toggleLiberadoExclusivo(btn, id) {
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.55'; btn.style.cursor = 'wait'; }
     fetch('/gestor/pontos/toggle-liberado', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -454,6 +471,7 @@ function toggleLiberadoExclusivo(id) {
     .then(function(data) {
         if (!data.ok) {
             mostrarAviso('⚠️ Não foi possível alterar a liberação deste ponto.', 'laranja');
+            if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = ''; }
             return;
         }
         var ponto = PONTOS.find(function(p){ return String(p.id) === String(id); });
@@ -471,6 +489,7 @@ function toggleLiberadoExclusivo(id) {
     })
     .catch(function() {
         mostrarAviso('⚠️ Erro de comunicação ao alterar a liberação.', 'laranja');
+        if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = ''; }
     });
 }
 
