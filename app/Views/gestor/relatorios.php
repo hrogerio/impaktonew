@@ -135,6 +135,26 @@ function tabelaCampanhas(array $lista) {
         .rel-row-clicavel:hover td { color:var(--color-accent-primary) !important; font-weight:700; }
         .rel-row-clicavel:hover td:first-child strong { text-decoration:underline; }
 
+        /* ── Acordeão de Contratos Vencendo (preto e branco, pra diferenciar da tabela geral) ── */
+        .mes-acordeao { border:1px solid #000; border-radius:10px; margin-bottom:0.75rem; overflow:hidden; }
+        .mes-acordeao-header {
+            display:flex; align-items:center; justify-content:space-between; gap:0.5rem;
+            padding:0.7rem 1rem; cursor:pointer; user-select:none;
+            background:#fff; color:#000;
+            transition:background 0.15s, color 0.15s;
+        }
+        .mes-acordeao-header:hover { background:#f2f2f2; }
+        .mes-acordeao.aberto .mes-acordeao-header { background:#000; color:#fff; }
+        .mes-acordeao-titulo { display:flex; align-items:center; gap:0.6rem; font-weight:700; font-size:0.92rem; }
+        .mes-acordeao-count {
+            background:#000; color:#fff;
+            border-radius:999px; padding:0.1rem 0.55rem; font-size:0.72rem; font-weight:700;
+        }
+        .mes-acordeao.aberto .mes-acordeao-count { background:#fff; color:#000; }
+        .mes-acordeao-body { display:none; padding:0.75rem 1rem 1rem; }
+        .mes-acordeao.aberto .mes-acordeao-body { display:block; }
+        .mes-acordeao-body .rel-table th { background:#6b7280; color:#fff; }
+
         .cp-modal-overlay {
             display:flex; position:fixed; inset:0;
             background:rgba(0,0,0,0.45); z-index:1000;
@@ -453,30 +473,23 @@ function tabelaCampanhas(array $lista) {
 
         <!-- ===== Contratos Vencendo ===== -->
         <div class="section-title" style="margin-top:1.5rem">📅 Contratos Vencendo</div>
-
-        <?php if (!empty($contratos['vencendo_por_mes'])): ?>
-        <div class="panel" style="margin-bottom:1.25rem;">
-            <div class="panel-title">Distribuição por mês (Jul a Dez)</div>
-            <?php $maxMes = max(1, max($contratos['vencendo_por_mes'])); ?>
-            <div class="timeline-bars">
-                <?php foreach ($contratos['vencendo_por_mes'] as $mes => $qtd): ?>
-                <div class="tl-col">
-                    <div class="tl-bar-count"><?= $qtd ?></div>
-                    <div class="tl-bar" style="height:<?= max(4,round(($qtd/$maxMes)*60)) ?>px;"></div>
-                    <div class="tl-label"><?= mesLabel($mes) ?></div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
+        <div class="panel-title" style="margin-bottom:0.6rem;">Distribuição por mês (Jul a Dez)</div>
 
         <?php if (empty($contratos['vencendo_agrupado'])): ?>
             <div class="empty-state"><div class="empty-state-icon">🎉</div><p>Nenhum contrato vencendo este ano.</p></div>
         <?php else: ?>
-            <?php foreach ($contratos['vencendo_agrupado'] as $mes => $campanhas): ?>
-            <div class="bloco-section">
-                <div class="bloco-label"><?= mesLabel($mes) ?></div>
-                <?php tabelaCampanhas($campanhas); ?>
+            <?php $mesIndex = 0; ?>
+            <?php foreach ($contratos['vencendo_agrupado'] as $mes => $campanhas):
+                $mesId = 'mesAcc' . $mesIndex;
+                $mesIndex++;
+            ?>
+            <div class="mes-acordeao" id="<?= $mesId ?>">
+                <div class="mes-acordeao-header" onclick="document.getElementById('<?= $mesId ?>').classList.toggle('aberto')">
+                    <span class="mes-acordeao-titulo"><?= mesLabel($mes) ?> <span class="mes-acordeao-count"><?= count($campanhas) ?></span></span>
+                </div>
+                <div class="mes-acordeao-body">
+                    <?php tabelaCampanhas($campanhas); ?>
+                </div>
             </div>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -685,11 +698,11 @@ function switchTab(name, btn) {
 
 function filtrarPorDocs() {
     var valor = document.getElementById('filtroDocs').value;
-    var linhas = document.querySelectorAll('#tab-contratos tr.rel-row-clicavel');
-    linhas.forEach(function(tr) {
-        var temDoc = !!tr.querySelector('.docs-ok');
+    var linhas = document.querySelectorAll('#tab-contratos .rel-row-clicavel');
+    linhas.forEach(function(el) {
+        var temDoc = !!el.querySelector('.docs-ok');
         var mostrar = valor === 'todos' || (valor === 'com' && temDoc) || (valor === 'sem' && !temDoc);
-        tr.style.display = mostrar ? '' : 'none';
+        el.style.display = mostrar ? '' : 'none';
     });
 }
 
