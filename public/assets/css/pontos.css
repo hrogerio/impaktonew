@@ -106,11 +106,11 @@
 .table thead th.sort-asc  .sort-icon::after { content: ' ↑'; opacity: 1; }
 .table thead th.sort-desc .sort-icon::after { content: ' ↓'; opacity: 1; }
 .table thead th .sort-icon::after { content: ' ↕'; }
-.table tbody tr { border-bottom: 1px solid var(--color-border); transition: background 0.1s; }
-.table tbody tr:hover { background: #fafafa; }
+.table tbody tr { border-bottom: 1px solid var(--color-border); border-left: 3px solid transparent; transition: background 0.1s, border-color 0.1s; }
+.table tbody tr:hover { background: #fbf3f2; border-left-color: var(--color-accent-primary); }
 .table td { padding: 0.18rem 0.45rem; vertical-align: middle; line-height: 1.3; }
 
-.col-num        { font-weight: 800; color: var(--color-accent-primary); font-size: 0.8rem; white-space: nowrap; }
+.col-num        { font-weight: 800; color: var(--color-text-dark); font-size: 0.8rem; white-space: nowrap; }
 .col-local-main { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 0; }
 .col-local-sub  { font-size: 0.66rem; color: var(--color-text-muted); font-weight: 400; }
 
@@ -125,13 +125,13 @@
     letter-spacing: 0.4px;
     white-space: nowrap;
 }
-.sit-disponivel { background: #dcfce7; color: #166534; }
-.sit-ocupado    { background: #fee2e2; color: #991b1b; }
-.sit-reservado  { background: #ffedd5; color: #9a3412; }
-.sit-vencido    { background: #f3e8ff; color: #6b21a8; }
-.sit-permuta    { background: #ede9fe; color: #4c1d95; }
-.sit-bisemana   { background: #cffafe; color: #164e63; }
-.sit-outro      { background: #f1f5f9; color: #475569; }
+.sit-disponivel { background: var(--color-bg-primary); color: var(--color-text-dark); border: 1px solid var(--color-border); }
+.sit-reservado  { background: var(--color-bg-white); color: var(--color-text-dark); border: 1px dashed var(--color-border); }
+.sit-ocupado    { background: var(--color-text-dark); color: var(--color-bg-white); }
+.sit-vencido    { background: var(--color-accent-primary); color: var(--color-bg-white); }
+.sit-permuta    { background: var(--color-bg-white); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+.sit-bisemana   { background: var(--color-bg-primary); color: var(--color-text-muted); border: 1px dotted var(--color-border); }
+.sit-outro      { background: transparent; color: var(--color-text-muted); border: 1px solid var(--color-border); }
 
 /* ===== BADGE CONTRATO ===== */
 .badge-contrato {
@@ -142,12 +142,12 @@
     font-weight: 600;
     white-space: nowrap;
 }
-.ctr-vencido { background: #fde8e8; color: #c0392b; }
-.ctr-critico { background: #fee2e2; color: #991b1b; }
-.ctr-urgente { background: #fff3cd; color: #856404; }
-.ctr-atencao { background: #dbeafe; color: #1e40af; }
-.ctr-ok      { background: #dcfce7; color: #166534; }
-.ctr-sem     { background: #f1f5f9; color: #94a3b8; }
+.ctr-sem      { background: transparent; color: var(--color-text-muted); border: 1px solid var(--color-border); }
+.ctr-ok       { background: var(--color-bg-primary); color: var(--color-text-dark); border: 1px solid var(--color-border); }
+.ctr-atencao  { background: #dcdcdf; color: var(--color-text-dark); }
+.ctr-urgente  { background: #9a9ba1; color: var(--color-bg-white); }
+.ctr-critico  { background: #4b4c52; color: var(--color-bg-white); }
+.ctr-vencido  { background: var(--color-accent-primary); color: var(--color-bg-white); }
 
 /* ===== LINK DETALHES ===== */
 .link-info {
@@ -163,7 +163,7 @@
 }
 .link-info:hover { background: var(--color-accent-primary); color: white; }
 
-mark { background: #fff3cd; padding: 1px 3px; border-radius: 3px; }
+mark { background: rgba(23, 24, 28, 0.12); padding: 1px 3px; border-radius: 3px; }
 
 .empty-row td { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted); }
 .empty-row .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; }
