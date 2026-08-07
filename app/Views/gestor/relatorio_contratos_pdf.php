@@ -171,8 +171,11 @@ function truncarTexto($pdf, $texto, $largura) {
     return $texto . '...';
 }
 
-function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM, $PRETO, $CINZAC, $CW = null, $MUTED = null) {
+/** $destaque: quando true, marca todas as linhas com fundo cinza-escuro + barra sólida na
+ *  margem esquerda + texto em negrito — visível mesmo em impressão preto e branco (não depende de cor). */
+function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM, $PRETO, $CINZAC, $CW = null, $MUTED = null, bool $destaque = false) {
     $rowH = 6;
+    $CINZAE = [205, 205, 208]; // cinza mais escuro, contrasta bem em tons de cinza (impressão P&B)
     $drawHeader = function() use ($pdf, $headers, $colWidths, $MX, $VERM) {
         $pdf->SetFont(FONT_MAIN, 'B', 8);
         $pdf->SetTextColor(255, 255, 255);
@@ -190,17 +193,24 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
         if ($CW !== null && $MUTED !== null) cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
     }
     $drawHeader();
-    $pdf->SetFont(FONT_MAIN, '', 7.5);
+    $pdf->SetFont(FONT_MAIN, $destaque ? 'B' : '', 7.5);
     $pdf->SetTextColor(...$PRETO);
     foreach ($rows as $idx => $row) {
         if ($pdf->GetY() + $rowH > 280) {
             $pdf->AddPage();
             if ($CW !== null && $MUTED !== null) cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
             $drawHeader();
-            $pdf->SetFont(FONT_MAIN, '', 7.5);
+            $pdf->SetFont(FONT_MAIN, $destaque ? 'B' : '', 7.5);
             $pdf->SetTextColor(...$PRETO);
         }
-        if ($idx % 2 === 1) {
+        if ($destaque) {
+            $y = $pdf->GetY();
+            $pdf->SetFillColor(...$CINZAE);
+            $pdf->SetX($MX);
+            foreach ($row as $i => $val) $pdf->Cell($colWidths[$i], $rowH, s(truncarTexto($pdf, $val, $colWidths[$i])), 0, 0, 'L', true);
+            $pdf->SetFillColor(...$PRETO);
+            $pdf->Rect($MX, $y, 1.2, $rowH, 'F');
+        } elseif ($idx % 2 === 1) {
             $pdf->SetFillColor(...$CINZAC);
             $pdf->SetX($MX);
             foreach ($row as $i => $val) $pdf->Cell($colWidths[$i], $rowH, s(truncarTexto($pdf, $val, $colWidths[$i])), 0, 0, 'L', true);
@@ -236,12 +246,12 @@ function contarSemDocumentosPdf(array $lista, array $documentosPorGrupo): int {
 }
 
 /** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos/Docs) */
-function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, array $documentosPorGrupo = []) {
+function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, array $documentosPorGrupo = [], bool $destaque = false) {
     tabela($pdf,
         ['Cliente', 'Campanha', 'Agencia', 'Contato', 'Inicio', 'Fim', 'Duracao', 'Pontos', 'Docs'],
         [26, 22, 24, 18, 16, 16, 18, 12, 20],
         array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos'], docsLabelPdf($c, $documentosPorGrupo)], $lista),
-        $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
+        $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $destaque
     );
 }
 
@@ -312,7 +322,7 @@ foreach ($ct['vencendo_agrupado'] as $mes => $campanhas) {
 }
 
 subtitulo($pdf, 'Contratos Vencidos (todos)', $CW, $MUTED);
-tabelaCampanhasPdf($pdf, $ct['vencidos_agrupado'], $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $documentosPorGrupo);
+tabelaCampanhasPdf($pdf, $ct['vencidos_agrupado'], $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $documentosPorGrupo, true);
 
 subtitulo($pdf, 'Historico Anual - Contratos Ativos por Mes', $CW, $MUTED);
 graficoBarras($pdf, $ct['ativos_por_mes'], $CW, $MX, $VERM, $PRETO, $MUTED);
