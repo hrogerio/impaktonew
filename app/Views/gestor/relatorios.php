@@ -41,6 +41,14 @@ function fmtData($data) {
     catch (Exception $e) { return '-'; }
 }
 
+/** Conta quantos contratos da lista não têm nenhum documento financeiro enviado */
+function contarSemDocumentos(array $lista, array $documentosPorGrupo): int {
+    return count(array_filter($lista, function($c) use ($documentosPorGrupo) {
+        $chave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') . '|' . ($c['inicio_contrato'] ?? '') . '|' . ($c['fim_contrato'] ?? ''));
+        return empty($documentosPorGrupo[$chave] ?? []);
+    }));
+}
+
 function fmtDuracao($dias) {
     if ($dias === null) return '-';
     $dias = (int)$dias;
@@ -427,7 +435,7 @@ function tabelaCampanhas(array $lista) {
             <a class="btn-export btn-pdf" href="/gestor/relatorios/contratos/pdf" target="_blank">📄 PDF de Contratos</a>
         </div>
 
-        <div class="kpi-grid" style="grid-template-columns:repeat(2,minmax(180px,220px)); margin-bottom:1.25rem;">
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,minmax(180px,220px)); margin-bottom:1.25rem;">
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#eef6ff;">📄</div>
                 <div class="kpi-body">
@@ -440,6 +448,13 @@ function tabelaCampanhas(array $lista) {
                 <div class="kpi-body">
                     <div class="kpi-value" style="color:#8e44ad"><?= count($contratos['vencidos_agrupado']) ?></div>
                     <div class="kpi-label">Já Vencidos</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#fff4e5;">⚠️</div>
+                <div class="kpi-body">
+                    <div class="kpi-value" style="color:#e67e22"><?= contarSemDocumentos($contratos['campanhas_ativas'], $documentosPorGrupo) ?></div>
+                    <div class="kpi-label">Sem Documentos</div>
                 </div>
             </div>
         </div>

@@ -230,6 +230,11 @@ function docsLabelPdf(array $c, array $documentosPorGrupo): string {
     return $tiposEmOrdem ? implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposEmOrdem)) : 'Sem doc';
 }
 
+/** Conta quantos contratos da lista não têm nenhum documento financeiro enviado */
+function contarSemDocumentosPdf(array $lista, array $documentosPorGrupo): int {
+    return count(array_filter($lista, fn($c) => empty($documentosPorGrupo[docChavePdf($c)] ?? [])));
+}
+
 /** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos/Docs) */
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, array $documentosPorGrupo = []) {
     tabela($pdf,
@@ -295,6 +300,7 @@ tituloSecao($pdf, 'Contratos e Tempo de Contrato', $CW, $MX, $VERM, $PRETO, $MUT
 kpis($pdf, [
     ['Contratos Ativos', count($ct['campanhas_ativas'])],
     ['Ja Vencidos', count($ct['vencidos_agrupado'])],
+    ['Sem Documentos', contarSemDocumentosPdf($ct['campanhas_ativas'], $documentosPorGrupo)],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
 subtitulo($pdf, 'Contratos Ativos por Cliente', $CW, $MUTED);
