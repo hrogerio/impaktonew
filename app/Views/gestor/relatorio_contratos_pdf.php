@@ -21,6 +21,7 @@ require_once __DIR__ . '/../../Controllers/RelatorioController.php';
 
 $controller = new RelatorioController();
 $ct = $controller->dadosContratos();
+$documentosPorGrupo = $controller->documentosPorGrupo();
 
 // ── tFPDF (com fallback pra FPDF) ──────────────────────────────────────────
 $tfpdfPath   = __DIR__ . '/../../../lib/fpdf/tfpdf.php';
@@ -212,12 +213,29 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
     $pdf->Ln(3);
 }
 
-/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos) */
-function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED) {
+/** Chave de agrupamento dos documentos financeiros (mesma lógica de campanhas/_helpers.php e relatorios.php) */
+function docChavePdf(array $c): string {
+    return md5(
+        trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') .
+        '|' . ($c['inicio_contrato'] ?? '') . '|' . ($c['fim_contrato'] ?? '')
+    );
+}
+
+/** Texto da coluna Docs: tipos enviados (CT/P.I./P.P., em ordem de prioridade) ou "Sem doc" */
+function docsLabelPdf(array $c, array $documentosPorGrupo): string {
+    $docsGrupo = $documentosPorGrupo[docChavePdf($c)] ?? [];
+    $tiposPresentes = array_unique(array_column($docsGrupo, 'tipo'));
+    $labelsTipo = ['CONTRATO' => 'CT', 'PP' => 'P.P.', 'PI' => 'P.I.'];
+    $tiposEmOrdem = array_values(array_filter(['CONTRATO', 'PP', 'PI'], fn($t) => in_array($t, $tiposPresentes, true)));
+    return $tiposEmOrdem ? implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposEmOrdem)) : 'Sem doc';
+}
+
+/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos/Docs) */
+function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, array $documentosPorGrupo = []) {
     tabela($pdf,
-        ['Cliente', 'Campanha', 'Agencia', 'Contato', 'Inicio', 'Fim', 'Duracao', 'Pontos'],
-        [28, 24, 28, 22, 18, 18, 20, 12],
-        array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos']], $lista),
+        ['Cliente', 'Campanha', 'Agencia', 'Contato', 'Inicio', 'Fim', 'Duracao', 'Pontos', 'Docs'],
+        [26, 22, 24, 18, 16, 16, 18, 12, 20],
+        array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos'], docsLabelPdf($c, $documentosPorGrupo)], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
     );
 }
@@ -280,15 +298,15 @@ kpis($pdf, [
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
 subtitulo($pdf, 'Contratos Ativos por Cliente', $CW, $MUTED);
-tabelaCampanhasPdf($pdf, $ct['campanhas_ativas'], $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED);
+tabelaCampanhasPdf($pdf, $ct['campanhas_ativas'], $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $documentosPorGrupo);
 
 foreach ($ct['vencendo_agrupado'] as $mes => $campanhas) {
     subtitulo($pdf, 'Vencendo em ' . mesLabelPdf($mes), $CW, $MUTED);
-    tabelaCampanhasPdf($pdf, $campanhas, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED);
+    tabelaCampanhasPdf($pdf, $campanhas, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $documentosPorGrupo);
 }
 
 subtitulo($pdf, 'Contratos Vencidos (todos)', $CW, $MUTED);
-tabelaCampanhasPdf($pdf, $ct['vencidos_agrupado'], $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED);
+tabelaCampanhasPdf($pdf, $ct['vencidos_agrupado'], $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $documentosPorGrupo);
 
 subtitulo($pdf, 'Historico Anual - Contratos Ativos por Mes', $CW, $MUTED);
 graficoBarras($pdf, $ct['ativos_por_mes'], $CW, $MX, $VERM, $PRETO, $MUTED);
