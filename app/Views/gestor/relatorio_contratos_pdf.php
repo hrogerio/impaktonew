@@ -171,11 +171,14 @@ function truncarTexto($pdf, $texto, $largura) {
     return $texto . '...';
 }
 
-/** $destaque: quando true, marca todas as linhas com fundo cinza-escuro + barra sólida na
- *  margem esquerda + texto em negrito — visível mesmo em impressão preto e branco (não depende de cor). */
-function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM, $PRETO, $CINZAC, $CW = null, $MUTED = null, bool $destaque = false) {
+/** $destaque: true marca TODAS as linhas; um array de booleanos (indexado como $rows) marca só as linhas
+ *  correspondentes. Linhas destacadas ganham fundo cinza-escuro + barra sólida na margem esquerda +
+ *  texto em negrito — visível mesmo em impressão preto e branco (não depende de cor). */
+function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM, $PRETO, $CINZAC, $CW = null, $MUTED = null, $destaque = false) {
     $rowH = 6;
     $CINZAE = [205, 205, 208]; // cinza mais escuro, contrasta bem em tons de cinza (impressão P&B)
+    $destaqueTodas = $destaque === true;
+    $destaqueArr   = is_array($destaque) ? $destaque : [];
     $drawHeader = function() use ($pdf, $headers, $colWidths, $MX, $VERM) {
         $pdf->SetFont(FONT_MAIN, 'B', 8);
         $pdf->SetTextColor(255, 255, 255);
@@ -193,17 +196,16 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
         if ($CW !== null && $MUTED !== null) cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
     }
     $drawHeader();
-    $pdf->SetFont(FONT_MAIN, $destaque ? 'B' : '', 7.5);
-    $pdf->SetTextColor(...$PRETO);
     foreach ($rows as $idx => $row) {
         if ($pdf->GetY() + $rowH > 280) {
             $pdf->AddPage();
             if ($CW !== null && $MUTED !== null) cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
             $drawHeader();
-            $pdf->SetFont(FONT_MAIN, $destaque ? 'B' : '', 7.5);
-            $pdf->SetTextColor(...$PRETO);
         }
-        if ($destaque) {
+        $rowDestaque = $destaqueTodas || ($destaqueArr[$idx] ?? false);
+        $pdf->SetFont(FONT_MAIN, $rowDestaque ? 'B' : '', 7.5);
+        $pdf->SetTextColor(...$PRETO);
+        if ($rowDestaque) {
             $y = $pdf->GetY();
             $pdf->SetFillColor(...$CINZAE);
             $pdf->SetX($MX);
@@ -245,8 +247,10 @@ function contarSemDocumentosPdf(array $lista, array $documentosPorGrupo): int {
     return count(array_filter($lista, fn($c) => empty($documentosPorGrupo[docChavePdf($c)] ?? [])));
 }
 
-/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos/Docs) */
-function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, array $documentosPorGrupo = [], bool $destaque = false) {
+/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos/Docs).
+ *  $destaqueTodas marca a tabela inteira (ex.: Vencidos); senão, destaca linha a linha os contratos sem documento. */
+function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, array $documentosPorGrupo = [], bool $destaqueTodas = false) {
+    $destaque = $destaqueTodas ? true : array_values(array_map(fn($c) => docsLabelPdf($c, $documentosPorGrupo) === 'Sem doc', $lista));
     tabela($pdf,
         ['Cliente', 'Campanha', 'Agencia', 'Contato', 'Inicio', 'Fim', 'Duracao', 'Pontos', 'Docs'],
         [26, 22, 24, 18, 16, 16, 18, 12, 20],
