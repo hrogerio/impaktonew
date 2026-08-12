@@ -112,7 +112,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
-$pdf->SetCreator('Impakto Midia OOH');
+$pdf->SetCreator('SGI - Impakto Midia OOH');
 $pdf->SetTitle(s('Pre-Selecao - ' . $cliente));
 
 // Fontes
@@ -144,7 +144,7 @@ $pdf->Rect(0, 0, $LW, $PH, 'F');
 
 // Logo branca
 $logoB = __DIR__ . '/../../../../public/assets/img/logo_branca.png';
-$logoN = __DIR__ . '/../../../../public/assets/img/logo.png';
+$logoN = __DIR__ . '/../../../../public/assets/img/barra.png';
 $logoPath = file_exists($logoB) ? $logoB : $logoN;
 if (file_exists($logoPath)) {
     $pdf->Image($logoPath, 8, 10, 62);
@@ -166,12 +166,6 @@ $pdf->SetFont(FONT_MAIN, '', 11);
 $pdf->SetTextColor(255, 200, 200);
 $pdf->SetXY(0, 116);
 $pdf->Cell($LW, 7, s($nPontos === 1 ? 'ponto' : 'pontos'), 0, 1, 'C');
-
-// Aviso 72h
-$pdf->SetFont(FONT_MAIN, 'B', 8);
-$pdf->SetTextColor(255, 200, 200);
-$pdf->SetXY(4, $PH - 26);
-$pdf->MultiCell($LW - 8, 5, s('⚠ Válida por 72 horas a partir da data de emissão.'), 0, 'C');
 
 // Data de emissão
 $pdf->SetFont(FONT_MAIN, '', 8.5);
@@ -232,6 +226,28 @@ foreach ($campos as [$lbl, $val]) {
     $pdf->Cell($RW - 32, 7, s($val), 0, 1, 'L');
     $y += 12;
 }
+
+// ── Aviso de validade 72h ─────────────────────────────────────────────────────
+$y += 4;
+$boxH = 14;
+// Fundo rosado
+$pdf->SetFillColor(255, 243, 242);
+$pdf->Rect($RX, $y, $RW, $boxH, 'F');
+// Barra vermelha à esquerda
+$pdf->SetFillColor(...$VERM);
+$pdf->Rect($RX, $y, 2.5, $boxH, 'F');
+// Texto "⚠ Válida por 72 horas"
+$pdf->SetFont(FONT_MAIN, 'B', 10);
+$pdf->SetTextColor(...$VERM);
+$pdf->SetXY($RX + 5, $y + 2);
+$pdf->Cell($RW - 6, 5, s('⚠  Válida por 72 horas'), 0, 1, 'L');
+// Subtexto com data de vencimento
+$vencimento = date('d/m/Y', strtotime('+72 hours'));
+$pdf->SetFont(FONT_MAIN, '', 8.5);
+$pdf->SetTextColor(160, 80, 70);
+$pdf->SetXY($RX + 5, $y + 8);
+$pdf->Cell($RW - 6, 4, s('Emitida em ' . date('d/m/Y') . '  ·  Expira em ' . $vencimento), 0, 1, 'L');
+$y += $boxH + 4;
 
 // ── Lista de pontos (2 colunas) ───────────────────────────────────────────────
 $y += 2;
@@ -409,8 +425,8 @@ foreach ($pontos as $ponto) {
         $pdf->Cell($btnW, 5, $coords, 0, 0, 'C');
     }
 
-    // Logo Impakto — canto direito
-    $logoRodape = __DIR__ . '/../../../../public/assets/img/logo.png';
+    // Logo — canto direito
+    $logoRodape = __DIR__ . '/../../../../public/assets/img/barra.png';
     if (file_exists($logoRodape)) {
         $pdf->Image($logoRodape, $PW - 35, $FY + 10, 30);
     }
