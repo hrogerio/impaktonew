@@ -425,8 +425,8 @@ foreach ($pontos as $ponto) {
         $pdf->Cell($btnW, 5, $coords, 0, 0, 'C');
     }
 
-    // Logo — canto direito
-    $logoRodape = __DIR__ . '/../../../../public/assets/img/barra.png';
+    // Logo Impakto — canto direito do rodapé
+    $logoRodape = __DIR__ . '/../../../../public/assets/img/logo.png';
     if (file_exists($logoRodape)) {
         $pdf->Image($logoRodape, $PW - 35, $FY + 10, 30);
     }
