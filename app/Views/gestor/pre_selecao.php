@@ -18,7 +18,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pré-Seleção · SGI</title>
+    <title>Pré-Seleção · Impakto</title>
     <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -397,7 +397,7 @@ try {
 <div class="print-view" id="printView">
     <div class="pv-cabecalho">
         <div>
-            <img src="/public/assets/img/barra.png" alt="SGI · Impakto Mídia OOH" style="height:42px;width:auto;margin-bottom:0.4rem;display:block;">
+            <img src="/public/assets/img/barra.png" alt="Impakto Mídia OOH" style="height:42px;width:auto;margin-bottom:0.4rem;display:block;">
             <div class="pv-titulo" id="pvTitulo"></div>
             <div class="pv-sub"    id="pvSub"></div>
         </div>

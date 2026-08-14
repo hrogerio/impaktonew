@@ -20,7 +20,7 @@ if (!$ponto) {
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Ponto <?= htmlspecialchars($ponto['numero'] ?? '') ?> · SGI</title>
+    <title>Ponto <?= htmlspecialchars($ponto['numero'] ?? '') ?> · Impakto</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         .ponto-info { max-width: 800px; margin: 0 auto; }

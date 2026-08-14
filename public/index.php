@@ -126,7 +126,7 @@ if ($banners) {
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <title>Login · SGI</title>
+    <title>Login · Impakto</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
@@ -139,7 +139,7 @@ if ($banners) {
 
 <div class="login-left">
     <div class="login-container">
-        <img src="/public/assets/img/logo.png" alt="SGI · Impakto Mídia OOH" class="logo-form">
+        <img src="/public/assets/img/logo.png" alt="Impakto Mídia OOH" class="logo-form">
 
         <?php if ($erro): ?>
             <div class="erro">
@@ -180,7 +180,7 @@ if ($banners) {
 
         <a href="mailto:master@impaktomidia.com.br" class="esqueci">Esqueci minha senha</a>
 
-        <div class="rodape">SGI · &copy; <?= date('Y') ?> Impakto Mídia OOH · Todos os direitos reservados</div>
+        <div class="rodape">&copy; <?= date('Y') ?> Impakto Mídia OOH · Todos os direitos reservados</div>
     </div>
 </div>
 

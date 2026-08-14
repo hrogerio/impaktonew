@@ -30,7 +30,7 @@ $clientes = $controller->obterClientesAtivos();
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Gestão de Pontos · SGI</title>
+    <title>Gestão de Pontos · Impakto</title>
     <link rel="stylesheet" href="/public/assets/css/gestor.css">
 </head>
 <body>
@@ -38,7 +38,7 @@ $clientes = $controller->obterClientesAtivos();
 <header class="topo">
     <div class="header-container">
         <div class="logo">
-            <img src="/public/assets/img/logo.png" alt="SGI · Impakto Mídia OOH">
+            <img src="/public/assets/img/logo.png" alt="Impakto Mídia OOH">
         </div>
 
         <div class="busca-google-central">

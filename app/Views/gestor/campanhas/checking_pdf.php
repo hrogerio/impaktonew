@@ -134,7 +134,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
-$pdf->SetCreator('SGI - Impakto Midia OOH');
+$pdf->SetCreator('Impakto Midia OOH');
 $pdf->SetTitle(s('Checking - ' . $cliente));
 
 // Carrega fontes Inter (tFPDF) ou fallback Helvetica (FPDF)

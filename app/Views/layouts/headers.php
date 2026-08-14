@@ -5,7 +5,7 @@
 <header class="topo">
     <div class="header-container">
         <div class="logo">
-            <img src="/assets/img/logo.png" alt="SGI · Impakto Mídia OOH">
+            <img src="/assets/img/logo.png" alt="Impakto Mídia OOH">
         </div>
 
         <div class="busca-google-central">

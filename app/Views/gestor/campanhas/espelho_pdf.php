@@ -89,7 +89,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
-$pdf->SetCreator('SGI - Impakto Midia OOH');
+$pdf->SetCreator('Impakto Midia OOH');
 $pdf->SetTitle(s('Espelho de Colagem - ' . $cliente));
 
 // Fontes
@@ -401,7 +401,7 @@ foreach ($chunks as $pagPontos) {
     $pdf->SetFont(FONT_MAIN, '', 6.5);
     $pdf->SetTextColor(...$MUTED);
     $pdf->SetXY(0, $PH - 5);
-    $pdf->Cell($PW, 4, s('SGI · Impakto Midia OOH · ' . date('d/m/Y')), 0, 0, 'C');
+    $pdf->Cell($PW, 4, s('Impakto Midia OOH · ' . date('d/m/Y')), 0, 0, 'C');
 }
 
 // ── Download ──────────────────────────────────────────────────────────────────

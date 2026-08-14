@@ -50,7 +50,7 @@ $motivos = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log de Acessos · SGI</title>
+    <title>Log de Acessos · Impakto</title>
     <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

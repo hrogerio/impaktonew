@@ -5,7 +5,7 @@
 <div class="login-container">
     <div class="login-box">
         <div class="logo">
-            <img src="/assets/img/logo.png" alt="SGI · Impakto Mídia OOH">
+            <img src="/assets/img/logo.png" alt="Impakto Mídia OOH">
         </div>
         
         <h2>Acesso ao Sistema</h2>

@@ -64,7 +64,7 @@ sort($listaAgencias);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $modo === 'editar' ? 'Editar Ponto #' . htmlspecialchars($ponto['numero']) : 'Novo Ponto' ?> · SGI</title>
+    <title><?= $modo === 'editar' ? 'Editar Ponto #' . htmlspecialchars($ponto['numero']) : 'Novo Ponto' ?> · Impakto</title>
     <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

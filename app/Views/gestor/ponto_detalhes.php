@@ -135,7 +135,7 @@ if ($campVencida) { $sitCor = '#6c757d'; $sitLabel = 'Vencido'; }
 <!-- Cabeçalho público simples -->
 <div class="pub-header">
     <div class="pub-header-inner">
-        <img src="/public/assets/img/logo.png" alt="SGI · Impakto Mídia OOH" class="pub-logo">
+        <img src="/public/assets/img/logo.png" alt="Impakto Mídia OOH" class="pub-logo">
         <span class="pub-badge">📋 Informações do Ponto</span>
     </div>
 </div>

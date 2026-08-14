@@ -50,7 +50,7 @@ $paginaAtual = $paginaAtual ?? '';
 <div class="header">
     <div class="header-content">
         <div class="logo">
-            <img src="/public/assets/img/logo.png" alt="SGI · Impakto Mídia OOH" class="logo-img">
+            <img src="/public/assets/img/logo.png" alt="Impakto Mídia OOH" class="logo-img">
         </div>
 
         <nav class="main-nav">

@@ -74,8 +74,8 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(12, 14, 12);
 $pdf->SetAutoPageBreak(true, 16);
-$pdf->SetCreator('SGI - Impakto Midia OOH');
-$pdf->SetTitle(s('Relatorio Mensal - SGI'));
+$pdf->SetCreator('Impakto Midia OOH');
+$pdf->SetTitle(s('Relatorio Mensal - Impakto'));
 
 if (defined('USE_TFPDF') && USE_TFPDF) {
     $fontDir = __DIR__ . '/../../../lib/fpdf/font/unifont/';
@@ -98,7 +98,7 @@ function cabecalho($pdf, $CW, $MX, $VERM, $MUTED) {
     $pdf->SetFont(FONT_MAIN, 'B', 14);
     $pdf->SetTextColor(...$VERM);
     $pdf->SetXY($MX, 10);
-    $pdf->Cell($CW, 8, s('SGI'), 0, 0, 'L');
+    $pdf->Cell($CW, 8, s('Impakto'), 0, 0, 'L');
 
     $pdf->SetFont(FONT_MAIN, '', 8.5);
     $pdf->SetTextColor(...$MUTED);
