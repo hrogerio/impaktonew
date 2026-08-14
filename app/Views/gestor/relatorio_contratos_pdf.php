@@ -74,8 +74,8 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(12, 14, 12);
 $pdf->SetAutoPageBreak(true, 16);
-$pdf->SetCreator('Impakto Midia OOH');
-$pdf->SetTitle(s('Relatorio de Contratos - Impakto Midia'));
+$pdf->SetCreator('SGI - Impakto Midia OOH');
+$pdf->SetTitle(s('Relatorio de Contratos - SGI'));
 
 if (defined('USE_TFPDF') && USE_TFPDF) {
     $fontDir = __DIR__ . '/../../../lib/fpdf/font/unifont/';
@@ -95,14 +95,14 @@ $PW = 210; $MX = 12; $CW = $PW - 2 * $MX; // largura útil de conteúdo
 
 // ── Cabeçalho de página (chamado a cada nova página) ───────────────────────
 function cabecalho($pdf, $CW, $MX, $VERM, $MUTED) {
-    $logoPath = __DIR__ . '/../../../public/assets/img/logo.png';
+    $logoPath = __DIR__ . '/../../../public/assets/img/barra.png';
     if (file_exists($logoPath)) {
         $pdf->Image($logoPath, $MX, 8, 34);
     } else {
         $pdf->SetFont(FONT_MAIN, 'B', 14);
         $pdf->SetTextColor(...$VERM);
         $pdf->SetXY($MX, 10);
-        $pdf->Cell($CW / 2, 8, s('Impakto Midia'), 0, 0, 'L');
+        $pdf->Cell($CW / 2, 8, s('SGI'), 0, 0, 'L');
     }
 
     $pdf->SetFont(FONT_MAIN, '', 8.5);

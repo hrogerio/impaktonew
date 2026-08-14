@@ -4,7 +4,7 @@
 ?>
 <footer class="footer">
     <div class="footer-container">
-        <p>&copy; <?= date('Y') ?> Impakto Mídia. Todos os direitos reservados.</p>
-        <p>Versão 2.0 - Sistema de Gestão de Pontos</p>
+        <p>&copy; <?= date('Y') ?> Impakto Mídia OOH. Todos os direitos reservados.</p>
+        <p>SGI · Sistema de Gestão Integrada</p>
     </div>
 </footer>

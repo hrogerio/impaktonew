@@ -88,7 +88,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
-$pdf->SetCreator('Impakto Midia OOH');
+$pdf->SetCreator('SGI - Impakto Midia OOH');
 $pdf->SetTitle(s('Paineis Exclusivos - Uso Interno'));
 
 // Fontes
@@ -121,7 +121,7 @@ $pdf->Rect(0, 0, $LW, $PH, 'F');
 
 // Logo branca
 $logoB = __DIR__ . '/../../../public/assets/img/logo_branca.png';
-$logoN = __DIR__ . '/../../../public/assets/img/logo.png';
+$logoN = __DIR__ . '/../../../public/assets/img/barra.png';
 $logoPath = file_exists($logoB) ? $logoB : $logoN;
 if (file_exists($logoPath)) {
     $pdf->Image($logoPath, 8, 10, 62);
@@ -405,8 +405,8 @@ foreach ($pontos as $ponto) {
         $pdf->Cell($btnW, 4, $coords, 0, 0, 'C');
     }
 
-    // Logo Impakto — canto direito
-    $logoRodape = __DIR__ . '/../../../public/assets/img/logo.png';
+    // Logo — canto direito
+    $logoRodape = __DIR__ . '/../../../public/assets/img/barra.png';
     if (file_exists($logoRodape)) {
         $pdf->Image($logoRodape, $PW - 32, $FY + 32, 27);
     }

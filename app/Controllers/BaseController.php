@@ -43,7 +43,7 @@ abstract class BaseController {
             echo $content;
         } else {
             // Incluir layout
-            $title = $data['title'] ?? 'Sistema Impakto';
+            $title = $data['title'] ?? 'SGI';
             include __DIR__ . '/../Views/layouts/app.php';
         }
     }

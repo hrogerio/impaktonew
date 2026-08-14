@@ -117,7 +117,7 @@ if ($campVencida) { $sitCor = '#6c757d'; $sitLabel = 'Vencido'; }
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/public/assets/img/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -135,7 +135,7 @@ if ($campVencida) { $sitCor = '#6c757d'; $sitLabel = 'Vencido'; }
 <!-- Cabeçalho público simples -->
 <div class="pub-header">
     <div class="pub-header-inner">
-        <img src="/public/assets/img/logo.png" alt="Impakto Mídia" class="pub-logo">
+        <img src="/public/assets/img/logo.png" alt="SGI · Impakto Mídia OOH" class="pub-logo">
         <span class="pub-badge">📋 Informações do Ponto</span>
     </div>
 </div>

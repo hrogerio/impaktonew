@@ -89,7 +89,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
-$pdf->SetCreator('Impakto Midia OOH');
+$pdf->SetCreator('SGI - Impakto Midia OOH');
 $pdf->SetTitle(s('Espelho de Colagem - ' . $cliente));
 
 // Fontes
@@ -122,7 +122,7 @@ $pdf->Rect(0, 0, $LW, $PH, 'F');
 
 // Logo branca
 $logoB = __DIR__ . '/../../../../public/assets/img/logo_branca.png';
-$logoN = __DIR__ . '/../../../../public/assets/img/logo.png';
+$logoN = __DIR__ . '/../../../../public/assets/img/barra.png';
 $logoPath = file_exists($logoB) ? $logoB : $logoN;
 if (file_exists($logoPath)) {
     $pdf->Image($logoPath, 7, 10, 54);
@@ -362,7 +362,7 @@ foreach ($chunks as $pagPontos) {
 
     // Logo pequena no cabeçalho
     $logoH = __DIR__ . '/../../../../public/assets/img/logo_branca.png';
-    if (!file_exists($logoH)) $logoH = __DIR__ . '/../../../../public/assets/img/logo.png';
+    if (!file_exists($logoH)) $logoH = __DIR__ . '/../../../../public/assets/img/barra.png';
     if (file_exists($logoH)) {
         $pdf->Image($logoH, $MAR, 1.5, 28);
     }
@@ -401,7 +401,7 @@ foreach ($chunks as $pagPontos) {
     $pdf->SetFont(FONT_MAIN, '', 6.5);
     $pdf->SetTextColor(...$MUTED);
     $pdf->SetXY(0, $PH - 5);
-    $pdf->Cell($PW, 4, s('Impakto Midia OOH · ' . date('d/m/Y')), 0, 0, 'C');
+    $pdf->Cell($PW, 4, s('SGI · Impakto Midia OOH · ' . date('d/m/Y')), 0, 0, 'C');
 }
 
 // ── Download ──────────────────────────────────────────────────────────────────

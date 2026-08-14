@@ -50,7 +50,7 @@ $paginaAtual = $paginaAtual ?? '';
 <div class="header">
     <div class="header-content">
         <div class="logo">
-            <img src="/public/assets/img/logo.png" alt="Impakto Mídia" class="logo-img">
+            <img src="/public/assets/img/logo.png" alt="SGI · Impakto Mídia OOH" class="logo-img">
         </div>
 
         <nav class="main-nav">
@@ -74,7 +74,7 @@ $paginaAtual = $paginaAtual ?? '';
 
             <!-- ⚙ Dropdown Auditoria / Backup -->
             <?php
-            $paginasAdmin = ['auditoria', 'backup', 'usuarios', 'logs-acesso'];
+            $paginasAdmin = ['auditoria', 'backup', 'usuarios', 'logs-acesso', 'midia-kit'];
             $isAdmin = in_array($paginaAtual, $paginasAdmin);
             $souAdmin = ($_SESSION['usuario_role'] ?? 'admin') === 'admin';
             ?>
@@ -87,6 +87,9 @@ $paginaAtual = $paginaAtual ?? '';
                     <div class="nav-gear-sep">Administração</div>
                     <a href="/gestor/auditoria" class="nav-gear-link<?= $paginaAtual === 'auditoria' ? ' active' : '' ?>">
                         📊 Auditoria
+                    </a>
+                    <a href="/gestor/midia-kit" class="nav-gear-link<?= $paginaAtual === 'midia-kit' ? ' active' : '' ?>">
+                        🖼️ Mídia Kit
                     </a>
                     <?php if ($souAdmin): ?>
                     <div class="nav-gear-divider"></div>

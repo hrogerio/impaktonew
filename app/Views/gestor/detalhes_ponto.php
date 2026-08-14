@@ -101,11 +101,11 @@ function badgeSituacao($situacao) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/public/assets/img/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <title>Ponto <?= htmlspecialchars($ponto['numero']) ?> - Impakto Mídia</title>
+    <title>Ponto <?= htmlspecialchars($ponto['numero']) ?> · SGI</title>
     <link rel="stylesheet" href="/public/assets/css/detalhes.css">
 </head>
 <body>
@@ -113,7 +113,7 @@ function badgeSituacao($situacao) {
 <div class="header">
     <div class="header-content">
         <div class="logo">
-            <img src="/public/assets/img/logo.png" alt="Impakto Mídia" class="logo-img">
+            <img src="/public/assets/img/logo.png" alt="SGI · Impakto Mídia OOH" class="logo-img">
         </div>
         <?php if ($modoPublico): ?>
             <span class="badge-publico">📋 Informações do Ponto</span>

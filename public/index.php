@@ -126,20 +126,20 @@ if ($banners) {
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <title>Login - Impakto Mídia</title>
+    <title>Login · SGI</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/public/img/favicon.png" type="image/png">
+    <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/assets/css/login.css">
+    <link rel="stylesheet" href="/public/assets/css/login.css?v=<?= @filemtime(__DIR__ . '/assets/css/login.css') ?>">
 </head>
 <body>
 
 <div class="login-left">
     <div class="login-container">
-        <h1 class="login-titulo">Login</h1>
+        <img src="/public/assets/img/logo.png" alt="SGI · Impakto Mídia OOH" class="logo-form">
 
         <?php if ($erro): ?>
             <div class="erro">
@@ -180,16 +180,11 @@ if ($banners) {
 
         <a href="mailto:master@impaktomidia.com.br" class="esqueci">Esqueci minha senha</a>
 
-        <div class="rodape">&copy; <?= date('Y') ?> Impakto Mídia OOH · Todos os direitos reservados</div>
+        <div class="rodape">SGI · &copy; <?= date('Y') ?> Impakto Mídia OOH · Todos os direitos reservados</div>
     </div>
 </div>
 
 <div class="login-right">
-    <div class="dot-grid topo-esq"></div>
-    <div class="dot-grid fundo-dir"></div>
-
-    <img src="/public/assets/img/logo_branca.png" alt="Impakto Mídia" class="logo-marca">
-    <div class="tagline">Gestão de mídia exterior (OOH)</div>
 
     <?php if ($bannerUrl && $bannerVideo): ?>
         <video class="banner-img" src="<?= htmlspecialchars($bannerUrl) ?>" autoplay muted loop playsinline></video>

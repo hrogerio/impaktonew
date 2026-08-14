@@ -52,6 +52,23 @@ if ($action === 'excluir') {
     }
 }
 
+// ── Salvar observação da foto ───────────────────────────────────────────────
+if ($action === 'salvar_nota') {
+    $fotoId = (int)($_POST['foto_id'] ?? 0);
+    $nota   = trim($_POST['observacao'] ?? '');
+    if (!$fotoId) ckJson(['ok' => false, 'erro' => 'foto_id_invalido']);
+    if (mb_strlen($nota) > 300) $nota = mb_substr($nota, 0, 300);
+
+    try {
+        $pdo->prepare("UPDATE checking_fotos SET legenda = ? WHERE id = ?")
+            ->execute([$nota !== '' ? $nota : null, $fotoId]);
+        ckJson(['ok' => true]);
+    } catch (Exception $e) {
+        error_log("checking salvar_nota id=$fotoId: " . $e->getMessage());
+        ckJson(['ok' => false, 'erro' => 'db_error']);
+    }
+}
+
 // ── Upload de foto ────────────────────────────────────────────────────────────
 $pontoId  = (int)($_POST['ponto_id']  ?? 0);
 $cliente  = trim($_POST['cliente']  ?? '');

@@ -34,12 +34,18 @@ body {
     justify-content: center;
     align-items: center;
     background: #ffffff;
+    border-right: 1px solid var(--border);
     padding: 2rem;
 }
 
 .login-container {
     width: 100%;
     max-width: 360px;
+}
+
+.logo-form {
+    height: 64px;
+    margin-bottom: 1.75rem;
 }
 
 .login-titulo {
@@ -169,46 +175,18 @@ button:active {
     height: 100vh;
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
     position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
-    padding: 2rem;
-}
-
-.dot-grid {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    background-image: radial-gradient(rgba(255,255,255,0.35) 1.6px, transparent 1.6px);
-    background-size: 14px 14px;
-}
-.dot-grid.topo-esq { top: 28px; left: 28px; }
-.dot-grid.fundo-dir { bottom: 28px; right: 28px; }
-
-.login-right .logo-marca {
-    height: 42px;
-    margin-bottom: 0.5rem;
-}
-
-.login-right .tagline {
-    color: #ffffff;
-    font-size: 1.05rem;
-    font-weight: 600;
-    opacity: 0.92;
-    margin-bottom: 2.2rem;
-    text-align: center;
 }
 
 .login-right .banner-img {
-    max-width: 420px;
+    position: absolute;
+    inset: 0;
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
 }
 
 @media (max-width: 900px) {
     body { flex-direction: column; overflow: auto; height: auto; }
     .login-left, .login-right { height: auto; min-height: 50vh; }
-    .dot-grid { display: none; }
 }

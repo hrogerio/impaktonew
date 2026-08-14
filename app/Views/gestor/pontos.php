@@ -70,8 +70,8 @@ $recentes = $pdo->query(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pontos - Impakto Mídia</title>
-    <link rel="icon" href="/public/assets/img/favicon.ico" type="image/x-icon">
+    <title>Pontos · SGI</title>
+    <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -532,7 +532,7 @@ function gerarRelatorioExclusivos() {
         return grupoHtml + linhasCliente;
     }).join('');
     var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
-        + '<title>Relatório de Painéis Exclusivos — Impakto Mídia</title><style>'
+        + '<title>Relatório de Painéis Exclusivos · SGI</title><style>'
         + 'body{font-family:Arial,Helvetica,sans-serif;padding:28px;color:#111}'
         + 'h1{font-size:1.15rem;margin:0 0 2px}'
         + '.sub{color:#666;font-size:0.78rem;margin:0 0 4px}'
@@ -548,7 +548,7 @@ function gerarRelatorioExclusivos() {
         + '@media print{ .no-print{display:none} }'
         + '</style></head><body>'
         + '<h1>🔒 Relatório Interno — Painéis Exclusivos</h1>'
-        + '<p class="sub">Impakto Mídia · gerado em ' + new Date().toLocaleString('pt-BR') + ' · ' + exclusivos.length + ' painel(is)</p>'
+        + '<p class="sub">SGI · Impakto Mídia OOH · gerado em ' + new Date().toLocaleString('pt-BR') + ' · ' + exclusivos.length + ' painel(is)</p>'
         + '<table><thead><tr><th>Cliente exclusivo</th><th>Nº</th><th>Logradouro</th><th>Cidade</th><th>Formato</th><th>Contato</th><th>Comercialização</th></tr></thead>'
         + '<tbody>' + linhas + '</tbody></table>'
         + '</body></html>';

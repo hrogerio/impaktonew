@@ -417,6 +417,42 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/processar_vencidos.php';
         break;
 
+    // ── MÍDIA KIT (tela de administração) ────────────────
+    case 'gestor/midia-kit':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/midia_kit.php';
+        break;
+
+    // ── MÍDIA KIT: SALVAR (POST) ──────────────────────────
+    case 'gestor/midia-kit/salvar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/midia_kit_salvar.php';
+        break;
+
+    // ── MÍDIA KIT: EXCLUIR (POST) ─────────────────────────
+    case 'gestor/midia-kit/excluir':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/midia_kit_excluir.php';
+        break;
+
+    // ── MÍDIA KIT: MOVER / REORDENAR (POST) ───────────────
+    case 'gestor/midia-kit/mover':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/midia_kit_mover.php';
+        break;
+
+    // ── MÍDIA KIT: UPLOAD DE FOTO (POST) ──────────────────
+    case 'gestor/midia-kit/upload':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/midia_kit_upload.php';
+        break;
+
+    // ── MÍDIA KIT: GERAR PDF (download) ───────────────────
+    case 'gestor/midia-kit/pdf':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/midia_kit_pdf.php';
+        break;
+
     // ── 404 ─────────────────────────────────────────────────
     default:
         http_response_code(404);

@@ -103,6 +103,21 @@ function dataFmt($d) {
     if (!$d) return '-';
     try { return (new DateTime($d))->format('d/m/Y'); } catch (Exception $e) { return $d; }
 }
+function ckWrapLines($pdf, $text, $maxW) {
+    $words = preg_split('/\s+/', trim($text));
+    $lines = []; $cur = '';
+    foreach ($words as $w) {
+        $test = $cur === '' ? $w : $cur . ' ' . $w;
+        if ($pdf->GetStringWidth($test) > $maxW && $cur !== '') {
+            $lines[] = $cur;
+            $cur = $w;
+        } else {
+            $cur = $test;
+        }
+    }
+    if ($cur !== '') $lines[] = $cur;
+    return $lines;
+}
 
 // ── Cores ─────────────────────────────────────────────────────────────────────
 $VERM   = [192, 57,  43 ];   // vermelho Impakto
@@ -119,7 +134,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
-$pdf->SetCreator('Impakto Midia OOH');
+$pdf->SetCreator('SGI - Impakto Midia OOH');
 $pdf->SetTitle(s('Checking - ' . $cliente));
 
 // Carrega fontes Inter (tFPDF) ou fallback Helvetica (FPDF)
@@ -151,7 +166,7 @@ $pdf->Rect(0, 0, $LW, $PH, 'F');
 
 // Logo BRANCA no painel esquerdo
 $logoB = __DIR__ . '/../../../../public/assets/img/logo_branca.png';
-$logoN = __DIR__ . '/../../../../public/assets/img/logo.png';
+$logoN = __DIR__ . '/../../../../public/assets/img/barra.png';
 $logoPath = file_exists($logoB) ? $logoB : $logoN;
 if (file_exists($logoPath)) {
     $pdf->Image($logoPath, 8, 10, 62);   // ↑ era 56mm
@@ -361,6 +376,36 @@ foreach ($todasFotos as $foto) {
         $pdf->SetTextColor(160, 155, 165);
         $pdf->SetXY(0, $FOTO_H / 2 + 4);
         $pdf->Cell($PW, 7, s('Foto será disponibilizada após a instalação do painel'), 0, 0, 'C');
+    }
+
+    // ── Selo de observação (para defesa junto ao cliente/agência) ──────────────
+    // Fica no canto superior direito da foto, sem tampar o centro da imagem.
+    if (!empty($foto['legenda'])) {
+        $pdf->SetFont(FONT_MAIN, 'B', 9.5);
+        $padX = 6; $padY = 3; $lineH = 4.6;
+        $margem = 6;
+        $badgeMaxW = 78;
+        $innerMaxW = $badgeMaxW - $padX * 2;
+
+        $linhas = ckWrapLines($pdf, s($foto['legenda']), $innerMaxW);
+
+        $maiorLinha = 0;
+        foreach ($linhas as $ln) $maiorLinha = max($maiorLinha, $pdf->GetStringWidth($ln));
+        $badgeW = min($maiorLinha + $padX * 2, $badgeMaxW);
+        $badgeH = count($linhas) * $lineH + $padY * 2;
+        $badgeX = $PW - $margem - $badgeW;
+        $badgeY = $margem;
+
+        $pdf->SetFillColor(...$VERM);
+        $pdf->Rect($badgeX, $badgeY, $badgeW, $badgeH, 'F');
+
+        $pdf->SetTextColor(...$BRANCO);
+        $ly = $badgeY + $padY;
+        foreach ($linhas as $ln) {
+            $pdf->SetXY($badgeX, $ly);
+            $pdf->Cell($badgeW, $lineH, $ln, 0, 0, 'C');
+            $ly += $lineH;
+        }
     }
 
     // ── Rodapé BRANCO ─────────────────────────────────────────────────────────

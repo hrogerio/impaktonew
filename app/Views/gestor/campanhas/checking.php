@@ -71,7 +71,7 @@ $paginaAtual = 'campanhas';
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="/public/assets/img/favicon.ico" type="image/x-icon">
+<link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -209,15 +209,37 @@ $paginaAtual = 'campanhas';
     position: relative;
     border-radius: 8px;
     overflow: hidden;
-    aspect-ratio: 4/3;
     background: #f3f4f6;
     border: 1.5px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
 }
-.ck-foto-item img {
+.ck-foto-img-wrap {
+    position: relative;
+    aspect-ratio: 4/3;
+    overflow: hidden;
+}
+.ck-foto-img-wrap img {
     width: 100%; height: 100%; object-fit: cover;
     display: block; transition: transform 0.2s;
 }
-.ck-foto-item:hover img { transform: scale(1.04); }
+.ck-foto-item:hover .ck-foto-img-wrap img { transform: scale(1.04); }
+.ck-foto-nota {
+    width: 100%;
+    border: none;
+    border-top: 1px solid var(--color-border);
+    background: #fffbea;
+    font-size: 0.68rem;
+    font-family: inherit;
+    line-height: 1.3;
+    padding: 4px 6px;
+    resize: none;
+    height: 38px;
+    color: var(--color-text-dark);
+    outline: none;
+}
+.ck-foto-nota:focus { background: #fff8d6; }
+.ck-foto-nota::placeholder { color: var(--color-text-muted); }
 .ck-foto-del {
     position: absolute; top: 5px; right: 5px;
     background: rgba(0,0,0,0.65); color: #fff;
@@ -346,8 +368,12 @@ $paginaAtual = 'campanhas';
                 <?php else: ?>
                 <?php foreach ($fotos as $f): ?>
                 <div class="ck-foto-item" id="foto-<?= $f['id'] ?>">
-                    <img src="/<?= htmlspecialchars($f['caminho']) ?>" alt="Checking ponto <?= $p['numero'] ?>" loading="lazy">
-                    <button class="ck-foto-del" onclick="excluirFoto(<?= $f['id'] ?>, <?= $p['id'] ?>)" title="Remover foto">✕</button>
+                    <div class="ck-foto-img-wrap">
+                        <img src="/<?= htmlspecialchars($f['caminho']) ?>" alt="Checking ponto <?= $p['numero'] ?>" loading="lazy">
+                        <button class="ck-foto-del" onclick="excluirFoto(<?= $f['id'] ?>, <?= $p['id'] ?>)" title="Remover foto">✕</button>
+                    </div>
+                    <textarea class="ck-foto-nota" placeholder="Observação (opcional)…"
+                              onchange="salvarNota(<?= $f['id'] ?>, this.value)"><?= htmlspecialchars($f['legenda'] ?? '') ?></textarea>
                 </div>
                 <?php endforeach; ?>
                 <?php endif; ?>
@@ -463,8 +489,11 @@ function uploadUmaFoto(file, pontoId) {
         div.className = 'ck-foto-item';
         div.id = 'foto-' + data.foto.id;
         div.innerHTML =
+            '<div class="ck-foto-img-wrap">' +
             '<img src="/' + data.foto.caminho + '" alt="Foto checking" loading="lazy">' +
-            '<button class="ck-foto-del" onclick="excluirFoto(' + data.foto.id + ', ' + pontoId + ')" title="Remover foto">✕</button>';
+            '<button class="ck-foto-del" onclick="excluirFoto(' + data.foto.id + ', ' + pontoId + ')" title="Remover foto">✕</button>' +
+            '</div>' +
+            '<textarea class="ck-foto-nota" placeholder="Observação (opcional)…" onchange="salvarNota(' + data.foto.id + ', this.value)"></textarea>';
         grid.appendChild(div);
         atualizarContador(1);
         toast('✅ Foto enviada!', 'ok');
@@ -473,6 +502,23 @@ function uploadUmaFoto(file, pontoId) {
         placeholder.remove();
         toast('❌ Erro de comunicação.', 'err');
     });
+}
+
+// ── Observação da foto ────────────────────────
+function salvarNota(fotoId, valor) {
+    var fd = new FormData();
+    fd.append('csrf_token',  CSRF);
+    fd.append('action',      'salvar_nota');
+    fd.append('foto_id',     fotoId);
+    fd.append('observacao',  valor);
+
+    fetch('/gestor/campanhas/checking/upload', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (!data.ok) { toast('❌ Erro ao salvar observação', 'err'); return; }
+        toast('📝 Observação salva', 'ok');
+    })
+    .catch(function() { toast('❌ Erro de comunicação.', 'err'); });
 }
 
 // ── Excluir foto ─────────────────────────────

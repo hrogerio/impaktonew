@@ -209,12 +209,12 @@ $CORES_SIT = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/public/assets/img/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/assets/css/gestor.css">
-    <title>Dashboard — Impakto Mídia</title>
+    <title>Dashboard · SGI</title>
     <style>
         .db-page {
             --ok:#1a9059;      --ok-soft:#e3f5ec;

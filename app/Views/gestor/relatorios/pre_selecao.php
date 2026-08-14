@@ -44,8 +44,8 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pré-Seleção - Impakto Mídia</title>
-    <link rel="icon" href="/public/assets/img/favicon.ico" type="image/x-icon">
+    <title>Pré-Seleção · SGI</title>
+    <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -514,7 +514,7 @@ function exportPDF() {
     var qtd     = document.getElementById('resQtd').textContent;
     var periodo = document.getElementById('resPeriodo').textContent;
     var content = document.getElementById('resTable').outerHTML;
-    var logoUrl = window.location.origin + '/public/assets/img/logo.png';
+    var logoUrl = window.location.origin + '/public/assets/img/barra.png';
     var win = window.open('', '_blank');
     win.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
         + '<title>Pré-Seleção — ' + cliente + '</title>'
