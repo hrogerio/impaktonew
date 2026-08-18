@@ -41,6 +41,22 @@ if (!in_array($situacao, $situacoesValidas)) $situacao = 'Ocupado';
 
 if (!$pontoId) responderSalvar(['erro'=>'ponto_id invalido']);
 
+// Liga o texto do cliente ao cadastro (clientes): casa por razão social
+// (case-insensitive) ou cria um cadastro mínimo automaticamente.
+function resolverClienteId(PDO $pdo, string $cliente): ?int {
+    if ($cliente === '') return null;
+
+    $busca = $pdo->prepare("SELECT id FROM clientes WHERE LOWER(TRIM(razao_social)) = LOWER(TRIM(?)) LIMIT 1");
+    $busca->execute([$cliente]);
+    $existente = $busca->fetchColumn();
+    if ($existente) return (int)$existente;
+
+    $pdo->prepare("INSERT INTO clientes (razao_social, ativo, criado_por) VALUES (?, 1, 'auto-campanha')")
+        ->execute([$cliente]);
+    return (int)$pdo->lastInsertId();
+}
+$clienteId = resolverClienteId($pdo, $cliente);
+
 // Verifica se ponto existe
 $sp = $pdo->prepare("SELECT id, situacao FROM pontos WHERE id = ? AND (ativo=1 OR ativo IS NULL) LIMIT 1");
 $sp->execute([$pontoId]);
@@ -62,12 +78,12 @@ try {
 
         $stmt = $pdo->prepare("
             UPDATE campanhas
-            SET cliente=?, agencia=?, campanha=?, situacao=?,
+            SET cliente=?, cliente_id=?, agencia=?, campanha=?, situacao=?,
                 inicio=?, fim=?, contato=?, observacoes=?
             WHERE id=? AND ponto_id=?
         ");
         $stmt->execute([
-            $cliente ?: null, $agencia ?: null, $campanha ?: null, $situacao,
+            $cliente ?: null, $clienteId, $agencia ?: null, $campanha ?: null, $situacao,
             $inicio ?: null,  $fim ?: null,     $contato ?: null,  $obs ?: null,
             $campanhaId, $pontoId
         ]);
@@ -102,12 +118,12 @@ try {
 
         // Cria nova campanha
         $stmt = $pdo->prepare("
-            INSERT INTO campanhas (ponto_id, cliente, agencia, campanha, situacao, inicio, fim, contato, observacoes, ativo, criado_por)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+            INSERT INTO campanhas (ponto_id, cliente, cliente_id, agencia, campanha, situacao, inicio, fim, contato, observacoes, ativo, criado_por)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
         ");
         $stmt->execute([
             $pontoId,
-            $cliente ?: null, $agencia ?: null, $campanha ?: null,
+            $cliente ?: null, $clienteId, $agencia ?: null, $campanha ?: null,
             $situacao,
             $inicio ?: null, $fim ?: null,
             $contato ?: null, $obs ?: null,

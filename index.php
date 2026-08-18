@@ -317,6 +317,28 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/backup_bd.php';
         break;
 
+    // ── CLIENTES ──────────────────────────────────────────────
+    case 'gestor/clientes':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/clientes.php';
+        break;
+
+    case 'gestor/clientes/novo':
+    case 'gestor/clientes/editar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/cliente_form.php';
+        break;
+
+    case 'gestor/clientes/salvar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/salvar_cliente.php';
+        break;
+
+    case 'gestor/clientes/status':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/cliente_status.php';
+        break;
+
     // ── USUÁRIOS (admin) ─────────────────────────────────────
     case 'gestor/usuarios':
         require_role('admin');

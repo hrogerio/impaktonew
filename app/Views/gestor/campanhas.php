@@ -30,6 +30,10 @@ foreach ([...$gruposAtivos, ...$gruposEncerrados] as $g) {
 }
 ksort($listaClientes);
 $listaClientes = array_keys($listaClientes);
+
+// Cadastro de clientes (para autocomplete no modal de edição)
+$listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes WHERE ativo = 1 ORDER BY razao_social ASC")
+                              ->fetchAll(PDO::FETCH_COLUMN);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -407,7 +411,12 @@ $listaClientes = array_keys($listaClientes);
         <div class="cp-modal-row">
             <div class="cp-modal-field">
                 <label class="cp-modal-label">Cliente</label>
-                <input type="text" id="cpModalCliente" class="cp-modal-input" placeholder="Nome do cliente">
+                <input type="text" id="cpModalCliente" class="cp-modal-input" placeholder="Nome do cliente" list="cpClientesCadastro" autocomplete="off">
+                <datalist id="cpClientesCadastro">
+                    <?php foreach ($listaClientesCadastro as $rs): ?>
+                        <option value="<?= htmlspecialchars($rs) ?>"></option>
+                    <?php endforeach; ?>
+                </datalist>
             </div>
             <div class="cp-modal-field">
                 <label class="cp-modal-label">Agência</label>
