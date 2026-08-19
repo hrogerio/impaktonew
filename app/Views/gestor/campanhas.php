@@ -119,10 +119,12 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
             transition: box-shadow 0.15s;
         }
         .cp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-        .cp-card.encerrada { opacity: 0.65; }
-        .cp-card.vencida   { background: #fef9c3; border-color: #9ca3af; box-shadow: 0 0 0 2px #e5e7eb; }
-        .cp-card.vencida .cp-card-footer { background: #fef3c7; }
-        .cp-card.vencida .cp-acordeon-toggle:hover { background: #fef3c7; }
+        .cp-card.encerrada { background:#fef2f2; border-color:#fecaca; }
+        .cp-card.encerrada .cp-card-footer { background:#fee2e2; }
+        .cp-card.encerrada .cp-acordeon-toggle:hover { background:#fee2e2; }
+        .cp-card.vencida   { background:#fff7ed; border-color:#fed7aa; box-shadow: 0 0 0 2px #ffedd5; }
+        .cp-card.vencida .cp-card-footer { background:#ffedd5; }
+        .cp-card.vencida .cp-acordeon-toggle:hover { background:#ffedd5; }
 
         /* Faixa colorida topo */
         .cp-card-faixa {
@@ -165,7 +167,8 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
         .prazo-urg { background:#fee2e2; color:#991b1b; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
         .prazo-ale { background:#ffedd5; color:#9a3412; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
         .status-ativa    { background:#dcfce7; color:#166534; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
-        .status-encerrada{ background:#f1f5f9; color:#475569; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
+        .status-vencida  { background:#ffedd5; color:#9a3412; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
+        .status-encerrada{ background:#fee2e2; color:#991b1b; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
 
         /* Lista de painéis (acordeão) */
         .cp-card-paineis { flex:1; }
@@ -345,11 +348,11 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
         </div>
         <div class="cp-kpi">
             <div class="cp-kpi-label">Vencidas</div>
-            <div class="cp-kpi-val <?= $totalVencidos > 0 ? 'vermelho' : '' ?>"><?= $totalVencidos ?></div>
+            <div class="cp-kpi-val <?= $totalVencidos > 0 ? 'laranja' : '' ?>"><?= $totalVencidos ?></div>
         </div>
         <div class="cp-kpi">
             <div class="cp-kpi-label">Encerradas</div>
-            <div class="cp-kpi-val" style="color:var(--color-text-muted)"><?= $totalEncerradas ?></div>
+            <div class="cp-kpi-val <?= $totalEncerradas > 0 ? 'vermelho' : '' ?>"><?= $totalEncerradas ?></div>
         </div>
     </div>
 

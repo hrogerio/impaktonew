@@ -132,9 +132,15 @@ function campanhaBuscaStr(array $g): string {
     );
 }
 
+/** Cor do status da campanha: Ativa = verde, Vencida = laranja, Encerrada = vermelho */
+function corStatusCampanha(bool $ativo, bool $vencida): string {
+    if (!$ativo)  return '#dc2626';
+    if ($vencida) return '#ea580c';
+    return '#16a34a';
+}
+
 /** Renderiza o HTML de um card de campanha */
 function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
-    $cor     = corSit($g['situacao'], $CORES);
     $ini     = fmtD($g['inicio']);
     $fim     = fmtD($g['fim']);
     $dias    = $g['fim'] ? diasR($g['fim']) : null;
@@ -144,6 +150,7 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
     $campIds  = array_column($g['rows'], 'id');
     $pontoIds = array_column($g['rows'], 'ponto_id');
     $isVencida = $g['ativo'] && $g['fim'] && substr($g['fim'], 0, 10) < $hoje;
+    $statusCor = corStatusCampanha((bool)$g['ativo'], (bool)$isVencida);
     $dataCard = htmlspecialchars(json_encode([
         'campIds'      => $campIds,
         'pontoIds'     => $pontoIds,
@@ -175,17 +182,12 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
          data-cliente="<?= htmlspecialchars(strtolower($g['cliente'])) ?>"
          data-campanha="<?= $dataCard ?>">
 
-        <div class="cp-card-faixa" style="background:<?= !$g['ativo'] ? '#9ca3af' : $cor ?>"></div>
+        <div class="cp-card-faixa" style="background:<?= $statusCor ?>"></div>
 
         <div class="cp-card-head">
             <div class="cp-card-top">
-                <?php if (!$g['ativo']): ?>
-                <span class="sit-dot" style="background:#6b7280" title="Encerrada"></span>
-                <?php elseif ($isVencida): ?>
-                <span class="sit-dot" style="background:#6c757d" title="<?= htmlspecialchars($g['situacao']) ?>"></span>
-                <?php else: ?>
-                <span class="sit-dot" style="background:<?= $cor ?>" title="<?= htmlspecialchars($g['situacao']) ?>"></span>
-                <?php endif; ?>
+                <span class="sit-dot" style="background:<?= $statusCor ?>"
+                      title="<?= !$g['ativo'] ? 'Encerrada' : ($isVencida ? 'Vencida' : htmlspecialchars($g['situacao'])) ?>"></span>
                 <?php
                     $mostraMotivo = $g['nome_projeto'] !== '' && $g['nome'] !== '—';
                     $clienteExibicao = clienteParaExibicao($g['cliente_cadastro'], $g['cliente'], $g['nome_projeto'] ?: null);
@@ -207,10 +209,12 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
                     $cls = $dias <= 7 ? 'prazo-urg' : 'prazo-ale'; ?>
                 <span class="<?= $cls ?>"><?= $dias ?>d</span>
                 <?php endif; ?>
-                <?php if ($g['ativo']): ?>
-                <span class="status-ativa">Ativa</span>
-                <?php else: ?>
+                <?php if (!$g['ativo']): ?>
                 <span class="status-encerrada">Encerrada</span>
+                <?php elseif ($isVencida): ?>
+                <span class="status-vencida">Vencida</span>
+                <?php else: ?>
+                <span class="status-ativa">Ativa</span>
                 <?php endif; ?>
             </div>
         </div>
