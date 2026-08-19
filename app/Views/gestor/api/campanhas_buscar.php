@@ -17,25 +17,33 @@ if (!isset($_SESSION['usuario'])) {
 require_once __DIR__ . '/../../../../config/database.php';
 require_once __DIR__ . '/../campanhas/_helpers.php';
 
-$pdo = getDatabase();
+try {
+    $pdo = getDatabase();
 
-$busca    = strtolower(trim($_GET['busca'] ?? ''));
-$cliente  = strtolower(trim($_GET['cliente'] ?? ''));
-$campanhaFiltro = strtolower(trim($_GET['campanha'] ?? ''));
-$situacao = trim($_GET['situacao'] ?? '');
-if (!in_array($situacao, ['', 'Encerradas', 'Vencidas'], true)) $situacao = '';
+    $busca    = strtolower(trim($_GET['busca'] ?? ''));
+    $cliente  = strtolower(trim($_GET['cliente'] ?? ''));
+    $campanhaFiltro = strtolower(trim($_GET['campanha'] ?? ''));
+    $situacao = trim($_GET['situacao'] ?? '');
+    if (!in_array($situacao, ['', 'Encerradas', 'Vencidas'], true)) $situacao = '';
 
-$hoje   = date('Y-m-d');
-$grupos = campanhasBuscarGrupos($pdo, $situacao);
+    $hoje   = date('Y-m-d');
+    $grupos = campanhasBuscarGrupos($pdo, $situacao);
 
-$html = '';
-$total = 0;
-foreach ($grupos as $g) {
-    if ($cliente !== '' && strtolower($g['cliente']) !== $cliente) continue;
-    if ($campanhaFiltro !== '' && strtolower($g['titulo']) !== $campanhaFiltro) continue;
-    if ($busca !== '' && strpos(campanhaBuscaStr($g), $busca) === false) continue;
-    $html .= renderCampanhaCard($g, $CORES, $hoje);
-    $total++;
+    $html = '';
+    $total = 0;
+    foreach ($grupos as $g) {
+        if ($cliente !== '' && strtolower($g['cliente']) !== $cliente) continue;
+        if ($campanhaFiltro !== '' && strtolower($g['titulo']) !== $campanhaFiltro) continue;
+        if ($busca !== '' && strpos(campanhaBuscaStr($g), $busca) === false) continue;
+        $html .= renderCampanhaCard($g, $CORES, $hoje);
+        $total++;
+    }
+
+    echo json_encode(['ok' => true, 'html' => $html, 'total' => $total], JSON_UNESCAPED_UNICODE);
+} catch (Throwable $e) {
+    error_log('campanhas_buscar (situacao=' . ($situacao ?? '?') . '): ' . $e->getMessage());
+    // DIAGNOSTICO TEMPORARIO: expõe a mensagem real do erro no JSON pra
+    // conseguirmos ver a causa em producao sem acesso direto ao error_log.
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'erro' => 'excecao', 'msg' => $e->getMessage(), 'onde' => $e->getFile() . ':' . $e->getLine()], JSON_UNESCAPED_UNICODE);
 }
-
-echo json_encode(['ok' => true, 'html' => $html, 'total' => $total], JSON_UNESCAPED_UNICODE);

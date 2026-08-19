@@ -578,7 +578,7 @@ function buscarCampanhas() {
             }
             if (!resp.ok) {
                 grid.innerHTML = '';
-                mostrarToast('❌ Erro ao buscar campanhas: ' + (resp.erro || ''), 'err');
+                mostrarToast('❌ ' + (resp.erro || 'erro') + ': ' + (resp.msg || '') + (resp.onde ? ' @ ' + resp.onde : ''), 'err');
                 return;
             }
             grid.innerHTML = resp.html;
