@@ -57,13 +57,15 @@ $sp = $pdo->prepare("SELECT id FROM pontos WHERE id = ? AND (ativo=1 OR ativo IS
 $sp->execute([$pontoId]);
 if (!$sp->fetch()) respRenovar(['erro' => 'ponto_nao_encontrado']);
 
-$situacao = $campAntiga['situacao'] ?? 'Ocupado';
+$situacao  = $campAntiga['situacao'] ?? 'Ocupado';
 if ($situacao === 'Vencido') $situacao = 'Ocupado';
-$cliente  = $campAntiga['cliente']  ?? null;
-$agencia  = $campAntiga['agencia']  ?? null;
-$campanha = $campAntiga['campanha'] ?? null;
-$contato  = $campAntiga['contato']  ?? null;
-$obs      = $campAntiga['observacoes'] ?? null;
+$cliente   = $campAntiga['cliente']    ?? null;
+$clienteId = $campAntiga['cliente_id'] ?? null;
+$agencia   = $campAntiga['agencia']    ?? null;
+$campanha  = $campAntiga['campanha']   ?? null;
+$nome      = $campAntiga['nome']       ?? null;
+$contato   = $campAntiga['contato']    ?? null;
+$obs       = $campAntiga['observacoes'] ?? null;
 
 try {
     $pdo->beginTransaction();
@@ -75,14 +77,16 @@ try {
     // Cria nova campanha com ativo=1
     $stmt = $pdo->prepare("
         INSERT INTO campanhas
-            (ponto_id, cliente, agencia, campanha, situacao, inicio, fim, contato, observacoes, ativo, criado_por)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+            (ponto_id, cliente, cliente_id, agencia, campanha, nome, situacao, inicio, fim, contato, observacoes, ativo, criado_por)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
     ");
     $stmt->execute([
         $pontoId,
         $cliente  ?: null,
+        $clienteId ?: null,
         $agencia  ?: null,
         $campanha ?: null,
+        $nome     ?: null,
         $situacao,
         $novoInicio ?: null,
         $novoFim,

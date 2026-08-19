@@ -29,6 +29,7 @@ $campanhaId = (int)($body['campanha_id'] ?? 0); // 0 = nova
 $cliente    = trim($body['cliente']    ?? '');
 $agencia    = trim($body['agencia']    ?? '');
 $campanha   = trim($body['campanha']   ?? '');
+$nome       = trim($body['nome']       ?? '');
 $situacao   = trim($body['situacao']   ?? 'Ocupado');
 $inicio     = trim($body['inicio']     ?? '');
 $fim        = trim($body['fim']        ?? '');
@@ -78,12 +79,12 @@ try {
 
         $stmt = $pdo->prepare("
             UPDATE campanhas
-            SET cliente=?, cliente_id=?, agencia=?, campanha=?, situacao=?,
+            SET cliente=?, cliente_id=?, agencia=?, campanha=?, nome=?, situacao=?,
                 inicio=?, fim=?, contato=?, observacoes=?
             WHERE id=? AND ponto_id=?
         ");
         $stmt->execute([
-            $cliente ?: null, $clienteId, $agencia ?: null, $campanha ?: null, $situacao,
+            $cliente ?: null, $clienteId, $agencia ?: null, $campanha ?: null, $nome ?: null, $situacao,
             $inicio ?: null,  $fim ?: null,     $contato ?: null,  $obs ?: null,
             $campanhaId, $pontoId
         ]);
@@ -118,12 +119,12 @@ try {
 
         // Cria nova campanha
         $stmt = $pdo->prepare("
-            INSERT INTO campanhas (ponto_id, cliente, cliente_id, agencia, campanha, situacao, inicio, fim, contato, observacoes, ativo, criado_por)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+            INSERT INTO campanhas (ponto_id, cliente, cliente_id, agencia, campanha, nome, situacao, inicio, fim, contato, observacoes, ativo, criado_por)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
         ");
         $stmt->execute([
             $pontoId,
-            $cliente ?: null, $clienteId, $agencia ?: null, $campanha ?: null,
+            $cliente ?: null, $clienteId, $agencia ?: null, $campanha ?: null, $nome ?: null,
             $situacao,
             $inicio ?: null, $fim ?: null,
             $contato ?: null, $obs ?: null,

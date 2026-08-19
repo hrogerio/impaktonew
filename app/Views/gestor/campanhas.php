@@ -32,7 +32,7 @@ ksort($listaClientes);
 $listaClientes = array_keys($listaClientes);
 
 // Cadastro de clientes (para autocomplete no modal de edição)
-$listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes WHERE ativo = 1 ORDER BY razao_social ASC")
+$listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY razao_social ASC")
                               ->fetchAll(PDO::FETCH_COLUMN);
 ?>
 <!DOCTYPE html>
@@ -134,11 +134,16 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes WHERE at
             letter-spacing:0.4px; color:white; white-space:nowrap; flex-shrink:0;
         }
         .cp-card-nome {
-            font-size:0.75rem; font-weight:600; color:var(--color-text-muted);
+            font-size:1rem; font-weight:800; color:var(--color-text-dark);
             flex:1; min-width:0;
         }
+        .cp-card-motivo {
+            font-size:0.85rem; font-weight:700; color:var(--color-text-dark);
+            margin-top:1px;
+        }
         .cp-card-cliente {
-            font-size:1rem; font-weight:800; color:var(--color-text-dark);
+            font-size:0.78rem; font-weight:600; color:var(--color-text-muted);
+            margin-top:2px;
         }
         .cp-card-agencia {
             font-size:0.72rem; color:var(--color-text-muted); font-weight:600;
@@ -410,6 +415,17 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes WHERE at
 
         <div class="cp-modal-row">
             <div class="cp-modal-field">
+                <label class="cp-modal-label">Nome</label>
+                <input type="text" id="cpModalNomeProjeto" class="cp-modal-input" placeholder="Ex: Alto da Passira">
+            </div>
+            <div class="cp-modal-field">
+                <label class="cp-modal-label">Motivo</label>
+                <input type="text" id="cpModalNome" class="cp-modal-input" placeholder="Ex: Obras Avançadas">
+            </div>
+        </div>
+
+        <div class="cp-modal-row">
+            <div class="cp-modal-field">
                 <label class="cp-modal-label">Cliente</label>
                 <input type="text" id="cpModalCliente" class="cp-modal-input" placeholder="Nome do cliente" list="cpClientesCadastro" autocomplete="off">
                 <datalist id="cpClientesCadastro">
@@ -422,11 +438,6 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes WHERE at
                 <label class="cp-modal-label">Agência</label>
                 <input type="text" id="cpModalAgencia" class="cp-modal-input" placeholder="Agência (opcional)">
             </div>
-        </div>
-
-        <div class="cp-modal-field">
-            <label class="cp-modal-label">Nome da campanha</label>
-            <input type="text" id="cpModalNome" class="cp-modal-input" placeholder="Ex: São João 2025">
         </div>
 
         <div class="cp-modal-divider"></div>
@@ -667,9 +678,10 @@ function abrirEdicao(card) {
     document.getElementById('cpModalTitulo').textContent = 'Editar Campanha';
     document.getElementById('cpModalSub').textContent    =
         dados.campIds.length + ' ponto' + (dados.campIds.length > 1 ? 's' : '') + ' nesta campanha';
-    document.getElementById('cpModalCliente').value  = dados.cliente || '';
-    document.getElementById('cpModalAgencia').value  = dados.agencia || '';
-    document.getElementById('cpModalNome').value     = dados.nome    || '';
+    document.getElementById('cpModalCliente').value      = dados.cliente || '';
+    document.getElementById('cpModalAgencia').value      = dados.agencia || '';
+    document.getElementById('cpModalNomeProjeto').value  = dados.nome_projeto || '';
+    document.getElementById('cpModalNome').value         = (dados.nome && dados.nome !== '—') ? dados.nome : '';
     document.getElementById('cpModalInicio').value   = dados.inicio  || '';
     document.getElementById('cpModalFim').value      = dados.fim     || '';
     document.getElementById('cpBtnSalvar').disabled  = false;
@@ -774,12 +786,13 @@ function excluirDocumento(docId) {
 
 function salvarEdicao() {
     if (!_modalCard) return;
-    var dados   = JSON.parse(_modalCard.dataset.campanha || '{}');
-    var cliente = document.getElementById('cpModalCliente').value.trim();
-    var agencia = document.getElementById('cpModalAgencia').value.trim();
-    var nome    = document.getElementById('cpModalNome').value.trim();
-    var inicio  = document.getElementById('cpModalInicio').value;
-    var fim     = document.getElementById('cpModalFim').value;
+    var dados       = JSON.parse(_modalCard.dataset.campanha || '{}');
+    var cliente     = document.getElementById('cpModalCliente').value.trim();
+    var agencia     = document.getElementById('cpModalAgencia').value.trim();
+    var nomeProjeto = document.getElementById('cpModalNomeProjeto').value.trim();
+    var nome        = document.getElementById('cpModalNome').value.trim();
+    var inicio      = document.getElementById('cpModalInicio').value;
+    var fim         = document.getElementById('cpModalFim').value;
 
     if (!cliente) { alert('Informe o nome do cliente.'); return; }
 
@@ -800,6 +813,7 @@ function salvarEdicao() {
                     cliente:     cliente,
                     agencia:     agencia,
                     campanha:    nome,
+                    nome:        nomeProjeto,
                     situacao:    dados.situacao,
                     inicio:      inicio || null,
                     fim:         fim    || null,
@@ -916,7 +930,8 @@ function abrirRenovacao(card) {
     if (!dados || !Array.isArray(dados.pontoIds)) { alert('Dados inválidos.'); return; }
     _renovarCard = card;
 
-    document.getElementById('cpRenovarCliente').textContent = dados.cliente || '—';
+    document.getElementById('cpRenovarCliente').textContent =
+        (dados.nome_projeto ? dados.nome_projeto + ' — ' : '') + (dados.cliente || '—');
     document.getElementById('cpRenovarSub').textContent =
         dados.campIds.length + ' ponto' + (dados.campIds.length > 1 ? 's' : '') +
         (dados.nome && dados.nome !== '—' ? ' · ' + dados.nome : '');

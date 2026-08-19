@@ -19,6 +19,22 @@ function diasR($fim) {
 }
 
 /**
+ * Nome do cliente pra exibição no card: usa o cadastro (clientes.razao_social)
+ * quando disponível; se o "Nome" da campanha (ex: "Alto da Passira") já
+ * aparece entre parênteses no final do razão social, remove essa parte —
+ * já que essa informação é mostrada separadamente no card.
+ */
+function clienteParaExibicao(?string $cadastro, string $textoLivre, ?string $nomeProjeto): string {
+    $base = $cadastro ?: $textoLivre;
+    if ($nomeProjeto) {
+        $limpo = preg_replace('/\s*\(\s*' . preg_quote($nomeProjeto, '/') . '\s*\)\s*$/iu', '', $base);
+        $limpo = trim($limpo);
+        if ($limpo !== '') return $limpo;
+    }
+    return $base;
+}
+
+/**
  * Busca campanhas agrupadas (cliente + campanha + situacao + periodo) filtrando
  * por situacao já no SQL, pra nunca puxar a tabela inteira sem necessidade.
  * $situacaoFiltro: '' (ativas), 'Encerradas', 'Vencidas'
@@ -28,11 +44,13 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
 
     $sql = "
         SELECT
-            c.id, c.ponto_id, c.cliente, c.agencia, c.campanha,
+            c.id, c.ponto_id, c.cliente, c.cliente_id, c.agencia, c.campanha, c.nome AS nome_projeto,
             c.situacao, c.inicio, c.fim, c.ativo, c.encerrado_em, c.criado_em,
-            p.numero, p.logradouro, p.cidade, p.regiao
+            p.numero, p.logradouro, p.cidade, p.regiao,
+            cl.razao_social AS cliente_cadastro
         FROM campanhas c
         JOIN pontos p ON p.id = c.ponto_id AND (p.ativo = 1 OR p.ativo IS NULL)
+        LEFT JOIN clientes cl ON cl.id = c.cliente_id
         WHERE c.situacao != 'Reservado'
     ";
     if ($situacaoFiltro === 'Encerradas') {
@@ -69,19 +87,22 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
     foreach ($rows as $r) {
         $cli  = trim($r['cliente']  ?? '') ?: '— Sem cliente —';
         $camp = trim($r['campanha'] ?? '') ?: '—';
-        $campKey = md5($cli . '|' . $camp . '|' . $r['situacao'] . '|' . ($r['inicio'] ?? '') . '|' . ($r['fim'] ?? '') . '|' . $r['ativo']);
+        $nomeProjeto = trim($r['nome_projeto'] ?? '');
+        $campKey = md5($cli . '|' . $camp . '|' . $nomeProjeto . '|' . $r['situacao'] . '|' . ($r['inicio'] ?? '') . '|' . ($r['fim'] ?? '') . '|' . $r['ativo']);
 
         if (!isset($grupos[$campKey])) {
             $grupos[$campKey] = [
-                'cliente'    => $cli,
-                'agencia'    => trim($r['agencia'] ?? ''),
-                'nome'       => $camp,
-                'situacao'   => $r['situacao'],
-                'ativo'      => (int)$r['ativo'],
-                'inicio'     => $r['inicio'],
-                'fim'        => $r['fim'],
-                'rows'       => [],
-                'documentos' => $documentosPorGrupo[$docKey($cli, $r['agencia'] ?? '', $camp, $r['inicio'], $r['fim'])] ?? [],
+                'cliente'          => $cli,
+                'cliente_cadastro' => $r['cliente_cadastro'] ? trim($r['cliente_cadastro']) : null,
+                'agencia'          => trim($r['agencia'] ?? ''),
+                'nome'             => $camp,
+                'nome_projeto'     => $nomeProjeto,
+                'situacao'         => $r['situacao'],
+                'ativo'            => (int)$r['ativo'],
+                'inicio'           => $r['inicio'],
+                'fim'              => $r['fim'],
+                'rows'             => [],
+                'documentos'       => $documentosPorGrupo[$docKey($cli, $r['agencia'] ?? '', $camp, $r['inicio'], $r['fim'])] ?? [],
             ];
         }
         $grupos[$campKey]['rows'][] = $r;
@@ -98,7 +119,8 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
 /** String de busca (cliente, agência, campanha, situação, pontos) usada pro filtro textual */
 function campanhaBuscaStr(array $g): string {
     return strtolower(
-        $g['cliente'] . ' ' . $g['agencia'] . ' ' . $g['nome'] . ' ' . $g['situacao']
+        $g['cliente'] . ' ' . ($g['cliente_cadastro'] ?? '') . ' ' . $g['agencia'] . ' '
+        . $g['nome'] . ' ' . $g['nome_projeto'] . ' ' . $g['situacao']
         . ' ' . implode(' ', array_column($g['rows'], 'numero'))
         . ' ' . implode(' ', array_column($g['rows'], 'logradouro'))
         . ' ' . implode(' ', array_column($g['rows'], 'cidade'))
@@ -118,12 +140,13 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
     $pontoIds = array_column($g['rows'], 'ponto_id');
     $isVencida = $g['ativo'] && $g['fim'] && substr($g['fim'], 0, 10) < $hoje;
     $dataCard = htmlspecialchars(json_encode([
-        'campIds'    => $campIds,
-        'pontoIds'   => $pontoIds,
-        'cliente'    => $g['cliente'],
-        'agencia'    => $g['agencia'],
-        'nome'       => $g['nome'],
-        'situacao'   => $g['situacao'],
+        'campIds'      => $campIds,
+        'pontoIds'     => $pontoIds,
+        'cliente'      => $g['cliente'],
+        'agencia'      => $g['agencia'],
+        'nome'         => $g['nome'],
+        'nome_projeto' => $g['nome_projeto'],
+        'situacao'     => $g['situacao'],
         'inicio'     => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
         'fim'        => $g['fim']    ? substr($g['fim'],    0, 10) : '',
         'isVencida'  => (bool)$isVencida,
@@ -158,9 +181,17 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
                 <?php else: ?>
                 <span class="sit-badge" style="background:<?= $cor ?>"><?= htmlspecialchars($g['situacao']) ?></span>
                 <?php endif; ?>
-                <span class="cp-card-nome"><?= htmlspecialchars($g['nome'] !== '—' ? $g['nome'] : 'Sem nome') ?></span>
+                <?php
+                    // Nome (do projeto/campanha) é o destaque; sem ele, cai pro Motivo.
+                    $titulo = $g['nome_projeto'] !== '' ? $g['nome_projeto'] : ($g['nome'] !== '—' ? $g['nome'] : 'Sem nome');
+                    $clienteExibicao = clienteParaExibicao($g['cliente_cadastro'], $g['cliente'], $g['nome_projeto'] ?: null);
+                ?>
+                <span class="cp-card-nome"><?= htmlspecialchars($titulo) ?></span>
             </div>
-            <div class="cp-card-cliente"><?= htmlspecialchars($g['cliente']) ?></div>
+            <?php if ($g['nome_projeto'] !== '' && $g['nome'] !== '—'): ?>
+            <div class="cp-card-motivo"><?= htmlspecialchars($g['nome']) ?></div>
+            <?php endif; ?>
+            <div class="cp-card-cliente"><?= htmlspecialchars($clienteExibicao) ?></div>
             <?php if ($g['agencia']): ?><div class="cp-card-agencia"><?= htmlspecialchars($g['agencia']) ?></div><?php endif; ?>
             <div class="cp-card-meta">
                 <?php if ($ini || $fim): ?>

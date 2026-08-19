@@ -27,6 +27,10 @@ $colunasOrdenaveis = ['razao_social', 'cnpj', 'contato', 'telefone', 'email', 'a
 $sort = in_array($_GET['sort'] ?? '', $colunasOrdenaveis, true) ? $_GET['sort'] : 'razao_social';
 $dir  = strtolower($_GET['dir'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
 
+// Status agora é automático: cliente é "ativo" quando tem alguma campanha
+// ativa vinculada (campanhas.cliente_id -> clientes.id, campanhas.ativo = 1).
+$statusExpr = "EXISTS (SELECT 1 FROM campanhas cp WHERE cp.cliente_id = clientes.id AND cp.ativo = 1)";
+
 $where  = [];
 $params = [];
 if ($busca !== '') {
@@ -36,14 +40,14 @@ if ($busca !== '') {
     $params[] = $like;
 }
 if ($statusFiltro === 'ativo') {
-    $where[] = "ativo = 1";
+    $where[] = "$statusExpr";
 } elseif ($statusFiltro === 'inativo') {
-    $where[] = "ativo = 0";
+    $where[] = "NOT ($statusExpr)";
 }
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
 // ── Paginação ──────────────────────────────────────────────
-$porPagina = 20;
+$porPagina = 5;
 $stmtTotal = $pdo->prepare("SELECT COUNT(*) FROM clientes $whereSql");
 $stmtTotal->execute($params);
 $totalFiltrado = (int)$stmtTotal->fetchColumn();
@@ -52,7 +56,10 @@ $totalPaginas  = max(1, (int)ceil($totalFiltrado / $porPagina));
 $pagina = max(1, min((int)($_GET['page'] ?? 1), $totalPaginas));
 $offset = ($pagina - 1) * $porPagina;
 
-$sql = "SELECT * FROM clientes $whereSql ORDER BY $sort $dir, razao_social ASC LIMIT $porPagina OFFSET $offset";
+$ordemColuna = $sort === 'ativo' ? 'tem_campanha_ativa' : $sort;
+$sql = "SELECT clientes.*, ($statusExpr) AS tem_campanha_ativa
+        FROM clientes $whereSql
+        ORDER BY $ordemColuna $dir, razao_social ASC LIMIT $porPagina OFFSET $offset";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -60,7 +67,7 @@ $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Agrupa por status (estilo "grupos" do monday.com) — dentro da página atual
 $grupos = ['ativo' => [], 'inativo' => []];
 foreach ($clientes as $c) {
-    $grupos[$c['ativo'] ? 'ativo' : 'inativo'][] = $c;
+    $grupos[$c['tem_campanha_ativa'] ? 'ativo' : 'inativo'][] = $c;
 }
 $grupoInfo = [
     'ativo'   => ['titulo' => 'Ativos',   'cor' => '#00c875'],
@@ -68,7 +75,10 @@ $grupoInfo = [
 ];
 
 // ── Cards de resumo (totais gerais, não afetados pelos filtros) ──
-$totais = $pdo->query("SELECT COUNT(*) AS total, SUM(ativo = 1) AS ativos, SUM(ativo = 0) AS inativos FROM clientes")
+$totais = $pdo->query("SELECT COUNT(*) AS total,
+                               SUM(CASE WHEN $statusExpr THEN 1 ELSE 0 END) AS ativos,
+                               SUM(CASE WHEN NOT ($statusExpr) THEN 1 ELSE 0 END) AS inativos
+                        FROM clientes")
                ->fetch(PDO::FETCH_ASSOC);
 
 // Lista completa de razões sociais, para autocomplete no campo de busca
@@ -385,21 +395,14 @@ if (isset($_GET['msg'])) {
                             <?php endif; ?>
                         </td>
                         <td>
-                            <?php if ($c['ativo']): ?>
-                                <span class="cli-status-dot ativo" title="Ativo"></span>
+                            <?php if ($c['tem_campanha_ativa']): ?>
+                                <span class="cli-status-dot ativo" title="Ativo — tem campanha ativa vinculada"></span>
                             <?php else: ?>
-                                <span class="cli-status-dot inativo" title="Inativo"></span>
+                                <span class="cli-status-dot inativo" title="Inativo — sem campanha ativa no momento"></span>
                             <?php endif; ?>
                         </td>
                         <td class="cli-acoes">
                             <a href="/gestor/clientes/editar?id=<?= (int)$c['id'] ?>" class="cli-acao-btn" title="Editar">✏️</a>
-                            <form method="POST" action="/gestor/clientes/status" style="margin:0;display:inline;"
-                                  onsubmit="return confirm('<?= $c['ativo'] ? 'Desativar' : 'Ativar' ?> o cliente <?= htmlspecialchars(addslashes($c['razao_social'])) ?>?')">
-                                <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
-                                <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
-                                <input type="hidden" name="acao" value="<?= $c['ativo'] ? 'desativar' : 'ativar' ?>">
-                                <button type="submit" class="cli-acao-btn" title="<?= $c['ativo'] ? 'Desativar' : 'Ativar' ?>"><?= $c['ativo'] ? '⛔' : '✅' ?></button>
-                            </form>
                         </td>
                     </tr>
                 <?php endforeach; ?>
