@@ -60,7 +60,9 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
     if ($situacaoFiltro === 'Encerradas') {
         $sql .= " AND c.ativo = 0";
     } elseif ($situacaoFiltro === 'Vencidas') {
-        $sql .= " AND c.ativo = 1 AND c.fim IS NOT NULL AND c.fim <> '0000-00-00' AND c.fim < :hoje";
+        // CAST pra CHAR evita que o MySQL tente interpretar o literal '0000-00-00'
+        // como DATE em modo estrito (erro 1525 "Incorrect DATE value" em producao).
+        $sql .= " AND c.ativo = 1 AND c.fim IS NOT NULL AND CAST(c.fim AS CHAR) <> '0000-00-00' AND c.fim < :hoje";
     } else {
         $sql .= " AND c.ativo = 1";
     }
