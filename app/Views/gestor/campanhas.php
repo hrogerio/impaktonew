@@ -558,17 +558,27 @@ function buscarCampanhas() {
     return fetch('/gestor/campanhas/buscar?' + qs.toString())
         .then(function(r) {
             // Sessão expirada: o backend redireciona pro login (HTML, não JSON).
-            // Sem isso, r.json() abaixo falha e cai num "erro de comunicação" confuso.
             if (r.redirected || r.url.indexOf('/campanhas/buscar') === -1) {
                 location.href = r.url || '/';
                 return Promise.reject(new Error('sessao_expirada'));
             }
-            return r.json();
+            return r.text().then(function(txt) { return { status: r.status, txt: txt }; });
         })
-        .then(function(resp) {
+        .then(function(raw) {
+            var resp;
+            try {
+                resp = JSON.parse(raw.txt);
+            } catch (e) {
+                // DIAGNÓSTICO TEMPORÁRIO: mostra o que o servidor respondeu de fato,
+                // em vez do erro genérico, pra identificarmos a causa real em produção.
+                console.error('Resposta não-JSON de /campanhas/buscar:', raw.status, raw.txt);
+                grid.innerHTML = '';
+                mostrarToast('❌ HTTP ' + raw.status + ': ' + raw.txt.slice(0, 180), 'err');
+                return;
+            }
             if (!resp.ok) {
                 grid.innerHTML = '';
-                mostrarToast('❌ Erro ao buscar campanhas', 'err');
+                mostrarToast('❌ Erro ao buscar campanhas: ' + (resp.erro || ''), 'err');
                 return;
             }
             grid.innerHTML = resp.html;
