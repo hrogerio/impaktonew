@@ -115,7 +115,7 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
 
     usort($grupos, function($a, $b) {
         if ($a['ativo'] !== $b['ativo']) return $b['ativo'] - $a['ativo'];
-        return strcmp($a['cliente'], $b['cliente']);
+        return strcasecmp($a['titulo'], $b['titulo']);
     });
 
     return $grupos;
