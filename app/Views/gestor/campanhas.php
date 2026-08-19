@@ -369,9 +369,6 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
             <?php endforeach; ?>
         </select>
         <div class="cp-radio-group" id="cpFiltroSitGroup">
-            <label class="cp-radio-opt marcado">
-                <input type="radio" name="cpSit" value="" checked> Ativas
-            </label>
             <label class="cp-radio-opt">
                 <input type="radio" name="cpSit" value="Vencidas"> Vencidas
             </label>
