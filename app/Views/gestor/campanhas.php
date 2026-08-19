@@ -562,23 +562,12 @@ function buscarCampanhas() {
                 location.href = r.url || '/';
                 return Promise.reject(new Error('sessao_expirada'));
             }
-            return r.text().then(function(txt) { return { status: r.status, txt: txt }; });
+            return r.json();
         })
-        .then(function(raw) {
-            var resp;
-            try {
-                resp = JSON.parse(raw.txt);
-            } catch (e) {
-                // DIAGNÓSTICO TEMPORÁRIO: mostra o que o servidor respondeu de fato,
-                // em vez do erro genérico, pra identificarmos a causa real em produção.
-                console.error('Resposta não-JSON de /campanhas/buscar:', raw.status, raw.txt);
-                grid.innerHTML = '';
-                mostrarToast('❌ HTTP ' + raw.status + ': ' + raw.txt.slice(0, 180), 'err');
-                return;
-            }
+        .then(function(resp) {
             if (!resp.ok) {
                 grid.innerHTML = '';
-                mostrarToast('❌ ' + (resp.erro || 'erro') + ': ' + (resp.msg || '') + (resp.onde ? ' @ ' + resp.onde : ''), 'err');
+                mostrarToast('❌ Erro ao buscar campanhas', 'err');
                 return;
             }
             grid.innerHTML = resp.html;
