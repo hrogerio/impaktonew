@@ -13,7 +13,11 @@ function fmtD($d) {
 }
 function diasR($fim) {
     if (!$fim || $fim === '0000-00-00') return null;
-    $hoje = new DateTime(); $fimDt = new DateTime($fim);
+    try {
+        $hoje = new DateTime(); $fimDt = new DateTime($fim);
+    } catch (Exception $e) {
+        return null;
+    }
     $diff = (int)$hoje->diff($fimDt)->days;
     return $fimDt >= $hoje ? $diff : -$diff;
 }
