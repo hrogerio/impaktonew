@@ -155,6 +155,12 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
             font-size:0.82rem; font-weight:600; color:var(--color-text-dark);
             margin-top:1px;
         }
+        .cp-card-cliente-link {
+            color:inherit; text-decoration:none;
+        }
+        .cp-card-cliente-link:hover {
+            color:var(--color-accent-primary); text-decoration:underline;
+        }
         .cp-card-agencia {
             font-size:0.72rem; color:var(--color-text-muted); font-weight:600;
         }

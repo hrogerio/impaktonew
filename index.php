@@ -329,6 +329,11 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/cliente_form.php';
         break;
 
+    case 'gestor/clientes/ficha':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/cliente_ficha.php';
+        break;
+
     case 'gestor/clientes/salvar':
         auth_required();
         require __DIR__ . '/app/Views/gestor/api/salvar_cliente.php';

@@ -103,6 +103,7 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
 
             $grupos[$campKey] = [
                 'cliente'          => $cli,
+                'cliente_id'       => $r['cliente_id'] ? (int)$r['cliente_id'] : null,
                 'cliente_cadastro' => $r['cliente_cadastro'] ? trim($r['cliente_cadastro']) : null,
                 'agencia'          => trim($r['agencia'] ?? ''),
                 'nome'             => $camp,
@@ -203,7 +204,13 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
                 <span class="cp-card-motivo">(<?= htmlspecialchars($g['nome']) ?>)</span>
                 <?php endif; ?>
             </div>
-            <div class="cp-card-cliente"><?= htmlspecialchars($clienteExibicao) ?></div>
+            <div class="cp-card-cliente">
+                <?php if ($g['cliente_id']): ?>
+                <a href="/gestor/clientes/ficha?id=<?= (int)$g['cliente_id'] ?>" class="cp-card-cliente-link" title="Ver ficha do cliente"><?= htmlspecialchars($clienteExibicao) ?></a>
+                <?php else: ?>
+                <?= htmlspecialchars($clienteExibicao) ?>
+                <?php endif; ?>
+            </div>
             <?php if ($g['agencia']): ?><div class="cp-card-agencia">Agência: <?= htmlspecialchars($g['agencia']) ?></div><?php endif; ?>
             <div class="cp-card-meta">
                 <?php if ($ini || $fim): ?>
