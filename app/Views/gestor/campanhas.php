@@ -84,6 +84,15 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
         }
         .cp-sel:focus { outline:none; border-color:var(--color-accent-primary); }
         .cp-sel.ativo { border-color:var(--color-accent-primary); background:#fff5f5; font-weight:700; }
+        .cp-radio-group { display:flex; gap:0.4rem; }
+        .cp-radio-opt {
+            display:flex; align-items:center; gap:0.35rem; padding:0.45rem 0.75rem;
+            border:1px solid var(--color-border); border-radius:7px; background:white;
+            font-size:0.82rem; font-weight:600; color:var(--color-text-dark); cursor:pointer;
+            white-space:nowrap; user-select:none;
+        }
+        .cp-radio-opt input { margin:0; accent-color:var(--color-accent-primary); cursor:pointer; }
+        .cp-radio-opt.marcado { border-color:var(--color-accent-primary); background:#fff5f5; font-weight:700; }
         .cp-limpar {
             padding:0.45rem 0.9rem; background:#f3f4f6; border:1px solid var(--color-border);
             border-radius:7px; font-size:0.78rem; font-weight:700; color:#555;
@@ -356,20 +365,19 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
             <option value="<?= htmlspecialchars(strtolower($c)) ?>"><?= htmlspecialchars($c) ?></option>
             <?php endforeach; ?>
         </select>
-        <select id="cpFiltroSit" class="cp-sel">
-            <option value="">Ativas</option>
-            <option value="Encerradas">Encerradas</option>
-            <option value="Vencidas">Vencidas</option>
-        </select>
+        <div class="cp-radio-group" id="cpFiltroSitGroup">
+            <label class="cp-radio-opt marcado">
+                <input type="radio" name="cpSit" value="" checked> Ativas
+            </label>
+            <label class="cp-radio-opt">
+                <input type="radio" name="cpSit" value="Encerradas"> Encerradas
+            </label>
+        </div>
         <button class="cp-limpar" id="cpLimpar" onclick="limparFiltros()">✕ Limpar</button>
     </div>
 
     <!-- ── Grid de cards (preenchido via AJAX ao aplicar um filtro) ── -->
     <div class="cp-grid" id="cpGrid"></div>
-
-    <div class="cp-prompt" id="cpPrompt">
-        🔎 Use a busca ou os filtros acima para carregar as campanhas.
-    </div>
 
     <div class="cp-empty" id="cpEmpty" style="display:none">
         Nenhuma campanha encontrada para os filtros aplicados.
@@ -529,7 +537,6 @@ function salvarFiltros() {
 function buscarCampanhas() {
     var temFiltro = filtros.busca || filtros.cliente || filtros.campanha || filtros.situacao;
     document.getElementById('cpLimpar').className = 'cp-limpar' + (temFiltro ? ' vis' : '');
-    document.getElementById('cpPrompt').style.display = 'none';
     document.getElementById('cpEmpty').style.display = 'none';
 
     var grid = document.getElementById('cpGrid');
@@ -565,12 +572,6 @@ function buscarCampanhas() {
         });
 }
 
-function mostrarPrompt() {
-    document.getElementById('cpGrid').innerHTML = '';
-    document.getElementById('cpEmpty').style.display = 'none';
-    document.getElementById('cpPrompt').style.display = 'block';
-}
-
 var debTimer;
 (function() {
     var qs = new URLSearchParams(location.search);
@@ -582,16 +583,15 @@ var debTimer;
         buscarCampanhas();
         return;
     }
-    // Sem parâmetro na URL: restaura o último filtro usado (ex: ao voltar da tela anterior)
+    // Sem parâmetro na URL: restaura o último filtro usado (ex: ao voltar da tela anterior),
+    // ou carrega as ativas/vencidas por padrão.
     var salvo;
     try { salvo = JSON.parse(sessionStorage.getItem(FILTROS_KEY) || 'null'); } catch(e) { salvo = null; }
-    if (!salvo || !(salvo.busca || salvo.cliente || salvo.campanha || salvo.situacao)) { mostrarPrompt(); return; }
-    filtros = Object.assign({ busca:'', cliente:'', campanha:'', situacao:'' }, salvo);
+    filtros = Object.assign({ busca:'', cliente:'', campanha:'', situacao:'' }, salvo || {});
     document.getElementById('cpBusca').value = filtros.busca;
     document.getElementById('cpFiltroCampanha').value = filtros.campanha;
     document.getElementById('cpFiltroCampanha').className = 'cp-sel' + (filtros.campanha ? ' ativo' : '');
-    document.getElementById('cpFiltroSit').value = filtros.situacao;
-    document.getElementById('cpFiltroSit').className = 'cp-sel' + (filtros.situacao ? ' ativo' : '');
+    marcarRadioSit(filtros.situacao);
     buscarCampanhas();
 })();
 document.getElementById('cpBusca').addEventListener('input', function() {
@@ -605,19 +605,27 @@ document.getElementById('cpFiltroCampanha').addEventListener('change', function(
     salvarFiltros();
     buscarCampanhas();
 });
-document.getElementById('cpFiltroSit').addEventListener('change', function() {
-    filtros.situacao = this.value;
-    this.className = 'cp-sel' + (this.value ? ' ativo' : '');
-    salvarFiltros();
-    buscarCampanhas();
+document.querySelectorAll('input[name="cpSit"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+        if (!this.checked) return;
+        filtros.situacao = this.value;
+        marcarRadioSit(this.value);
+        salvarFiltros();
+        buscarCampanhas();
+    });
 });
+function marcarRadioSit(valor) {
+    document.querySelectorAll('#cpFiltroSitGroup input[name="cpSit"]').forEach(function(radio) {
+        radio.checked = (radio.value === (valor || ''));
+        radio.closest('.cp-radio-opt').classList.toggle('marcado', radio.checked);
+    });
+}
 function limparFiltros() {
     filtros = { busca:'', cliente:'', campanha:'', situacao:'' };
     document.getElementById('cpBusca').value = '';
-    ['cpFiltroCampanha','cpFiltroSit'].forEach(function(id) {
-        document.getElementById(id).value = '';
-        document.getElementById(id).className = 'cp-sel';
-    });
+    document.getElementById('cpFiltroCampanha').value = '';
+    document.getElementById('cpFiltroCampanha').className = 'cp-sel';
+    marcarRadioSit('');
     salvarFiltros();
     buscarCampanhas();
 }
@@ -1066,8 +1074,7 @@ function liberarTodosVencidos(btn) {
         if (acharEAbrir()) return;
         // Não achou entre as ativas (pode estar encerrada): tenta de novo
         filtros.situacao = 'Encerradas';
-        document.getElementById('cpFiltroSit').value = 'Encerradas';
-        document.getElementById('cpFiltroSit').className = 'cp-sel ativo';
+        marcarRadioSit('Encerradas');
         buscarCampanhas().then(acharEAbrir);
     });
 })();

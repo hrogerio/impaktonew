@@ -63,6 +63,7 @@ if (!isset($_FILES['arquivo'])) docJson(['ok' => false, 'erro' => 'nenhum_arquiv
 $file = $_FILES['arquivo'];
 
 if ($file['error'] !== UPLOAD_ERR_OK) {
+    error_log("pi_pp upload: erro de upload code={$file['error']} nome=" . ($file['name'] ?? '?'));
     docJson(['ok' => false, 'erro' => 'upload_erro_' . $file['error']]);
 }
 
@@ -71,13 +72,19 @@ if ($file['size'] > 15 * 1024 * 1024) {
     docJson(['ok' => false, 'erro' => 'arquivo_muito_grande']);
 }
 
-// Valida MIME real — precisa ser PDF de verdade, não só extensão
+// Valida MIME real — precisa ser PDF de verdade, não só extensão.
+// finfo às vezes classifica PDFs legítimos (de scanner/app de celular) como
+// application/octet-stream; nesse caso, confere a assinatura %PDF- como fallback.
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
 $mime  = finfo_file($finfo, $file['tmp_name']);
 finfo_close($finfo);
 
 if ($mime !== 'application/pdf') {
-    docJson(['ok' => false, 'erro' => 'formato_invalido']);
+    $assinatura = @file_get_contents($file['tmp_name'], false, null, 0, 5);
+    if ($assinatura !== '%PDF-') {
+        error_log("pi_pp upload: formato_invalido mime=$mime nome=" . ($file['name'] ?? '?'));
+        docJson(['ok' => false, 'erro' => 'formato_invalido']);
+    }
 }
 
 $nomeArq  = 'fotos/pi_pp/' . $tipo . '_' . uniqid() . '.pdf';
@@ -89,6 +96,7 @@ if (!is_dir($destDir)) {
 }
 
 if (!move_uploaded_file($file['tmp_name'], $destPath)) {
+    error_log("pi_pp upload: erro_ao_salvar_arquivo destino=$destPath");
     docJson(['ok' => false, 'erro' => 'erro_ao_salvar_arquivo']);
 }
 

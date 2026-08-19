@@ -229,7 +229,7 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
 function docChavePdf(array $c): string {
     return md5(
         trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') .
-        '|' . ($c['inicio_contrato'] ?? '') . '|' . ($c['fim_contrato'] ?? '')
+        '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? '')
     );
 }
 

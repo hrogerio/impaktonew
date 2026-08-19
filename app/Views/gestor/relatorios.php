@@ -44,7 +44,7 @@ function fmtData($data) {
 /** Conta quantos contratos da lista não têm nenhum documento financeiro enviado */
 function contarSemDocumentos(array $lista, array $documentosPorGrupo): int {
     return count(array_filter($lista, function($c) use ($documentosPorGrupo) {
-        $chave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') . '|' . ($c['inicio_contrato'] ?? '') . '|' . ($c['fim_contrato'] ?? ''));
+        $chave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') . '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? ''));
         return empty($documentosPorGrupo[$chave] ?? []);
     }));
 }
@@ -74,7 +74,7 @@ function tabelaCampanhas(array $lista) {
             </thead>
             <tbody>
                 <?php foreach ($lista as $c):
-                    $docChave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') . '|' . ($c['inicio_contrato'] ?? '') . '|' . ($c['fim_contrato'] ?? ''));
+                    $docChave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') . '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? ''));
                     $docsGrupo = $documentosPorGrupo[$docChave] ?? [];
                     $dadosContrato = json_encode([
                         'cliente'         => $c['cliente'] ?? '-',
