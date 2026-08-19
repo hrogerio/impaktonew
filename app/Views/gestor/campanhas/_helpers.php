@@ -257,15 +257,14 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
                 <button class="cp-btn cp-btn-docs"
                         onclick="abrirDocumentos(this.closest('.cp-card'))"
                         title="Documentos financeiros (P.I. / P.P.)">📎 Docs (<?= count($g['documentos']) ?>)</button>
+                <button class="cp-btn cp-btn-editar"
+                        onclick="abrirEdicao(this.closest('.cp-card'))"
+                        title="Editar datas e dados da campanha">✏️ Editar</button>
             <?php if ($g['ativo']): ?>
                 <?php if ($isVencida): ?>
                 <button class="cp-btn cp-btn-renovar"
                         onclick="abrirRenovacao(this.closest('.cp-card'))"
                         title="Renovar contrato com novas datas">🔄 Renovar</button>
-                <?php else: ?>
-                <button class="cp-btn cp-btn-editar"
-                        onclick="abrirEdicao(this.closest('.cp-card'))"
-                        title="Editar datas e dados da campanha">✏️ Editar</button>
                 <?php endif; ?>
                 <button class="cp-btn cp-btn-encerrar"
                         onclick="encerrarGrupo(this.closest('.cp-card'), this)"

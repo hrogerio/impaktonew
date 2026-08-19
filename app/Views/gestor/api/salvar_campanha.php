@@ -73,7 +73,7 @@ try {
         // (cliente/campanha/situacao/inicio/fim), não por campanha_id. Precisamos
         // buscar os valores antigos para poder "migrar" os arquivos já enviados
         // para a nova chave, senão eles ficam órfãos e somem da tela.
-        $so = $pdo->prepare("SELECT cliente, agencia, campanha, situacao, inicio, fim FROM campanhas WHERE id=? AND ponto_id=? LIMIT 1");
+        $so = $pdo->prepare("SELECT cliente, agencia, campanha, situacao, inicio, fim, ativo FROM campanhas WHERE id=? AND ponto_id=? LIMIT 1");
         $so->execute([$campanhaId, $pontoId]);
         $antiga = $so->fetch(PDO::FETCH_ASSOC);
 
@@ -133,8 +133,13 @@ try {
         $campanhaId = (int)$pdo->lastInsertId();
     }
 
-    // Sincroniza situação do ponto
-    $pdo->prepare("UPDATE pontos SET situacao=? WHERE id=?")->execute([$situacao, $pontoId]);
+    // Sincroniza situação do ponto — só quando a campanha editada é a vigente
+    // (ativo=1). Editar uma campanha já encerrada não pode sobrescrever a
+    // situação atual do ponto, que pode já pertencer a outra campanha.
+    $campanhaEhVigente = (!empty($antiga)) ? (int)$antiga['ativo'] === 1 : true;
+    if ($campanhaEhVigente) {
+        $pdo->prepare("UPDATE pontos SET situacao=? WHERE id=?")->execute([$situacao, $pontoId]);
+    }
 
     $pdo->commit();
     responderSalvar(['ok' => true, 'campanha_id' => $campanhaId, 'situacao' => $situacao]);
