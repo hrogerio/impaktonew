@@ -128,22 +128,21 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
         .cp-card-top {
             display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem; flex-wrap:wrap;
         }
-        .sit-badge {
-            display:inline-block; padding:2px 9px; border-radius:10px;
-            font-size:0.6rem; font-weight:800; text-transform:uppercase;
-            letter-spacing:0.4px; color:white; white-space:nowrap; flex-shrink:0;
+        .sit-dot {
+            display:inline-block; width:10px; height:10px; border-radius:50%;
+            flex-shrink:0; cursor:help;
         }
         .cp-card-nome {
             font-size:1rem; font-weight:800; color:var(--color-text-dark);
-            flex:1; min-width:0;
+            min-width:0;
+        }
+        .cp-card-cliente-inline {
+            font-size:0.75rem; font-weight:600; color:var(--color-text-muted);
+            min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
         }
         .cp-card-motivo {
             font-size:0.85rem; font-weight:700; color:var(--color-text-dark);
             margin-top:1px;
-        }
-        .cp-card-cliente {
-            font-size:0.78rem; font-weight:600; color:var(--color-text-muted);
-            margin-top:2px;
         }
         .cp-card-agencia {
             font-size:0.72rem; color:var(--color-text-muted); font-weight:600;

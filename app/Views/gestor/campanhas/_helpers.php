@@ -175,11 +175,11 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
         <div class="cp-card-head">
             <div class="cp-card-top">
                 <?php if (!$g['ativo']): ?>
-                <span class="sit-badge" style="background:#6b7280">Encerrada</span>
+                <span class="sit-dot" style="background:#6b7280" title="Encerrada"></span>
                 <?php elseif ($isVencida): ?>
-                <span class="sit-badge" style="background:#6c757d"><?= htmlspecialchars($g['situacao']) ?></span>
+                <span class="sit-dot" style="background:#6c757d" title="<?= htmlspecialchars($g['situacao']) ?>"></span>
                 <?php else: ?>
-                <span class="sit-badge" style="background:<?= $cor ?>"><?= htmlspecialchars($g['situacao']) ?></span>
+                <span class="sit-dot" style="background:<?= $cor ?>" title="<?= htmlspecialchars($g['situacao']) ?>"></span>
                 <?php endif; ?>
                 <?php
                     // Nome (do projeto/campanha) é o destaque; sem ele, cai pro Motivo.
@@ -187,11 +187,11 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
                     $clienteExibicao = clienteParaExibicao($g['cliente_cadastro'], $g['cliente'], $g['nome_projeto'] ?: null);
                 ?>
                 <span class="cp-card-nome"><?= htmlspecialchars($titulo) ?></span>
+                <span class="cp-card-cliente-inline"><?= htmlspecialchars($clienteExibicao) ?></span>
             </div>
             <?php if ($g['nome_projeto'] !== '' && $g['nome'] !== '—'): ?>
             <div class="cp-card-motivo"><?= htmlspecialchars($g['nome']) ?></div>
             <?php endif; ?>
-            <div class="cp-card-cliente"><?= htmlspecialchars($clienteExibicao) ?></div>
             <?php if ($g['agencia']): ?><div class="cp-card-agencia"><?= htmlspecialchars($g['agencia']) ?></div><?php endif; ?>
             <div class="cp-card-meta">
                 <?php if ($ini || $fim): ?>
