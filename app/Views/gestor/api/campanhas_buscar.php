@@ -21,6 +21,7 @@ $pdo = getDatabase();
 
 $busca    = strtolower(trim($_GET['busca'] ?? ''));
 $cliente  = strtolower(trim($_GET['cliente'] ?? ''));
+$campanhaFiltro = strtolower(trim($_GET['campanha'] ?? ''));
 $situacao = trim($_GET['situacao'] ?? '');
 if (!in_array($situacao, ['', 'Encerradas', 'Vencidas'], true)) $situacao = '';
 
@@ -31,6 +32,7 @@ $html = '';
 $total = 0;
 foreach ($grupos as $g) {
     if ($cliente !== '' && strtolower($g['cliente']) !== $cliente) continue;
+    if ($campanhaFiltro !== '' && strtolower($g['titulo']) !== $campanhaFiltro) continue;
     if ($busca !== '' && strpos(campanhaBuscaStr($g), $busca) === false) continue;
     $html .= renderCampanhaCard($g, $CORES, $hoje);
     $total++;

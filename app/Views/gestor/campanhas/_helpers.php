@@ -91,12 +91,17 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
         $campKey = md5($cli . '|' . $camp . '|' . $nomeProjeto . '|' . $r['situacao'] . '|' . ($r['inicio'] ?? '') . '|' . ($r['fim'] ?? '') . '|' . $r['ativo']);
 
         if (!isset($grupos[$campKey])) {
+            // Título de exibição da campanha: usa o Nome (do projeto) quando existe,
+            // senão cai pro Motivo — mesma lógica usada no destaque do card.
+            $titulo = $nomeProjeto !== '' ? $nomeProjeto : ($camp !== '—' ? $camp : 'Sem nome');
+
             $grupos[$campKey] = [
                 'cliente'          => $cli,
                 'cliente_cadastro' => $r['cliente_cadastro'] ? trim($r['cliente_cadastro']) : null,
                 'agencia'          => trim($r['agencia'] ?? ''),
                 'nome'             => $camp,
                 'nome_projeto'     => $nomeProjeto,
+                'titulo'           => $titulo,
                 'situacao'         => $r['situacao'],
                 'ativo'            => (int)$r['ativo'],
                 'inicio'           => $r['inicio'],
@@ -182,13 +187,10 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
                 <span class="sit-dot" style="background:<?= $cor ?>" title="<?= htmlspecialchars($g['situacao']) ?>"></span>
                 <?php endif; ?>
                 <?php
-                    // Nome (do projeto/campanha) é o destaque; sem ele, cai pro Motivo.
-                    $temNomeProprio = $g['nome_projeto'] !== '';
-                    $titulo = $temNomeProprio ? $g['nome_projeto'] : ($g['nome'] !== '—' ? $g['nome'] : 'Sem nome');
-                    $mostraMotivo = $temNomeProprio && $g['nome'] !== '—';
+                    $mostraMotivo = $g['nome_projeto'] !== '' && $g['nome'] !== '—';
                     $clienteExibicao = clienteParaExibicao($g['cliente_cadastro'], $g['cliente'], $g['nome_projeto'] ?: null);
                 ?>
-                <span class="cp-card-nome"><?= htmlspecialchars($titulo) ?></span>
+                <span class="cp-card-nome"><?= htmlspecialchars($g['titulo']) ?></span>
                 <?php if ($mostraMotivo): ?>
                 <span class="cp-card-motivo">(<?= htmlspecialchars($g['nome']) ?>)</span>
                 <?php endif; ?>

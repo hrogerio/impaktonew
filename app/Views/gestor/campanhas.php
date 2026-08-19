@@ -24,12 +24,12 @@ foreach ($gruposAtivos as $g) {
     if ($g['fim'] && substr($g['fim'], 0, 10) < $hoje) $totalVencidos++;
 }
 
-$listaClientes = [];
+$listaCampanhas = [];
 foreach ([...$gruposAtivos, ...$gruposEncerrados] as $g) {
-    if ($g['cliente'] !== '— Sem cliente —') $listaClientes[$g['cliente']] = true;
+    if ($g['titulo'] !== 'Sem nome') $listaCampanhas[$g['titulo']] = true;
 }
-ksort($listaClientes);
-$listaClientes = array_keys($listaClientes);
+ksort($listaCampanhas);
+$listaCampanhas = array_keys($listaCampanhas);
 
 // Cadastro de clientes (para autocomplete no modal de edição)
 $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY razao_social ASC")
@@ -350,9 +350,9 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
             <span class="cp-busca-icon">🔍</span>
             <input type="text" id="cpBusca" class="cp-busca" placeholder="Buscar cliente, campanha, ponto..." autocomplete="off">
         </div>
-        <select id="cpFiltroCliente" class="cp-sel">
-            <option value="">Todos os clientes</option>
-            <?php foreach ($listaClientes as $c): ?>
+        <select id="cpFiltroCampanha" class="cp-sel">
+            <option value="">Todas as campanhas</option>
+            <?php foreach ($listaCampanhas as $c): ?>
             <option value="<?= htmlspecialchars(strtolower($c)) ?>"><?= htmlspecialchars($c) ?></option>
             <?php endforeach; ?>
         </select>
@@ -520,14 +520,14 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
 // situacao === 'Encerradas' -> encerradas
 // situacao === 'Vencidas'   -> ativas com contrato vencido
 var FILTROS_KEY = 'impakto_campanhas_filtros_v1';
-var filtros = { busca:'', cliente:'', situacao:'' };
+var filtros = { busca:'', cliente:'', campanha:'', situacao:'' };
 var _scrollAoAbrir = null; // key do card pra rolar até depois de renderizar
 function salvarFiltros() {
     try { sessionStorage.setItem(FILTROS_KEY, JSON.stringify(filtros)); } catch(e) {}
 }
 
 function buscarCampanhas() {
-    var temFiltro = filtros.busca || filtros.cliente || filtros.situacao;
+    var temFiltro = filtros.busca || filtros.cliente || filtros.campanha || filtros.situacao;
     document.getElementById('cpLimpar').className = 'cp-limpar' + (temFiltro ? ' vis' : '');
     document.getElementById('cpPrompt').style.display = 'none';
     document.getElementById('cpEmpty').style.display = 'none';
@@ -538,6 +538,7 @@ function buscarCampanhas() {
     var qs = new URLSearchParams({
         busca: filtros.busca || '',
         cliente: filtros.cliente || '',
+        campanha: filtros.campanha || '',
         situacao: filtros.situacao || '',
     });
 
@@ -584,11 +585,11 @@ var debTimer;
     // Sem parâmetro na URL: restaura o último filtro usado (ex: ao voltar da tela anterior)
     var salvo;
     try { salvo = JSON.parse(sessionStorage.getItem(FILTROS_KEY) || 'null'); } catch(e) { salvo = null; }
-    if (!salvo || !(salvo.busca || salvo.cliente || salvo.situacao)) { mostrarPrompt(); return; }
-    filtros = Object.assign({ busca:'', cliente:'', situacao:'' }, salvo);
+    if (!salvo || !(salvo.busca || salvo.cliente || salvo.campanha || salvo.situacao)) { mostrarPrompt(); return; }
+    filtros = Object.assign({ busca:'', cliente:'', campanha:'', situacao:'' }, salvo);
     document.getElementById('cpBusca').value = filtros.busca;
-    document.getElementById('cpFiltroCliente').value = filtros.cliente;
-    document.getElementById('cpFiltroCliente').className = 'cp-sel' + (filtros.cliente ? ' ativo' : '');
+    document.getElementById('cpFiltroCampanha').value = filtros.campanha;
+    document.getElementById('cpFiltroCampanha').className = 'cp-sel' + (filtros.campanha ? ' ativo' : '');
     document.getElementById('cpFiltroSit').value = filtros.situacao;
     document.getElementById('cpFiltroSit').className = 'cp-sel' + (filtros.situacao ? ' ativo' : '');
     buscarCampanhas();
@@ -598,8 +599,8 @@ document.getElementById('cpBusca').addEventListener('input', function() {
     var val = this.value.toLowerCase().trim();
     debTimer = setTimeout(function() { filtros.busca = val; salvarFiltros(); buscarCampanhas(); }, 300);
 });
-document.getElementById('cpFiltroCliente').addEventListener('change', function() {
-    filtros.cliente = this.value;
+document.getElementById('cpFiltroCampanha').addEventListener('change', function() {
+    filtros.campanha = this.value;
     this.className = 'cp-sel' + (this.value ? ' ativo' : '');
     salvarFiltros();
     buscarCampanhas();
@@ -611,9 +612,9 @@ document.getElementById('cpFiltroSit').addEventListener('change', function() {
     buscarCampanhas();
 });
 function limparFiltros() {
-    filtros = { busca:'', cliente:'', situacao:'' };
+    filtros = { busca:'', cliente:'', campanha:'', situacao:'' };
     document.getElementById('cpBusca').value = '';
-    ['cpFiltroCliente','cpFiltroSit'].forEach(function(id) {
+    ['cpFiltroCampanha','cpFiltroSit'].forEach(function(id) {
         document.getElementById(id).value = '';
         document.getElementById(id).className = 'cp-sel';
     });
@@ -1057,10 +1058,10 @@ function liberarTodosVencidos(btn) {
         return false;
     }
 
+    // Filtra por cliente só internamente (pra estreitar a busca) — o select
+    // visível agora filtra por campanha, não faz sentido refletir aqui.
     filtros.cliente = alvo.cliente;
     filtros.situacao = '';
-    document.getElementById('cpFiltroCliente').value = alvo.cliente;
-    document.getElementById('cpFiltroCliente').className = 'cp-sel' + (alvo.cliente ? ' ativo' : '');
     buscarCampanhas().then(function() {
         if (acharEAbrir()) return;
         // Não achou entre as ativas (pode estar encerrada): tenta de novo
