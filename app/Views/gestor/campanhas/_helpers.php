@@ -183,20 +183,22 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
                 <?php endif; ?>
                 <?php
                     // Nome (do projeto/campanha) é o destaque; sem ele, cai pro Motivo.
-                    $titulo = $g['nome_projeto'] !== '' ? $g['nome_projeto'] : ($g['nome'] !== '—' ? $g['nome'] : 'Sem nome');
+                    $temNomeProprio = $g['nome_projeto'] !== '';
+                    $titulo = $temNomeProprio ? $g['nome_projeto'] : ($g['nome'] !== '—' ? $g['nome'] : 'Sem nome');
+                    $mostraMotivo = $temNomeProprio && $g['nome'] !== '—';
                     $clienteExibicao = clienteParaExibicao($g['cliente_cadastro'], $g['cliente'], $g['nome_projeto'] ?: null);
                 ?>
                 <span class="cp-card-nome"><?= htmlspecialchars($titulo) ?></span>
-                <span class="cp-card-cliente-inline"><?= htmlspecialchars($clienteExibicao) ?></span>
+                <?php if ($mostraMotivo): ?>
+                <span class="cp-card-motivo">(<?= htmlspecialchars($g['nome']) ?>)</span>
+                <?php endif; ?>
             </div>
-            <?php if ($g['nome_projeto'] !== '' && $g['nome'] !== '—'): ?>
-            <div class="cp-card-motivo"><?= htmlspecialchars($g['nome']) ?></div>
-            <?php endif; ?>
-            <?php if ($g['agencia']): ?><div class="cp-card-agencia"><?= htmlspecialchars($g['agencia']) ?></div><?php endif; ?>
+            <div class="cp-card-cliente"><?= htmlspecialchars($clienteExibicao) ?></div>
+            <?php if ($g['agencia']): ?><div class="cp-card-agencia">Agência: <?= htmlspecialchars($g['agencia']) ?></div><?php endif; ?>
             <div class="cp-card-meta">
                 <?php if ($ini || $fim): ?>
                 <span class="cp-card-periodo">
-                    <?= $ini ?? '?' ?> → <?= $fim ?? '?' ?>
+                    Período: <?= $ini ?? '?' ?> → <?= $fim ?? '?' ?>
                 </span>
                 <?php endif; ?>
                 <?php if ($g['ativo'] && $dias !== null && $dias >= 0 && $dias <= 30):
