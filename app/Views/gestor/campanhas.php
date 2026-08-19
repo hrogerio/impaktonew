@@ -373,6 +373,9 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
                 <input type="radio" name="cpSit" value="" checked> Ativas
             </label>
             <label class="cp-radio-opt">
+                <input type="radio" name="cpSit" value="Vencidas"> Vencidas
+            </label>
+            <label class="cp-radio-opt">
                 <input type="radio" name="cpSit" value="Encerradas"> Encerradas
             </label>
         </div>
