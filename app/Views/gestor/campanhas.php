@@ -556,7 +556,15 @@ function buscarCampanhas() {
     });
 
     return fetch('/gestor/campanhas/buscar?' + qs.toString())
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            // Sessão expirada: o backend redireciona pro login (HTML, não JSON).
+            // Sem isso, r.json() abaixo falha e cai num "erro de comunicação" confuso.
+            if (r.redirected || r.url.indexOf('/campanhas/buscar') === -1) {
+                location.href = r.url || '/';
+                return Promise.reject(new Error('sessao_expirada'));
+            }
+            return r.json();
+        })
         .then(function(resp) {
             if (!resp.ok) {
                 grid.innerHTML = '';
@@ -572,7 +580,8 @@ function buscarCampanhas() {
                 if (card) card.scrollIntoView({ block: 'center' });
             }
         })
-        .catch(function() {
+        .catch(function(e) {
+            if (e && e.message === 'sessao_expirada') return;
             grid.innerHTML = '';
             mostrarToast('❌ Erro de comunicação ao buscar campanhas', 'err');
         });
