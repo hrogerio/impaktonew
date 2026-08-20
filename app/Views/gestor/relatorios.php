@@ -70,16 +70,17 @@ function tabelaCampanhas(array $lista) {
     <div class="table-container">
         <table class="rel-table">
             <thead>
-                <tr><th>Cliente</th><th>Campanha</th><th>Agência</th><th>Contato</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:right">Pontos</th><th>Docs</th></tr>
+                <tr><th>Cliente</th><th>Campanha</th><th>Motivo</th><th>Agência</th><th>Contato</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:right">Pontos</th><th>Docs</th></tr>
             </thead>
             <tbody>
                 <?php foreach ($lista as $c):
-                    $docChave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') . '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? ''));
+                    $docChave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['motivo'] ?? '') . '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? ''));
                     $docsGrupo = $documentosPorGrupo[$docChave] ?? [];
                     $dadosContrato = json_encode([
                         'cliente'         => $c['cliente'] ?? '-',
                         'agencia'         => $c['agencia'] ?? '',
                         'campanha'        => $c['campanha'] ?? '-',
+                        'motivo'          => $c['motivo'] ?? '-',
                         'situacao'        => $c['situacao'] ?? 'Ocupado',
                         'inicio_contrato' => $c['inicio_contrato'] ?? null,
                         'fim_contrato'    => $c['fim_contrato'] ?? null,
@@ -99,6 +100,7 @@ function tabelaCampanhas(array $lista) {
                 <tr class="rel-row-clicavel" onclick='abrirDetalhesContrato(<?= $dadosContrato ?>)' title="Ver detalhes do contrato">
                     <td><strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong></td>
                     <td><?= htmlspecialchars($c['campanha'] ?? '-') ?></td>
+                    <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['motivo'] ?? '-') ?></td>
                     <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
                     <td style="font-size:0.78rem"><?= htmlspecialchars($c['contato'] ?? '-') ?></td>
                     <td><?= fmtData($c['inicio_contrato']) ?></td>
@@ -790,7 +792,7 @@ function abrirDetalhesContrato(c) {
     var params = new URLSearchParams();
     params.set('cliente', c.cliente || '');
     params.set('agencia', c.agencia || '');
-    params.set('campanha', c.campanha || '');
+    params.set('campanha', c.motivo || '');
     params.set('situacao', c.situacao || 'Ocupado');
     params.set('inicio', (c.inicio_contrato || '').substring(0, 10));
     params.set('fim', (c.fim_contrato || '').substring(0, 10));
@@ -828,7 +830,7 @@ function abrirDocumentosRelatorio() {
     _relDocsGrupo = {
         cliente:  c.cliente  || '',
         agencia:  c.agencia  || '',
-        campanha: c.campanha || '',
+        campanha: c.motivo || '',
         inicio:   (c.inicio_contrato || '').substring(0, 10),
         fim:      (c.fim_contrato    || '').substring(0, 10),
     };
