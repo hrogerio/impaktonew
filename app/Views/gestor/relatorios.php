@@ -269,6 +269,18 @@ function tabelaCampanhas(array $lista) {
         .cp-modal-divider { height:1px; background:var(--color-border); margin:1rem 0; }
         .cp-modal-actions { display:flex; gap:0.75rem; justify-content:flex-end; margin-top:1.25rem; }
 
+        .cli-modal-field { margin-bottom:0.9rem; }
+        .cli-modal-label { display:block; font-size:0.78rem; font-weight:700; color:var(--color-text-muted); margin-bottom:0.3rem; }
+        .cli-modal-input { width:100%; padding:0.55rem 0.7rem; border:1.5px solid var(--color-border); border-radius:8px; font-family:'Montserrat',sans-serif; font-size:0.88rem; box-sizing:border-box; }
+        .cli-modal-input:focus { outline:none; border-color:var(--color-accent-primary); }
+        .cli-modal-erro { color:#dc3545; font-size:0.8rem; margin-top:0.75rem; display:none; }
+        .cp-btn-salvar {
+            padding:0.55rem 1.1rem; background:var(--color-accent-primary); color:#fff;
+            border:none; border-radius:8px; font-family:'Montserrat',sans-serif;
+            font-size:0.85rem; font-weight:700; cursor:pointer;
+        }
+        .cp-btn-salvar:disabled { opacity:0.6; cursor:not-allowed; }
+
         .cp-docs-tipo-titulo { font-size:0.8rem; font-weight:800; color:var(--color-text-dark); margin-bottom:0.5rem; }
         .cp-docs-lista { display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.6rem; }
         .cp-docs-vazio { font-size:0.78rem; color:var(--color-text-muted); font-style:italic; }
@@ -561,9 +573,9 @@ function tabelaCampanhas(array $lista) {
                 </thead>
                 <tbody>
                     <?php foreach ($clientes['clientes'] as $cl): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($cl['razao_social']) ?></td>
-                        <td>
+                    <tr id="cli-row-<?= (int)$cl['id'] ?>">
+                        <td class="cli-cel-razao"><?= htmlspecialchars($cl['razao_social']) ?></td>
+                        <td class="cli-cel-fantasia">
                             <strong>
                                 <?php if (!empty($cl['id'])): ?>
                                 <a href="/gestor/clientes/ficha?id=<?= (int)$cl['id'] ?>" style="color:inherit;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><?= htmlspecialchars($cl['nome_fantasia'] ?: $cl['razao_social']) ?></a>
@@ -572,10 +584,16 @@ function tabelaCampanhas(array $lista) {
                                 <?php endif; ?>
                             </strong>
                         </td>
-                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['cnpj'] ?: '-') ?></td>
-                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['email'] ?: '-') ?></td>
+                        <td class="cli-cel-cnpj" style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['cnpj'] ?: '-') ?></td>
+                        <td class="cli-cel-email" style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['email'] ?: '-') ?></td>
                         <td style="white-space:nowrap;">
-                            <a href="/gestor/clientes/editar?id=<?= (int)$cl['id'] ?>" title="Editar" style="text-decoration:none;margin-right:0.5rem;">✏️</a>
+                            <button type="button" title="Editar" onclick='abrirEdicaoCliente(<?= json_encode([
+                                "id" => (int)$cl["id"],
+                                "razao_social" => $cl["razao_social"],
+                                "nome_fantasia" => $cl["nome_fantasia"],
+                                "cnpj" => $cl["cnpj"],
+                                "email" => $cl["email"],
+                            ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;margin-right:0.5rem;">✏️</button>
                             <form method="POST" action="/gestor/clientes/excluir" style="display:inline;" onsubmit="return confirm('Excluir este cliente? Essa ação não pode ser desfeita.');">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                                 <input type="hidden" name="id" value="<?= (int)$cl['id'] ?>">
@@ -701,6 +719,40 @@ function tabelaCampanhas(array $lista) {
 
         <div class="cp-modal-actions">
             <button class="cp-btn-cancelar" onclick="document.getElementById('relDocsOverlay').classList.remove('aberto')">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal de edição rápida de cliente (sem sair da página) ── -->
+<div class="cp-modal-overlay" id="cliEdicaoOverlay">
+    <div class="cp-modal">
+        <div class="cp-modal-title">✏️ Editar Cliente</div>
+        <div class="cp-modal-sub">Razão Social, Nome Fantasia, CNPJ e E-mail</div>
+
+        <input type="hidden" id="cliEdicaoId">
+
+        <div class="cli-modal-field">
+            <label class="cli-modal-label">Razão Social *</label>
+            <input type="text" id="cliEdicaoRazaoSocial" class="cli-modal-input" maxlength="200">
+        </div>
+        <div class="cli-modal-field">
+            <label class="cli-modal-label">Nome Fantasia</label>
+            <input type="text" id="cliEdicaoNomeFantasia" class="cli-modal-input" maxlength="200">
+        </div>
+        <div class="cli-modal-field">
+            <label class="cli-modal-label">CNPJ</label>
+            <input type="text" id="cliEdicaoCnpj" class="cli-modal-input" maxlength="20" placeholder="00.000.000/0000-00">
+        </div>
+        <div class="cli-modal-field">
+            <label class="cli-modal-label">E-mail</label>
+            <input type="email" id="cliEdicaoEmail" class="cli-modal-input" maxlength="150">
+        </div>
+
+        <div class="cli-modal-erro" id="cliEdicaoErro"></div>
+
+        <div class="cp-modal-actions">
+            <button class="cp-btn-cancelar" onclick="fecharEdicaoCliente()">Cancelar</button>
+            <button class="cp-btn-salvar" id="cliEdicaoSalvarBtn" onclick="salvarEdicaoCliente()">💾 Salvar</button>
         </div>
     </div>
 </div>
@@ -927,6 +979,86 @@ function excluirDocumentoRelatorio(docId) {
         })
         .catch(function() {
             mostrarToastRelatorio('Erro de conexão ao excluir', 'err');
+        });
+}
+
+// ── Edição rápida de cliente (Razão Social / Nome Fantasia / CNPJ / E-mail) ──
+var CLI_CSRF_TOKEN = <?= json_encode($csrfToken) ?>;
+
+function abrirEdicaoCliente(cliente) {
+    document.getElementById('cliEdicaoId').value = cliente.id;
+    document.getElementById('cliEdicaoRazaoSocial').value = cliente.razao_social || '';
+    document.getElementById('cliEdicaoNomeFantasia').value = cliente.nome_fantasia || '';
+    document.getElementById('cliEdicaoCnpj').value = cliente.cnpj || '';
+    document.getElementById('cliEdicaoEmail').value = cliente.email || '';
+    document.getElementById('cliEdicaoErro').style.display = 'none';
+    document.getElementById('cliEdicaoOverlay').classList.add('aberto');
+}
+
+function fecharEdicaoCliente() {
+    document.getElementById('cliEdicaoOverlay').classList.remove('aberto');
+}
+
+document.getElementById('cliEdicaoOverlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharEdicaoCliente();
+});
+
+function salvarEdicaoCliente() {
+    var id = document.getElementById('cliEdicaoId').value;
+    var razaoSocial = document.getElementById('cliEdicaoRazaoSocial').value.trim();
+    var nomeFantasia = document.getElementById('cliEdicaoNomeFantasia').value.trim();
+    var cnpj = document.getElementById('cliEdicaoCnpj').value.trim();
+    var email = document.getElementById('cliEdicaoEmail').value.trim();
+    var erroEl = document.getElementById('cliEdicaoErro');
+    var btn = document.getElementById('cliEdicaoSalvarBtn');
+
+    erroEl.style.display = 'none';
+    if (razaoSocial === '') {
+        erroEl.textContent = 'Razão social é obrigatória.';
+        erroEl.style.display = 'block';
+        return;
+    }
+
+    var fd = new FormData();
+    fd.append('csrf_token', CLI_CSRF_TOKEN);
+    fd.append('id', id);
+    fd.append('razao_social', razaoSocial);
+    fd.append('nome_fantasia', nomeFantasia);
+    fd.append('cnpj', cnpj);
+    fd.append('email', email);
+
+    btn.disabled = true;
+    fetch('/gestor/clientes/salvar', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd,
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            btn.disabled = false;
+            if (!resp.ok) {
+                erroEl.textContent = resp.erro || 'Erro ao salvar.';
+                erroEl.style.display = 'block';
+                return;
+            }
+            var c = resp.cliente;
+            var row = document.getElementById('cli-row-' + c.id);
+            if (row) {
+                row.querySelector('.cli-cel-razao').textContent = c.razao_social;
+                var fantasiaLink = row.querySelector('.cli-cel-fantasia a');
+                var nomeExibido = c.nome_fantasia || c.razao_social;
+                if (fantasiaLink) { fantasiaLink.textContent = nomeExibido; }
+                else { row.querySelector('.cli-cel-fantasia strong').textContent = nomeExibido; }
+                row.querySelector('.cli-cel-cnpj').textContent = c.cnpj || '-';
+                row.querySelector('.cli-cel-email').textContent = c.email || '-';
+            }
+            fecharEdicaoCliente();
+            mostrarToastRelatorio('Cliente atualizado.');
+        })
+        .catch(function() {
+            btn.disabled = false;
+            erroEl.textContent = 'Erro de conexão ao salvar.';
+            erroEl.style.display = 'block';
         });
 }
 

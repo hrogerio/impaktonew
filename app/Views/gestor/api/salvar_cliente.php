@@ -16,6 +16,10 @@ if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', 
 require_once __DIR__ . '/../../../../config/database.php';
 $pdo = getDatabase();
 
+// Edição inline (ex: modal em Relatórios > Clientes) — atualiza só Razão Social,
+// Nome Fantasia, CNPJ e E-mail, sem sair da página, e responde em JSON.
+$isAjax = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
+
 $id           = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 $razaoSocialBruta = trim($_POST['razao_social'] ?? '');
 $nomeFantasiaBruto = trim($_POST['nome_fantasia'] ?? '');
@@ -59,6 +63,16 @@ function voltarComErroCliente($msg, $id) {
     exit;
 }
 
+function erroCliente(bool $isAjax, string $msg, int $id): void {
+    if ($isAjax) {
+        http_response_code(422);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'erro' => $msg]);
+        exit;
+    }
+    voltarComErroCliente($msg, $id);
+}
+
 // Pra onde voltar depois de salvar (de onde o usuário veio, ex: Relatórios > Clientes),
 // restrito a páginas internas do próprio gestor por segurança.
 $voltarBruto = $_POST['voltar'] ?? '';
@@ -75,10 +89,37 @@ function redirecionarComMsg(string $url, string $msg): void {
 }
 
 if ($razaoSocial === '') {
-    voltarComErroCliente("Razão social é obrigatória.", $id);
+    erroCliente($isAjax, "Razão social é obrigatória.", $id);
 }
 if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    voltarComErroCliente("E-mail inválido.", $id);
+    erroCliente($isAjax, "E-mail inválido.", $id);
+}
+
+if ($isAjax) {
+    if ($id === 0) {
+        erroCliente($isAjax, "Cliente inválido.", $id);
+    }
+    $stmt = $pdo->prepare("SELECT id FROM clientes WHERE id = ? LIMIT 1");
+    $stmt->execute([$id]);
+    if (!$stmt->fetch()) {
+        erroCliente($isAjax, "Cliente não encontrado.", $id);
+    }
+
+    $pdo->prepare("UPDATE clientes SET razao_social = ?, nome_fantasia = ?, cnpj = ?, email = ? WHERE id = ?")
+        ->execute([$razaoSocial, $nomeFantasia !== '' ? $nomeFantasia : null, $cnpj !== '' ? $cnpj : null, $email !== '' ? $email : null, $id]);
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok' => true,
+        'cliente' => [
+            'id' => $id,
+            'razao_social' => $razaoSocial,
+            'nome_fantasia' => $nomeFantasia !== '' ? $nomeFantasia : null,
+            'cnpj' => $cnpj !== '' ? $cnpj : null,
+            'email' => $email !== '' ? $email : null,
+        ],
+    ]);
+    exit;
 }
 
 $params = [
