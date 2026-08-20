@@ -603,7 +603,7 @@ function tabelaCampanhas(array $lista) {
                                 "cnpj" => $cl["cnpj"],
                                 "email" => $cl["email"],
                             ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;margin-right:0.5rem;">✏️</button>
-                            <button type="button" title="Excluir" onclick="abrirExclusaoCliente(<?= (int)$cl['id'] ?>, <?= json_encode($cl['razao_social'], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;">🗑️</button>
+                            <button type="button" title="Excluir" onclick='abrirExclusaoCliente(<?= (int)$cl['id'] ?>, <?= json_encode($cl['razao_social'], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;">🗑️</button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
