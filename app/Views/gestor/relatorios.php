@@ -44,7 +44,7 @@ function fmtData($data) {
 /** Conta quantos contratos da lista não têm nenhum documento financeiro enviado */
 function contarSemDocumentos(array $lista, array $documentosPorGrupo): int {
     return count(array_filter($lista, function($c) use ($documentosPorGrupo) {
-        $chave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['campanha'] ?? '') . '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? ''));
+        $chave = md5(trim($c['cliente_raw'] ?? ($c['cliente'] ?? '')) . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['motivo'] ?? '') . '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? ''));
         return empty($documentosPorGrupo[$chave] ?? []);
     }));
 }
