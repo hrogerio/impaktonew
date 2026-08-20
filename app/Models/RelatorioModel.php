@@ -192,33 +192,22 @@ class RelatorioModel {
     // CLIENTES / AGÊNCIAS
     // ============================================================
 
-    public function pontosPorCliente(): array {
+    /** Todos os clientes cadastrados, com ou sem campanha/contrato — pra listagem em Relatórios, com link pra ficha */
+    public function todosClientes(): array {
         return $this->pdo->query("
             SELECT
-                TRIM(c.cliente) AS cliente,
-                CASE
-                    WHEN NULLIF(TRIM(c.agencia),'') IS NULL OR NULLIF(TRIM(c.agencia),'') = '-'
-                    THEN 'Cliente direto'
-                    ELSE TRIM(c.agencia)
-                END AS agencia,
-                COUNT(*) AS total_pontos,
-                SUM(CASE WHEN LOWER(p.situacao) = 'ocupado' THEN 1 ELSE 0 END) AS ocupados,
-                MIN(COALESCE(DATE(c.inicio), DATE(p.inicio_contrato))) AS inicio_mais_antigo,
-                MAX(" . self::FIM_CONTRATO_SQL . ") AS fim_mais_recente
-            FROM pontos p
-            LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
-            WHERE
-                NULLIF(TRIM(c.cliente),'') IS NOT NULL
-                AND NULLIF(TRIM(c.cliente),'') != '-'
-                AND (p.ativo = 1 OR p.ativo IS NULL)
-            GROUP BY
-                TRIM(c.cliente),
-                CASE
-                    WHEN NULLIF(TRIM(c.agencia),'') IS NULL OR NULLIF(TRIM(c.agencia),'') = '-'
-                    THEN 'Cliente direto'
-                    ELSE TRIM(c.agencia)
-                END
-            ORDER BY cliente ASC, agencia ASC
+                cl.id,
+                cl.razao_social AS cliente,
+                cl.contato AS contato,
+                (
+                    SELECT NULLIF(TRIM(c.agencia),'')
+                    FROM campanhas c
+                    WHERE c.cliente_id = cl.id AND NULLIF(TRIM(c.agencia),'') IS NOT NULL
+                    ORDER BY c.criado_em DESC
+                    LIMIT 1
+                ) AS agencia
+            FROM clientes cl
+            ORDER BY cl.razao_social ASC
         ")->fetchAll(PDO::FETCH_ASSOC);
     }
 

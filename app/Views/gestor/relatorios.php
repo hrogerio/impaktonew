@@ -552,24 +552,22 @@ function tabelaCampanhas(array $lista) {
         <div class="table-container">
             <table class="rel-table" id="tbl-clientes">
                 <thead>
-                    <tr><th>#</th><th>Cliente</th><th>Agência</th><th>Pontos</th><th>Início</th><th>Fim Contrato</th></tr>
+                    <tr><th>Cliente</th><th>Agência</th><th>Contato</th></tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($clientes['clientes'] as $i => $cl): ?>
+                    <?php foreach ($clientes['clientes'] as $cl): ?>
                     <tr>
-                        <td style="color:var(--color-text-muted)"><?= $i+1 ?></td>
-                        <td><strong><?= htmlspecialchars($cl['cliente']) ?></strong></td>
-                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['agencia']) ?></td>
-                        <td><strong style="color:var(--color-accent-primary)"><?= $cl['total_pontos'] ?></strong></td>
-                        <td style="color:var(--color-text-muted);font-size:0.78rem;">
-                            <?php
-                            if ($cl['inicio_mais_antigo'] && $cl['inicio_mais_antigo'] !== '0000-00-00') {
-                                try { echo (new DateTime($cl['inicio_mais_antigo']))->format('m/Y'); }
-                                catch(Exception $e) { echo '-'; }
-                            } else { echo '-'; }
-                            ?>
+                        <td>
+                            <strong>
+                                <?php if (!empty($cl['id'])): ?>
+                                <a href="/gestor/clientes/ficha?id=<?= (int)$cl['id'] ?>" style="color:inherit;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><?= htmlspecialchars($cl['cliente']) ?></a>
+                                <?php else: ?>
+                                <?= htmlspecialchars($cl['cliente']) ?>
+                                <?php endif; ?>
+                            </strong>
                         </td>
-                        <td style="font-size:0.78rem;"><?= fmtData($cl['fim_mais_recente']) ?></td>
+                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['agencia'] ?: '-') ?></td>
+                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['contato'] ?: '-') ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>

@@ -113,11 +113,9 @@ class RelatorioController {
     }
 
     public function dadosClientes(): array {
-        $clientes = $this->model->pontosPorCliente();
         return [
-            'clientes' => $clientes,
+            'clientes' => $this->model->todosClientes(),
             'agencias' => $this->model->resumoPorAgencia(),
-            'total_pontos_com_contrato' => array_sum(array_column($clientes, 'total_pontos')),
         ];
     }
 
