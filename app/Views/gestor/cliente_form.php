@@ -22,7 +22,7 @@ $csrfToken = $_SESSION['csrf_token'];
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $editando = $id > 0;
 
-$dados = ['id' => 0, 'razao_social' => '', 'cnpj' => '', 'endereco' => '', 'email' => '', 'telefone' => '', 'contato' => '', 'observacoes' => ''];
+$dados = ['id' => 0, 'razao_social' => '', 'nome_fantasia' => '', 'cnpj' => '', 'endereco' => '', 'email' => '', 'telefone' => '', 'contato' => '', 'observacoes' => ''];
 if ($editando) {
     $stmt = $pdo->prepare("SELECT * FROM clientes WHERE id = ? LIMIT 1");
     $stmt->execute([$id]);
@@ -68,6 +68,13 @@ if ($editando) {
             <label>Razão Social *</label><br>
             <input type="text" name="razao_social" required maxlength="200"
                    value="<?= htmlspecialchars($dados['razao_social']) ?>"
+                   style="width:100%; padding:0.6rem; border:1px solid var(--color-border); border-radius:8px;">
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Nome Fantasia</label><br>
+            <input type="text" name="nome_fantasia" maxlength="200"
+                   value="<?= htmlspecialchars($dados['nome_fantasia'] ?? '') ?>"
                    style="width:100%; padding:0.6rem; border:1px solid var(--color-border); border-radius:8px;">
         </div>
 

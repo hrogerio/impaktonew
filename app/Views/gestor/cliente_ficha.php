@@ -78,6 +78,10 @@ $temCampanhaAtiva = (bool)$pdo->query("SELECT 1 FROM campanhas WHERE cliente_id 
     <div class="cf-card">
         <div class="cf-grid">
             <div>
+                <div class="cf-campo-label">Nome Fantasia</div>
+                <div class="cf-campo-val"><?= htmlspecialchars($cliente['nome_fantasia'] ?: '—') ?></div>
+            </div>
+            <div>
                 <div class="cf-campo-label">CNPJ</div>
                 <div class="cf-campo-val"><?= htmlspecialchars($cliente['cnpj'] ?: '—') ?></div>
             </div>

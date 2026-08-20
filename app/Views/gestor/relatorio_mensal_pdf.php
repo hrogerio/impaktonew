@@ -284,9 +284,9 @@ kpis($pdf, [
 
 subtitulo($pdf, 'Todos os Clientes', $CW, $MUTED);
 tabela($pdf,
-    ['Cliente', 'Agencia', 'Contato'],
-    [80, 55, 46],
-    array_map(fn($c) => [$c['cliente'], $c['agencia'] ?: '-', $c['contato'] ?: '-'], $cl['clientes']),
+    ['Razao Social', 'Nome Fantasia', 'CNPJ', 'E-mail'],
+    [50, 50, 35, 46],
+    array_map(fn($c) => [$c['razao_social'], $c['nome_fantasia'] ?: '-', $c['cnpj'] ?: '-', $c['email'] ?: '-'], $cl['clientes']),
     $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
 );
 

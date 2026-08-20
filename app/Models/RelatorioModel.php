@@ -197,15 +197,10 @@ class RelatorioModel {
         return $this->pdo->query("
             SELECT
                 cl.id,
-                cl.razao_social AS cliente,
-                cl.contato AS contato,
-                (
-                    SELECT NULLIF(TRIM(c.agencia),'')
-                    FROM campanhas c
-                    WHERE c.cliente_id = cl.id AND NULLIF(TRIM(c.agencia),'') IS NOT NULL
-                    ORDER BY c.criado_em DESC
-                    LIMIT 1
-                ) AS agencia
+                cl.razao_social AS razao_social,
+                cl.nome_fantasia AS nome_fantasia,
+                cl.cnpj AS cnpj,
+                cl.email AS email
             FROM clientes cl
             ORDER BY cl.razao_social ASC
         ")->fetchAll(PDO::FETCH_ASSOC);

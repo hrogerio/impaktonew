@@ -18,6 +18,7 @@ $pdo = getDatabase();
 
 $id           = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 $razaoSocialBruta = trim($_POST['razao_social'] ?? '');
+$nomeFantasiaBruto = trim($_POST['nome_fantasia'] ?? '');
 $cnpj         = trim($_POST['cnpj'] ?? '');
 $endereco     = trim($_POST['endereco'] ?? '');
 $email        = mb_strtolower(trim($_POST['email'] ?? ''));
@@ -50,6 +51,7 @@ function clienteNomeProprio(string $nome): string {
 $contatoBruto = trim($_POST['contato'] ?? '');
 $contato      = $contatoBruto !== '' ? clienteNomeProprio($contatoBruto) : '';
 $razaoSocial  = $razaoSocialBruta !== '' ? clienteNomeProprio($razaoSocialBruta) : '';
+$nomeFantasia = $nomeFantasiaBruto !== '' ? clienteNomeProprio($nomeFantasiaBruto) : '';
 
 function voltarComErroCliente($msg, $id) {
     $url = $id > 0 ? "/gestor/clientes/editar?id={$id}" : "/gestor/clientes/novo";
@@ -66,6 +68,7 @@ if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
 $params = [
     $razaoSocial,
+    $nomeFantasia !== '' ? $nomeFantasia : null,
     $cnpj !== '' ? $cnpj : null,
     $endereco !== '' ? $endereco : null,
     $email !== '' ? $email : null,
@@ -75,8 +78,8 @@ $params = [
 ];
 
 if ($id === 0) {
-    $pdo->prepare("INSERT INTO clientes (razao_social, cnpj, endereco, email, telefone, contato, observacoes, ativo, criado_por)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)")
+    $pdo->prepare("INSERT INTO clientes (razao_social, nome_fantasia, cnpj, endereco, email, telefone, contato, observacoes, ativo, criado_por)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)")
         ->execute(array_merge($params, [$_SESSION['usuario'] ?? null]));
 
     header("Location: /gestor/clientes?msg=criado");
@@ -89,7 +92,7 @@ if ($id === 0) {
         exit;
     }
 
-    $pdo->prepare("UPDATE clientes SET razao_social = ?, cnpj = ?, endereco = ?, email = ?, telefone = ?, contato = ?, observacoes = ? WHERE id = ?")
+    $pdo->prepare("UPDATE clientes SET razao_social = ?, nome_fantasia = ?, cnpj = ?, endereco = ?, email = ?, telefone = ?, contato = ?, observacoes = ? WHERE id = ?")
         ->execute(array_merge($params, [$id]));
 
     header("Location: /gestor/clientes?msg=atualizado");

@@ -552,22 +552,23 @@ function tabelaCampanhas(array $lista) {
         <div class="table-container">
             <table class="rel-table" id="tbl-clientes">
                 <thead>
-                    <tr><th>Cliente</th><th>Agência</th><th>Contato</th></tr>
+                    <tr><th>Razão Social</th><th>Nome Fantasia</th><th>CNPJ</th><th>E-mail</th></tr>
                 </thead>
                 <tbody>
                     <?php foreach ($clientes['clientes'] as $cl): ?>
                     <tr>
+                        <td><?= htmlspecialchars($cl['razao_social']) ?></td>
                         <td>
                             <strong>
                                 <?php if (!empty($cl['id'])): ?>
-                                <a href="/gestor/clientes/ficha?id=<?= (int)$cl['id'] ?>" style="color:inherit;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><?= htmlspecialchars($cl['cliente']) ?></a>
+                                <a href="/gestor/clientes/ficha?id=<?= (int)$cl['id'] ?>" style="color:inherit;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><?= htmlspecialchars($cl['nome_fantasia'] ?: $cl['razao_social']) ?></a>
                                 <?php else: ?>
-                                <?= htmlspecialchars($cl['cliente']) ?>
+                                <?= htmlspecialchars($cl['nome_fantasia'] ?: $cl['razao_social']) ?>
                                 <?php endif; ?>
                             </strong>
                         </td>
-                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['agencia'] ?: '-') ?></td>
-                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['contato'] ?: '-') ?></td>
+                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['cnpj'] ?: '-') ?></td>
+                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['email'] ?: '-') ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
