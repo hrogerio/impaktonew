@@ -135,7 +135,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
 $pdf->SetCreator('Impakto Midia OOH');
-$pdf->SetTitle(s('Checking - ' . $cliente));
+$pdf->SetTitle(s('Checking - ' . ($campanha ?: $cliente)));
 
 // Carrega fontes Inter (tFPDF) ou fallback Helvetica (FPDF)
 if (defined('USE_TFPDF') && USE_TFPDF) {
@@ -212,16 +212,16 @@ $pdf->Cell($RW, 11, s('CHECKING FOTOGRÁFICO'), 0, 1, 'L');
 $pdf->SetFillColor(...$VERM);
 $pdf->Rect($RX, 27, 60, 1.2, 'F');      // ↑ era y=26, w=55
 
-// Nome do CLIENTE em destaque
+// Nome da CAMPANHA em destaque
 $pdf->SetFont(FONT_MAIN, 'B', 27);       // ↑ era 22
 $pdf->SetTextColor(...$PRETO);
 $pdf->SetXY($RX, 31);
-$pdf->MultiCell($RW, 13, s($cliente), 0, 'L');   // ↑ H era 11
+$pdf->MultiCell($RW, 13, s($campanha ?: $cliente), 0, 'L');   // ↑ H era 11
 $yApos = $pdf->GetY() + 4;
 
 // Campos de informação
 $campos = [
-    ['Campanha:', $campanha ?: '-'],
+    ['Cliente:',  $cliente  ?: '-'],
     ['Agencia:',  $agencia  ?: '-'],
     ['Periodo:',  dataFmt($inicio) . ' a ' . dataFmt($fim)],
 ];
