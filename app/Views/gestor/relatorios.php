@@ -531,6 +531,7 @@ function tabelaCampanhas(array $lista) {
     <div class="tab-content" id="tab-clientes">
 
         <div class="export-bar">
+            <a class="btn-export btn-pdf" href="/gestor/clientes">🏢 Gerenciar Clientes</a>
             <button class="btn-export btn-csv" onclick="exportCSV('tbl-clientes','pontos-por-cliente')">⬇ CSV</button>
         </div>
 
