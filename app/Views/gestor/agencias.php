@@ -53,6 +53,21 @@ if ($agencias) {
     foreach ($stmtC->fetchAll(PDO::FETCH_ASSOC) as $r) {
         $contagens[$r['agencia_id']][$r['tipo']] = (int)$r['qtd'];
     }
+
+    // Nº de clientes distintos e nº de campanhas ativas vinculadas a cada agência
+    $stmtN = $pdo->prepare("
+        SELECT agencia_id,
+               COUNT(*) AS qtd_campanhas,
+               COUNT(DISTINCT COALESCE(cliente_id, cliente)) AS qtd_clientes
+        FROM campanhas
+        WHERE agencia_id IN ($ph) AND ativo = 1
+        GROUP BY agencia_id
+    ");
+    $stmtN->execute($ids);
+    foreach ($stmtN->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $contagens[$r['agencia_id']]['campanhas'] = (int)$r['qtd_campanhas'];
+        $contagens[$r['agencia_id']]['clientes']  = (int)$r['qtd_clientes'];
+    }
 }
 
 $totalGeral = (int)$pdo->query("SELECT COUNT(*) FROM agencias")->fetchColumn();
@@ -96,8 +111,6 @@ if (isset($_GET['msg'])) {
         }
         .ag-filtros button, .ag-filtros a.btn-dl { border-radius:999px !important; }
         .ag-novo-btn { border-radius:999px !important; font-weight:700 !important; box-shadow:0 2px 8px rgba(255,100,46,0.25); }
-        .ag-logo-cel { width:44px; height:44px; border-radius:8px; object-fit:contain; background:#f6f7fb; border:1px solid var(--color-border); }
-        .ag-logo-vazio { width:44px; height:44px; border-radius:8px; background:#f6f7fb; border:1px solid var(--color-border); display:flex; align-items:center; justify-content:center; font-size:1.1rem; color:var(--color-text-muted); }
         .ag-acoes { display:flex; gap:0.3rem; align-items:center; }
         .ag-acao-btn {
             display:inline-flex; align-items:center; justify-content:center;
@@ -150,33 +163,31 @@ if (isset($_GET['msg'])) {
         <table class="backup-table">
             <thead>
                 <tr>
-                    <th style="width:60px;"></th>
                     <th>Nome</th>
+                    <th>Endereço</th>
                     <th>Telefone</th>
-                    <th>Diretoria</th>
+                    <th>Diretor</th>
                     <th>Mídia</th>
+                    <th>Nº Clientes</th>
+                    <th>Nº Campanhas</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
             <?php if (empty($agencias)): ?>
-                <tr><td colspan="6" style="text-align:center; color:var(--color-text-muted);">Nenhuma agência encontrada.</td></tr>
+                <tr><td colspan="8" style="text-align:center; color:var(--color-text-muted);">Nenhuma agência encontrada.</td></tr>
             <?php endif; ?>
             <?php foreach ($agencias as $ag): ?>
                 <tr>
-                    <td>
-                        <?php if ($ag['logo']): ?>
-                        <img src="/<?= htmlspecialchars($ag['logo']) ?>" alt="" class="ag-logo-cel">
-                        <?php else: ?>
-                        <div class="ag-logo-vazio">🏛️</div>
-                        <?php endif; ?>
-                    </td>
                     <td class="backup-nome">
                         <a href="/gestor/agencias/ficha?id=<?= (int)$ag['id'] ?>" style="color:var(--color-text-dark); font-weight:700; text-decoration:none;"><?= htmlspecialchars($ag['nome']) ?></a>
                     </td>
+                    <td><?= htmlspecialchars($ag['endereco'] ?: '—') ?></td>
                     <td><?= htmlspecialchars($ag['telefone'] ?: '—') ?></td>
                     <td><?= $contagens[$ag['id']]['diretoria'] ?? 0 ?></td>
                     <td><?= $contagens[$ag['id']]['midia'] ?? 0 ?></td>
+                    <td><?= $contagens[$ag['id']]['clientes'] ?? 0 ?></td>
+                    <td><?= $contagens[$ag['id']]['campanhas'] ?? 0 ?></td>
                     <td class="ag-acoes">
                         <a href="/gestor/agencias/editar?id=<?= (int)$ag['id'] ?>" class="ag-acao-btn" title="Editar">✏️</a>
                         <form method="POST" action="/gestor/agencias/excluir" style="display:inline;" onsubmit="return confirm('Excluir a agência &quot;<?= htmlspecialchars(str_replace('"', '', $ag['nome'])) ?>&quot;? Essa ação também remove a diretoria e mídia cadastradas. Não pode ser desfeita.');">
