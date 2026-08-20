@@ -72,9 +72,10 @@
 .tag-vencido { background:#f3e8ff; color:#6b21a8; border-radius:4px; padding:2px 7px; font-size:0.75rem; font-weight:700; white-space:nowrap; }
 
 /* ===== TABELAS ===== */
+.table-container { overflow-x:auto; }
 .rel-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
 .rel-table th { background:var(--color-accent-primary); color:white; padding:0.5rem 0.75rem; text-align:left; font-weight:700; font-size:0.78rem; }
-.rel-table td { padding:0.5rem 0.75rem; border-bottom:1px solid var(--color-border); vertical-align:middle; }
+.rel-table td { padding:0.5rem 0.75rem; border-bottom:1px solid var(--color-border); vertical-align:middle; white-space:nowrap; }
 .rel-table tbody tr:hover { background:#fafafa; }
 .rel-table tr.row-vencida td { background:#fdf4ff; }
 
