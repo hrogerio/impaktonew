@@ -281,6 +281,15 @@ function tabelaCampanhas(array $lista) {
         }
         .cp-btn-salvar:disabled { opacity:0.6; cursor:not-allowed; }
 
+        .cli-row-editado { background:#fff8e1; box-shadow:inset 3px 0 0 var(--color-accent-primary); transition:background 0.4s ease; }
+        .cli-row-editado:hover { background:#fdefc8; }
+        .cli-badge-editado {
+            display:inline-block; margin-left:0.5rem; padding:1px 7px;
+            background:var(--color-accent-primary); color:#fff; border-radius:999px;
+            font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.3px;
+            vertical-align:middle;
+        }
+
         .cp-docs-tipo-titulo { font-size:0.8rem; font-weight:800; color:var(--color-text-dark); margin-bottom:0.5rem; }
         .cp-docs-lista { display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.6rem; }
         .cp-docs-vazio { font-size:0.78rem; color:var(--color-text-muted); font-style:italic; }
@@ -1003,6 +1012,25 @@ document.getElementById('cliEdicaoOverlay').addEventListener('click', function(e
     if (e.target === this) fecharEdicaoCliente();
 });
 
+// Destaca visualmente a linha do último cliente editado, pra achar fácil numa lista grande
+function marcarClienteEditado(row) {
+    var anterior = document.querySelector('.cli-row-editado');
+    if (anterior) {
+        anterior.classList.remove('cli-row-editado');
+        var badgeAnterior = anterior.querySelector('.cli-badge-editado');
+        if (badgeAnterior) badgeAnterior.remove();
+    }
+    row.classList.add('cli-row-editado');
+    var nomeEl = row.querySelector('.cli-cel-razao a') || row.querySelector('.cli-cel-razao strong');
+    if (nomeEl) {
+        var badge = document.createElement('span');
+        badge.className = 'cli-badge-editado';
+        badge.textContent = 'Editado agora';
+        nomeEl.after(badge);
+    }
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function salvarEdicaoCliente() {
     var id = document.getElementById('cliEdicaoId').value;
     var razaoSocial = document.getElementById('cliEdicaoRazaoSocial').value.trim();
@@ -1050,6 +1078,7 @@ function salvarEdicaoCliente() {
                 row.querySelector('.cli-cel-fantasia').textContent = c.nome_fantasia || '-';
                 row.querySelector('.cli-cel-cnpj').textContent = c.cnpj || '-';
                 row.querySelector('.cli-cel-email').textContent = c.email || '-';
+                marcarClienteEditado(row);
             }
             fecharEdicaoCliente();
             mostrarToastRelatorio('Cliente atualizado.');
