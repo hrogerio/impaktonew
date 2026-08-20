@@ -59,6 +59,21 @@ function voltarComErroCliente($msg, $id) {
     exit;
 }
 
+// Pra onde voltar depois de salvar (de onde o usuário veio, ex: Relatórios > Clientes),
+// restrito a páginas internas do próprio gestor por segurança.
+$voltarBruto = $_POST['voltar'] ?? '';
+$voltarPath  = parse_url($voltarBruto, PHP_URL_PATH) ?: '';
+$voltarUrl   = str_starts_with($voltarPath, '/gestor/') ? $voltarBruto : '/gestor/clientes';
+
+function redirecionarComMsg(string $url, string $msg): void {
+    $hashPos = strpos($url, '#');
+    $base = $hashPos !== false ? substr($url, 0, $hashPos) : $url;
+    $hash = $hashPos !== false ? substr($url, $hashPos) : '';
+    $separador = strpos($base, '?') !== false ? '&' : '?';
+    header("Location: {$base}{$separador}msg=" . urlencode($msg) . $hash);
+    exit;
+}
+
 if ($razaoSocial === '') {
     voltarComErroCliente("Razão social é obrigatória.", $id);
 }
@@ -82,8 +97,7 @@ if ($id === 0) {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)")
         ->execute(array_merge($params, [$_SESSION['usuario'] ?? null]));
 
-    header("Location: /gestor/clientes?msg=criado");
-    exit;
+    redirecionarComMsg($voltarUrl, 'criado');
 } else {
     $stmt = $pdo->prepare("SELECT id FROM clientes WHERE id = ? LIMIT 1");
     $stmt->execute([$id]);
@@ -95,6 +109,5 @@ if ($id === 0) {
     $pdo->prepare("UPDATE clientes SET razao_social = ?, nome_fantasia = ?, cnpj = ?, endereco = ?, email = ?, telefone = ?, contato = ?, observacoes = ? WHERE id = ?")
         ->execute(array_merge($params, [$id]));
 
-    header("Location: /gestor/clientes?msg=atualizado");
-    exit;
+    redirecionarComMsg($voltarUrl, 'atualizado');
 }

@@ -22,6 +22,12 @@ $csrfToken = $_SESSION['csrf_token'];
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $editando = $id > 0;
 
+// Pra onde voltar depois de salvar: de onde o usuário veio (ex: Relatórios > Clientes),
+// restrito a páginas internas do próprio gestor por segurança.
+$referer = $_SERVER['HTTP_REFERER'] ?? '';
+$refPath = parse_url($referer, PHP_URL_PATH) ?: '';
+$voltarUrl = str_starts_with($refPath, '/gestor/') ? $referer : '/gestor/clientes';
+
 $dados = ['id' => 0, 'razao_social' => '', 'nome_fantasia' => '', 'cnpj' => '', 'endereco' => '', 'email' => '', 'telefone' => '', 'contato' => '', 'observacoes' => ''];
 if ($editando) {
     $stmt = $pdo->prepare("SELECT * FROM clientes WHERE id = ? LIMIT 1");
@@ -63,6 +69,7 @@ if ($editando) {
     <form method="POST" action="/gestor/clientes/salvar" class="table-container" style="padding:1.5rem;">
         <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
         <input type="hidden" name="id" value="<?= (int)$dados['id'] ?>">
+        <input type="hidden" name="voltar" value="<?= htmlspecialchars($voltarUrl) ?>">
 
         <div class="form-group" style="margin-bottom:1rem;">
             <label>Razão Social *</label><br>
@@ -124,7 +131,7 @@ if ($editando) {
 
         <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
             <button type="submit" class="btn-backup btn-baixar">💾 Salvar</button>
-            <a href="/gestor/clientes" class="btn-backup" style="background:#f3f4f6; color:var(--color-text-dark);">Cancelar</a>
+            <a href="<?= htmlspecialchars($voltarUrl) ?>" class="btn-backup" style="background:#f3f4f6; color:var(--color-text-dark);">Cancelar</a>
         </div>
     </form>
 
