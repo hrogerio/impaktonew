@@ -344,6 +344,11 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/cliente_status.php';
         break;
 
+    case 'gestor/clientes/excluir':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/excluir_cliente.php';
+        break;
+
     // ── USUÁRIOS (admin) ─────────────────────────────────────
     case 'gestor/usuarios':
         require_role('admin');

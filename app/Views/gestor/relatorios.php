@@ -10,6 +10,11 @@ if (!isset($_SESSION['usuario'])) {
 
 $paginaAtual = 'relatorios';
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
+}
+$csrfToken = $_SESSION['csrf_token'];
+
 require_once __DIR__ . '/../../../config/database.php';
 require_once __DIR__ . '/../../Controllers/RelatorioController.php';
 
@@ -552,7 +557,7 @@ function tabelaCampanhas(array $lista) {
         <div class="table-container">
             <table class="rel-table" id="tbl-clientes">
                 <thead>
-                    <tr><th>Razão Social</th><th>Nome Fantasia</th><th>CNPJ</th><th>E-mail</th></tr>
+                    <tr><th>Razão Social</th><th>Nome Fantasia</th><th>CNPJ</th><th>E-mail</th><th>Ações</th></tr>
                 </thead>
                 <tbody>
                     <?php foreach ($clientes['clientes'] as $cl): ?>
@@ -569,6 +574,14 @@ function tabelaCampanhas(array $lista) {
                         </td>
                         <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['cnpj'] ?: '-') ?></td>
                         <td style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['email'] ?: '-') ?></td>
+                        <td style="white-space:nowrap;">
+                            <a href="/gestor/clientes/editar?id=<?= (int)$cl['id'] ?>" title="Editar" style="text-decoration:none;margin-right:0.5rem;">✏️</a>
+                            <form method="POST" action="/gestor/clientes/excluir" style="display:inline;" onsubmit="return confirm('Excluir este cliente? Essa ação não pode ser desfeita.');">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                <input type="hidden" name="id" value="<?= (int)$cl['id'] ?>">
+                                <button type="submit" title="Excluir" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;">🗑️</button>
+                            </form>
+                        </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
