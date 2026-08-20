@@ -762,6 +762,23 @@ function tabelaCampanhas(array $lista) {
     </div>
 </div>
 
+<!-- ── Modal de confirmação de exclusão de documento financeiro ── -->
+<div class="cp-modal-overlay" id="docExclusaoOverlay">
+    <div class="cp-modal" style="width:380px;">
+        <div class="cp-modal-title">🗑️ Excluir Documento</div>
+        <div class="cp-modal-sub" style="margin-bottom:0;">
+            Tem certeza que deseja excluir este documento? Essa ação não pode ser desfeita.
+        </div>
+
+        <input type="hidden" id="docExclusaoId">
+
+        <div class="cp-modal-actions">
+            <button class="cp-btn-cancelar" onclick="fecharExclusaoDocumento()">Cancelar</button>
+            <button class="cp-btn-salvar" id="docExclusaoConfirmarBtn" onclick="confirmarExclusaoDocumento()" style="background:#dc3545;">🗑️ Excluir</button>
+        </div>
+    </div>
+</div>
+
 <!-- ── Modal de confirmação de exclusão de cliente ── -->
 <div class="cp-modal-overlay" id="cliExclusaoOverlay">
     <div class="cp-modal" style="width:400px;">
@@ -985,14 +1002,31 @@ function enviarDocumentoRelatorio(tipo, inputEl) {
 }
 
 function excluirDocumentoRelatorio(docId) {
-    if (!confirm('Excluir este documento?')) return;
+    document.getElementById('docExclusaoId').value = docId;
+    document.getElementById('docExclusaoOverlay').classList.add('aberto');
+}
+
+function fecharExclusaoDocumento() {
+    document.getElementById('docExclusaoOverlay').classList.remove('aberto');
+}
+
+document.getElementById('docExclusaoOverlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharExclusaoDocumento();
+});
+
+function confirmarExclusaoDocumento() {
+    var docId = document.getElementById('docExclusaoId').value;
+    var btn = document.getElementById('docExclusaoConfirmarBtn');
     var fd = new FormData();
     fd.append('action', 'excluir');
     fd.append('doc_id', docId);
 
+    btn.disabled = true;
     fetch('/gestor/campanhas/documentos/upload', { method: 'POST', body: fd })
         .then(function(r) { return r.json(); })
         .then(function(resp) {
+            btn.disabled = false;
+            fecharExclusaoDocumento();
             if (!resp.ok) {
                 mostrarToastRelatorio('Erro ao excluir (' + (resp.erro || 'desconhecido') + ')', 'err');
                 return;
@@ -1001,6 +1035,8 @@ function excluirDocumentoRelatorio(docId) {
             location.reload();
         })
         .catch(function() {
+            btn.disabled = false;
+            fecharExclusaoDocumento();
             mostrarToastRelatorio('Erro de conexão ao excluir', 'err');
         });
 }
