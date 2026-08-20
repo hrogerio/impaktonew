@@ -76,6 +76,7 @@
 .rel-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
 .rel-table th { background:var(--color-accent-primary); color:white; padding:0.5rem 0.75rem; text-align:left; font-weight:700; font-size:0.78rem; }
 .rel-table td { padding:0.5rem 0.75rem; border-bottom:1px solid var(--color-border); vertical-align:middle; white-space:nowrap; }
+.rel-table tbody tr { transition:background-color 0.15s ease; }
 .rel-table tbody tr:hover { background:#fafafa; }
 .rel-table tr.row-vencida td { background:#fdf4ff; }
 
