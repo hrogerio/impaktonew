@@ -114,30 +114,6 @@ function clientesIniciais(string $nome): string {
     return mb_strtoupper(mb_substr($palavras[0], 0, 1) . mb_substr($palavras[1], 0, 1));
 }
 
-// Capitaliza como nome próprio: primeira letra de cada palavra maiúscula,
-// exceto conectivos comuns (de, da, do...), que ficam minúsculos (a não ser que abram o nome),
-// e siglas (GWM, JBS, LTDA...) que permanecem em maiúscula.
-function clientesNomeProprio(string $nome): string {
-    $conectivos = ['de', 'da', 'do', 'das', 'dos', 'e'];
-    $siglasConhecidas = ['ltda', 'me', 'epp', 'mei', 'sa', 's/a', 'cia', 'spe', 'eireli', 'ooh', 'pj', 'pf'];
-    $palavras = preg_split('/\s+/', trim(mb_strtolower($nome)));
-    foreach ($palavras as $i => $p) {
-        if ($p === '') continue;
-
-        $letras = preg_replace('/[^\p{L}]/u', '', $p);
-        $temVogal = (bool)preg_match('/[aeiouáéíóúâêôãõ]/u', $letras);
-        $ehSigla = $letras !== '' && mb_strlen($letras) <= 5 && (!$temVogal || in_array($letras, $siglasConhecidas, true));
-        if ($ehSigla) {
-            $palavras[$i] = mb_strtoupper($p);
-            continue;
-        }
-
-        if ($i > 0 && in_array($p, $conectivos, true)) continue;
-        $palavras[$i] = mb_strtoupper(mb_substr($p, 0, 1)) . mb_substr($p, 1);
-    }
-    return implode(' ', $palavras);
-}
-
 // Paleta rotativa de avatar, estilo monday.com (cores por índice, determinístico por nome)
 $cliPaletaAvatar = ['#579bfc', '#a25ddc', '#00c875', '#fdab3d', '#e2445c', '#66ccff', '#ff642e', '#7f5347'];
 function clientesCorAvatar(array $paleta, string $seed): string {
@@ -377,11 +353,11 @@ if (isset($_GET['msg'])) {
                                 <span class="cli-avatar" style="background:<?= clientesCorAvatar($cliPaletaAvatar, $c['razao_social']) ?>;">
                                     <?= htmlspecialchars(clientesIniciais($c['razao_social'])) ?>
                                 </span>
-                                <span><?= htmlspecialchars(clientesNomeProprio($c['razao_social'])) ?></span>
+                                <span><?= htmlspecialchars($c['razao_social']) ?></span>
                             </div>
                         </td>
                         <td><?= htmlspecialchars($c['cnpj'] ?: '—') ?></td>
-                        <td title="<?= htmlspecialchars($c['contato'] ?: '') ?>"><?= htmlspecialchars($c['contato'] ? clientesNomeProprio($c['contato']) : '—') ?></td>
+                        <td title="<?= htmlspecialchars($c['contato'] ?: '') ?>"><?= htmlspecialchars($c['contato'] ?: '—') ?></td>
                         <td><?= htmlspecialchars($c['telefone'] ?: '—') ?></td>
                         <td title="<?= htmlspecialchars($c['email'] ?: '') ?>">
                             <?php if ($c['email']): ?>

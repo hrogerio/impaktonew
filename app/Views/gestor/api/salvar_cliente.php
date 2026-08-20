@@ -29,33 +29,12 @@ $email        = mb_strtolower(trim($_POST['email'] ?? ''));
 $telefone     = trim($_POST['telefone'] ?? '');
 $observacoes  = trim($_POST['observacoes'] ?? '');
 
-// Capitaliza como nome próprio: primeira letra de cada palavra maiúscula,
-// exceto conectivos comuns (de, da, do...), que ficam minúsculos (a não ser que abram o nome),
-// e siglas (GWM, JBS, LTDA...) que permanecem em maiúscula.
-function clienteNomeProprio(string $nome): string {
-    $conectivos = ['de', 'da', 'do', 'das', 'dos', 'e'];
-    $siglasConhecidas = ['ltda', 'me', 'epp', 'mei', 'sa', 's/a', 'cia', 'spe', 'eireli', 'ooh', 'pj', 'pf'];
-    $palavras = preg_split('/\s+/', trim(mb_strtolower($nome)));
-    foreach ($palavras as $i => $p) {
-        if ($p === '') continue;
-
-        $letras = preg_replace('/[^\p{L}]/u', '', $p);
-        $temVogal = (bool)preg_match('/[aeiouáéíóúâêôãõ]/u', $letras);
-        $ehSigla = $letras !== '' && mb_strlen($letras) <= 5 && (!$temVogal || in_array($letras, $siglasConhecidas, true));
-        if ($ehSigla) {
-            $palavras[$i] = mb_strtoupper($p);
-            continue;
-        }
-
-        if ($i > 0 && in_array($p, $conectivos, true)) continue;
-        $palavras[$i] = mb_strtoupper(mb_substr($p, 0, 1)) . mb_substr($p, 1);
-    }
-    return implode(' ', $palavras);
-}
-$contatoBruto = trim($_POST['contato'] ?? '');
-$contato      = $contatoBruto !== '' ? clienteNomeProprio($contatoBruto) : '';
-$razaoSocial  = $razaoSocialBruta !== '' ? clienteNomeProprio($razaoSocialBruta) : '';
-$nomeFantasia = $nomeFantasiaBruto !== '' ? clienteNomeProprio($nomeFantasiaBruto) : '';
+// Sem auto-formatação de maiúsculas/minúsculas: salva exatamente como foi digitado.
+// Uma heurística de "nome próprio" nunca acerta siglas em geral (ex: ACLF, ADTSA, AGL
+// têm vogal e escapavam da detecção de sigla) — melhor confiar em quem está digitando.
+$contato      = trim($_POST['contato'] ?? '');
+$razaoSocial  = $razaoSocialBruta;
+$nomeFantasia = $nomeFantasiaBruto;
 
 function voltarComErroCliente($msg, $id) {
     $url = $id > 0 ? "/gestor/clientes/editar?id={$id}" : "/gestor/clientes/novo";
