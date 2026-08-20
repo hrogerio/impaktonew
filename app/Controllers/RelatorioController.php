@@ -114,8 +114,9 @@ class RelatorioController {
 
     public function dadosClientes(): array {
         return [
-            'clientes' => $this->model->todosClientes(),
-            'agencias' => $this->model->resumoPorAgencia(),
+            'clientes'          => $this->model->todosClientes(),
+            'agencias'          => $this->model->resumoPorAgencia(),
+            'agencias_cadastro' => $this->model->todasAgencias(),
         ];
     }
 

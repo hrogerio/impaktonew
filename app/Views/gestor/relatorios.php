@@ -628,25 +628,36 @@ function tabelaCampanhas(array $lista) {
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#eef6ff;">🏛️</div>
                 <div class="kpi-body">
-                    <div class="kpi-value" style="color:#3498db"><?= count($clientes['agencias']) ?></div>
+                    <div class="kpi-value" style="color:#3498db"><?= count($clientes['agencias_cadastro']) ?></div>
                     <div class="kpi-label">Agências</div>
                 </div>
             </div>
         </div>
 
-        <div class="section-title">🏛️ Resumo por Agência (<?= count($clientes['agencias']) ?>)</div>
-        <?php if (empty($clientes['agencias'])): ?>
-            <div class="empty-state"><p>Nenhuma agência encontrada.</p></div>
+        <div class="section-title">🏛️ Todas as Agências (<?= count($clientes['agencias_cadastro']) ?>)</div>
+        <?php if (empty($clientes['agencias_cadastro'])): ?>
+            <div class="empty-state"><p>Nenhuma agência cadastrada. <a href="/gestor/agencias">Cadastre a primeira</a>.</p></div>
         <?php else: ?>
         <div class="table-container">
             <table class="rel-table" id="tbl-agencias">
-                <thead><tr><th>Agência</th><th>Clientes</th><th>Total de Pontos</th></tr></thead>
+                <thead><tr><th style="width:50px;"></th><th>Nome</th><th>Endereço</th><th>Telefone</th><th>Diretor</th><th>Mídia</th><th>Nº Clientes</th><th>Nº Campanhas</th></tr></thead>
                 <tbody>
-                    <?php foreach ($clientes['agencias'] as $ag): ?>
+                    <?php foreach ($clientes['agencias_cadastro'] as $ag): ?>
                     <tr>
-                        <td><strong><?= htmlspecialchars($ag['agencia']) ?></strong></td>
-                        <td><?= $ag['total_clientes'] ?></td>
-                        <td><strong style="color:var(--color-accent-primary)"><?= $ag['total_pontos'] ?></strong></td>
+                        <td>
+                            <?php if ($ag['logo']): ?>
+                            <img src="/<?= htmlspecialchars($ag['logo']) ?>" alt="" style="width:36px;height:36px;border-radius:6px;object-fit:contain;background:#f6f7fb;border:1px solid var(--color-border);">
+                            <?php else: ?>
+                            <div style="width:36px;height:36px;border-radius:6px;background:#f6f7fb;border:1px solid var(--color-border);display:flex;align-items:center;justify-content:center;font-size:0.9rem;color:var(--color-text-muted);">🏛️</div>
+                            <?php endif; ?>
+                        </td>
+                        <td><strong><a href="/gestor/agencias/ficha?id=<?= (int)$ag['id'] ?>" style="color:inherit;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><?= htmlspecialchars($ag['nome']) ?></a></strong></td>
+                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($ag['endereco'] ?: '-') ?></td>
+                        <td style="color:var(--color-text-muted)"><?= htmlspecialchars($ag['telefone'] ?: '-') ?></td>
+                        <td><?= $ag['qtd_diretoria'] ?></td>
+                        <td><?= $ag['qtd_midia'] ?></td>
+                        <td><?= $ag['qtd_clientes'] ?></td>
+                        <td><strong style="color:var(--color-accent-primary)"><?= $ag['qtd_campanhas'] ?></strong></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>

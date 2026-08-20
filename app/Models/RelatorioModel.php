@@ -206,6 +206,51 @@ class RelatorioModel {
         ")->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** Todas as agências cadastradas, com diretoria/mídia e nº de clientes/campanhas — pra listagem em Relatórios, com link pra ficha */
+    public function todasAgencias(): array {
+        $agencias = $this->pdo->query("
+            SELECT id, nome, endereco, telefone, logo
+            FROM agencias
+            ORDER BY nome ASC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!$agencias) return [];
+
+        $ids = array_column($agencias, 'id');
+        $ph  = implode(',', array_fill(0, count($ids), '?'));
+
+        $contagens = [];
+        $stmtC = $this->pdo->prepare("SELECT agencia_id, tipo, COUNT(*) AS qtd FROM agencia_contatos WHERE agencia_id IN ($ph) GROUP BY agencia_id, tipo");
+        $stmtC->execute($ids);
+        foreach ($stmtC->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $contagens[$r['agencia_id']][$r['tipo']] = (int)$r['qtd'];
+        }
+
+        $stmtN = $this->pdo->prepare("
+            SELECT agencia_id,
+                   COUNT(*) AS qtd_campanhas,
+                   COUNT(DISTINCT COALESCE(cliente_id, cliente)) AS qtd_clientes
+            FROM campanhas
+            WHERE agencia_id IN ($ph) AND ativo = 1
+            GROUP BY agencia_id
+        ");
+        $stmtN->execute($ids);
+        foreach ($stmtN->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $contagens[$r['agencia_id']]['campanhas'] = (int)$r['qtd_campanhas'];
+            $contagens[$r['agencia_id']]['clientes']  = (int)$r['qtd_clientes'];
+        }
+
+        foreach ($agencias as &$ag) {
+            $ag['qtd_diretoria']  = $contagens[$ag['id']]['diretoria'] ?? 0;
+            $ag['qtd_midia']      = $contagens[$ag['id']]['midia'] ?? 0;
+            $ag['qtd_clientes']   = $contagens[$ag['id']]['clientes'] ?? 0;
+            $ag['qtd_campanhas']  = $contagens[$ag['id']]['campanhas'] ?? 0;
+        }
+        unset($ag);
+
+        return $agencias;
+    }
+
     public function resumoPorAgencia(): array {
         return $this->pdo->query("
             SELECT
