@@ -574,16 +574,16 @@ function tabelaCampanhas(array $lista) {
                 <tbody>
                     <?php foreach ($clientes['clientes'] as $cl): ?>
                     <tr id="cli-row-<?= (int)$cl['id'] ?>">
-                        <td class="cli-cel-razao"><?= htmlspecialchars($cl['razao_social']) ?></td>
-                        <td class="cli-cel-fantasia">
+                        <td class="cli-cel-razao">
                             <strong>
                                 <?php if (!empty($cl['id'])): ?>
-                                <a href="/gestor/clientes/ficha?id=<?= (int)$cl['id'] ?>" style="color:inherit;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><?= htmlspecialchars($cl['nome_fantasia'] ?: $cl['razao_social']) ?></a>
+                                <a href="/gestor/clientes/ficha?id=<?= (int)$cl['id'] ?>" style="color:inherit;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><?= htmlspecialchars($cl['razao_social']) ?></a>
                                 <?php else: ?>
-                                <?= htmlspecialchars($cl['nome_fantasia'] ?: $cl['razao_social']) ?>
+                                <?= htmlspecialchars($cl['razao_social']) ?>
                                 <?php endif; ?>
                             </strong>
                         </td>
+                        <td class="cli-cel-fantasia"><?= htmlspecialchars($cl['nome_fantasia'] ?: '-') ?></td>
                         <td class="cli-cel-cnpj" style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['cnpj'] ?: '-') ?></td>
                         <td class="cli-cel-email" style="color:var(--color-text-muted)"><?= htmlspecialchars($cl['email'] ?: '-') ?></td>
                         <td style="white-space:nowrap;">
@@ -1044,11 +1044,10 @@ function salvarEdicaoCliente() {
             var c = resp.cliente;
             var row = document.getElementById('cli-row-' + c.id);
             if (row) {
-                row.querySelector('.cli-cel-razao').textContent = c.razao_social;
-                var fantasiaLink = row.querySelector('.cli-cel-fantasia a');
-                var nomeExibido = c.nome_fantasia || c.razao_social;
-                if (fantasiaLink) { fantasiaLink.textContent = nomeExibido; }
-                else { row.querySelector('.cli-cel-fantasia strong').textContent = nomeExibido; }
+                var razaoLink = row.querySelector('.cli-cel-razao a');
+                if (razaoLink) { razaoLink.textContent = c.razao_social; }
+                else { row.querySelector('.cli-cel-razao strong').textContent = c.razao_social; }
+                row.querySelector('.cli-cel-fantasia').textContent = c.nome_fantasia || '-';
                 row.querySelector('.cli-cel-cnpj').textContent = c.cnpj || '-';
                 row.querySelector('.cli-cel-email').textContent = c.email || '-';
             }
