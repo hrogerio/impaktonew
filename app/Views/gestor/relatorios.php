@@ -723,6 +723,7 @@ function switchTab(name, btn) {
     document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
+    history.replaceState(null, '', '#' + name);
 }
 
 (function(){
