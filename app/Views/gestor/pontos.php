@@ -16,6 +16,7 @@ try {
 $sql = "
     SELECT p.id, p.numero, p.logradouro, p.descricao, p.cidade, p.regiao,
            c.cliente AS cliente,
+           c.campanha AS campanha,
            c.agencia AS agencia,
            COALESCE(c.contato, p.contato) AS contato,
            p.tipo, p.situacao, p.corredor, p.formato,
@@ -37,13 +38,13 @@ $pontos = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
 $regioes    = $pdo->query("SELECT DISTINCT regiao   FROM pontos WHERE regiao   IS NOT NULL AND regiao   != '' AND (ativo=1 OR ativo IS NULL) ORDER BY regiao"  )->fetchAll(PDO::FETCH_COLUMN);
 $cidades    = $pdo->query("SELECT DISTINCT cidade   FROM pontos WHERE cidade   IS NOT NULL AND cidade   != '' AND (ativo=1 OR ativo IS NULL) ORDER BY cidade"  )->fetchAll(PDO::FETCH_COLUMN);
-$clientes   = $pdo->query("
-    SELECT DISTINCT c.cliente AS cliente
+$campanhas  = $pdo->query("
+    SELECT DISTINCT c.campanha AS campanha
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1
     WHERE (p.ativo = 1 OR p.ativo IS NULL)
-    HAVING cliente IS NOT NULL AND cliente != ''
-    ORDER BY cliente
+    HAVING campanha IS NOT NULL AND campanha != ''
+    ORDER BY campanha
 ")->fetchAll(PDO::FETCH_COLUMN);
 $corredores = $pdo->query("SELECT DISTINCT corredor FROM pontos WHERE corredor IS NOT NULL AND corredor != '' AND (ativo=1 OR ativo IS NULL) ORDER BY corredor")->fetchAll(PDO::FETCH_COLUMN);
 
@@ -312,9 +313,9 @@ $recentes = $pdo->query(
                 <option value="<?= htmlspecialchars($c) ?>"><?= htmlspecialchars($c) ?></option>
                 <?php endforeach; ?>
             </select>
-            <select class="filtro-select" id="filtroCliente">
-                <option value="">Todos os clientes</option>
-                <?php foreach ($clientes as $c): ?>
+            <select class="filtro-select" id="filtroCampanha">
+                <option value="">Todas as campanhas</option>
+                <?php foreach ($campanhas as $c): ?>
                 <option value="<?= htmlspecialchars($c) ?>"><?= htmlspecialchars($c) ?></option>
                 <?php endforeach; ?>
             </select>
@@ -403,7 +404,7 @@ var selecao  = new Set(JSON.parse(localStorage.getItem(CART_KEY) || '[]'));
 var sortCol  = 'numero', sortDir = 'asc';
 var listaVisivelAtual = []; // pontos atualmente renderizados na tabela (vazio no estado padrão sem filtro)
 var FILTROS_KEY = 'impakto_pontos_filtros_v1';
-var filtros  = { busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', vencimento:'' };
+var filtros  = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', vencimento:'' };
 function salvarFiltros() {
     try { sessionStorage.setItem(FILTROS_KEY, JSON.stringify(filtros)); } catch(e) {}
 }
@@ -580,7 +581,7 @@ function filtrar(lista) {
     return lista.filter(function(p) {
         if (filtros.regiao   && (p.regiao  ||'').trim() !== filtros.regiao)   return false;
         if (filtros.cidade   && (p.cidade  ||'').trim() !== filtros.cidade)   return false;
-        if (filtros.cliente  && (p.cliente ||'').trim() !== filtros.cliente)  return false;
+        if (filtros.campanha && (p.campanha||'').trim() !== filtros.campanha) return false;
         if (filtros.situacao === '__exclusivo__') {
             if (parseInt(p.exclusivo) !== 1) return false;
         } else if (filtros.situacao && (p.situacao||'').trim() !== filtros.situacao) {
@@ -605,7 +606,7 @@ function filtrar(lista) {
             }
         }
         if (busca) {
-            var campos = [p.numero,p.logradouro,p.descricao,p.cidade,p.regiao,p.cliente,p.agencia,p.corredor];
+            var campos = [p.numero,p.logradouro,p.descricao,p.cidade,p.regiao,p.cliente,p.campanha,p.agencia,p.corredor];
             return campos.some(function(c){ return normalizar(c).indexOf(busca) !== -1; });
         }
         return true;
@@ -816,7 +817,7 @@ document.getElementById('searchClear').addEventListener('click', function() {
     document.getElementById('searchInput').focus();
 });
 
-var mapaFiltros = { filtroRegiao:'regiao', filtroCidade:'cidade', filtroCliente:'cliente', filtroSituacao:'situacao', filtroCorredor:'corredor', filtroVencimento:'vencimento' };
+var mapaFiltros = { filtroRegiao:'regiao', filtroCidade:'cidade', filtroCampanha:'campanha', filtroSituacao:'situacao', filtroCorredor:'corredor', filtroVencimento:'vencimento' };
 Object.keys(mapaFiltros).forEach(function(id) {
     document.getElementById(id).addEventListener('change', function() {
         filtros[mapaFiltros[id]] = this.value;
@@ -826,7 +827,7 @@ Object.keys(mapaFiltros).forEach(function(id) {
     });
 });
 document.getElementById('btnLimpar').addEventListener('click', function() {
-    filtros = { busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', vencimento:'' };
+    filtros = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', vencimento:'' };
     document.getElementById('searchInput').value = '';
     document.getElementById('searchClear').className = 'search-clear';
     Object.keys(mapaFiltros).forEach(function(id) {
@@ -853,7 +854,7 @@ document.getElementById('btnLimpar').addEventListener('click', function() {
     if (params.has('busca')) { doUrl.busca = params.get('busca'); temParamUrl = true; }
 
     if (!salvo && !temParamUrl) return;
-    filtros = Object.assign({ busca:'', regiao:'', cidade:'', cliente:'', situacao:'', corredor:'', vencimento:'' }, salvo, temParamUrl ? doUrl : {});
+    filtros = Object.assign({ busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', vencimento:'' }, salvo, temParamUrl ? doUrl : {});
     document.getElementById('searchInput').value = filtros.busca;
     document.getElementById('searchClear').className = 'search-clear'+(filtros.busca?' visible':'');
     Object.keys(mapaFiltros).forEach(function(id) {
