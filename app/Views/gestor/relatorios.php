@@ -109,7 +109,7 @@ function tabelaCampanhas(array $lista) {
                     <td style="color:var(--color-text-muted)">
                         <?= htmlspecialchars($c['agencia'] ?? '-') ?>
                         <?php if (!empty($c['contato']) && $c['contato'] !== '-'): ?>
-                        <div style="font-size:0.75rem;"><?= htmlspecialchars($c['contato']) ?></div>
+                        <div style="color:var(--color-text-muted);font-size:0.75rem;"><?= htmlspecialchars($c['contato']) ?></div>
                         <?php endif; ?>
                     </td>
                     <td><?= fmtData($c['inicio_contrato']) ?></td>
