@@ -66,7 +66,12 @@ function agenciasQs(array $overrides): string {
 
 $mensagem = '';
 if (isset($_GET['msg'])) {
-    $mapa = ['criado' => 'Agência cadastrada com sucesso.', 'atualizado' => 'Agência atualizada com sucesso.'];
+    $qtdImportadas = (int)($_GET['qtd'] ?? 0);
+    $mapa = [
+        'criado'     => 'Agência cadastrada com sucesso.',
+        'atualizado' => 'Agência atualizada com sucesso.',
+        'importado'  => $qtdImportadas . ' agência' . ($qtdImportadas === 1 ? '' : 's') . ' importada' . ($qtdImportadas === 1 ? '' : 's') . ' de campanhas existentes.',
+    ];
     $mensagem = $mapa[$_GET['msg']] ?? '';
 }
 ?>
@@ -122,7 +127,10 @@ if (isset($_GET['msg'])) {
             <h2>🏛️ Agências</h2>
             <p>Cadastro de agências parceiras, com diretoria e departamento de mídia.</p>
         </div>
-        <a href="/gestor/agencias/novo" class="btn-backup btn-baixar ag-novo-btn">➕ Nova Agência</a>
+        <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+            <a href="/gestor/agencias/importar" class="btn-backup" style="background:#f3f4f6; color:var(--color-text-dark); border-radius:999px;">📥 Importar de Campanhas</a>
+            <a href="/gestor/agencias/novo" class="btn-backup btn-baixar ag-novo-btn">➕ Nova Agência</a>
+        </div>
     </div>
 
     <?php if ($mensagem): ?>

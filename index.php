@@ -371,6 +371,15 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/salvar_agencia.php';
         break;
 
+    case 'gestor/agencias/importar':
+        auth_required();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require __DIR__ . '/app/Views/gestor/api/importar_agencias.php';
+        } else {
+            require __DIR__ . '/app/Views/gestor/agencia_importar.php';
+        }
+        break;
+
     case 'gestor/agencias/excluir':
         auth_required();
         require __DIR__ . '/app/Views/gestor/api/excluir_agencia.php';
