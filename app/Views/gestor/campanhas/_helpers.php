@@ -253,12 +253,13 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
             <div class="cp-acoes">
             <?php
                 $ckQ = http_build_query([
-                    'cliente'  => $g['cliente'],
-                    'agencia'  => $g['agencia'],
-                    'campanha' => $g['nome'],
-                    'situacao' => $g['situacao'],
-                    'inicio'   => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
-                    'fim'      => $g['fim']    ? substr($g['fim'],    0, 10) : '',
+                    'cliente'      => $g['cliente'],
+                    'agencia'      => $g['agencia'],
+                    'campanha'     => $g['nome'],
+                    'nome_projeto' => $g['nome_projeto'],
+                    'situacao'     => $g['situacao'],
+                    'inicio'       => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
+                    'fim'          => $g['fim']    ? substr($g['fim'],    0, 10) : '',
                 ]);
                 foreach ($pontoIds as $pid) { $ckQ .= '&pontoIds[]=' . (int)$pid; }
                 $checkUrl   = '/gestor/campanhas/checking?' . $ckQ;

@@ -11,10 +11,11 @@ if (!isset($_SESSION['usuario'])) {
 require_once __DIR__ . '/../../../../config/database.php';
 $pdo = getDatabase();
 
-$cliente  = trim($_GET['cliente']  ?? '');
-$agencia  = trim($_GET['agencia']  ?? '');
-$campanha = trim($_GET['campanha'] ?? '');
-$situacao = trim($_GET['situacao'] ?? 'Ocupado');
+$cliente     = trim($_GET['cliente']  ?? '');
+$agencia     = trim($_GET['agencia']  ?? '');
+$campanha    = trim($_GET['campanha'] ?? '');
+$nomeProjeto = trim($_GET['nome_projeto'] ?? '');
+$situacao    = trim($_GET['situacao'] ?? 'Ocupado');
 $inicio   = trim($_GET['inicio']   ?? '') ?: null;
 $fim      = trim($_GET['fim']      ?? '') ?: null;
 $pontoIds = array_values(array_filter(array_map('intval', (array)($_GET['pontoIds'] ?? [])), fn($id) => $id > 0));
@@ -55,12 +56,13 @@ $periodoFmt = ($inicio || $fim) ? (fmtD2($inicio) . ' â†’ ' . fmtD2($fim)) : 'â€
 
 // Query string para repassar ao PDF
 $pdfQ = http_build_query([
-    'cliente'  => $cliente,
-    'agencia'  => $agencia,
-    'campanha' => $campanha,
-    'situacao' => $situacao,
-    'inicio'   => $inicio ?? '',
-    'fim'      => $fim    ?? '',
+    'cliente'      => $cliente,
+    'agencia'      => $agencia,
+    'campanha'     => $campanha,
+    'nome_projeto' => $nomeProjeto,
+    'situacao'     => $situacao,
+    'inicio'       => $inicio ?? '',
+    'fim'          => $fim    ?? '',
 ]);
 foreach ($pontoIds as $pid) { $pdfQ .= '&pontoIds[]=' . $pid; }
 

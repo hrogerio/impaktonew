@@ -19,10 +19,11 @@ if (!isset($_SESSION['usuario'])) {
 require_once __DIR__ . '/../../../../config/database.php';
 $pdo = getDatabase();
 
-$cliente  = trim($_GET['cliente']  ?? '');
-$agencia  = trim($_GET['agencia']  ?? '');
-$campanha = trim($_GET['campanha'] ?? '');
-$situacao = trim($_GET['situacao'] ?? 'Ocupado');
+$cliente     = trim($_GET['cliente']  ?? '');
+$agencia     = trim($_GET['agencia']  ?? '');
+$campanha    = trim($_GET['campanha'] ?? '');
+$nomeProjeto = trim($_GET['nome_projeto'] ?? '');
+$situacao    = trim($_GET['situacao'] ?? 'Ocupado');
 $inicio   = trim($_GET['inicio']   ?? '') ?: null;
 $fim      = trim($_GET['fim']      ?? '') ?: null;
 $pontoIds = array_values(array_filter(array_map('intval', (array)($_GET['pontoIds'] ?? [])), fn($id) => $id > 0));
@@ -135,7 +136,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
 $pdf->SetCreator('Impakto Midia OOH');
-$pdf->SetTitle(s('Checking - ' . ($campanha ?: $cliente)));
+$pdf->SetTitle(s('Checking - ' . ($nomeProjeto ?: $campanha ?: $cliente)));
 
 // Carrega fontes Inter (tFPDF) ou fallback Helvetica (FPDF)
 if (defined('USE_TFPDF') && USE_TFPDF) {
@@ -213,18 +214,18 @@ $pdf->SetFillColor(...$VERM);
 $pdf->Rect($RX, 27, 60, 1.2, 'F');      // ↑ era y=26, w=55
 
 // Nome da CAMPANHA em destaque
+$tituloCampanha = $nomeProjeto ?: $campanha ?: $cliente;
 $pdf->SetFont(FONT_MAIN, 'B', 27);       // ↑ era 22
 $pdf->SetTextColor(...$PRETO);
 $pdf->SetXY($RX, 31);
-$pdf->MultiCell($RW, 13, s($campanha ?: $cliente), 0, 'L');   // ↑ H era 11
+$pdf->MultiCell($RW, 13, s($tituloCampanha), 0, 'L');   // ↑ H era 11
 $yApos = $pdf->GetY() + 4;
 
 // Campos de informação
-$campos = [
-    ['Cliente:',  $cliente  ?: '-'],
-    ['Agencia:',  $agencia  ?: '-'],
-    ['Periodo:',  dataFmt($inicio) . ' a ' . dataFmt($fim)],
-];
+$campos = [];
+if ($nomeProjeto && $campanha) $campos[] = ['Motivo:', $campanha];
+$campos[] = ['Agencia:', $agencia ?: '-'];
+$campos[] = ['Periodo:', dataFmt($inicio) . ' a ' . dataFmt($fim)];
 $y = max($yApos, 74);
 foreach ($campos as [$lbl, $val]) {
     $pdf->SetFont(FONT_MAIN, 'B', 11);
@@ -500,5 +501,5 @@ foreach ($todasFotos as $foto) {
 
 // ── Download ──────────────────────────────────────────────────────────────────
 ob_end_clean();
-$nomeArq = 'Checking_' . preg_replace('/[^a-zA-Z0-9]/', '_', $cliente) . '_' . date('Ymd') . '.pdf';
+$nomeArq = 'Checking_' . preg_replace('/[^a-zA-Z0-9]/', '_', $tituloCampanha) . '_' . date('Ymd') . '.pdf';
 $pdf->Output('D', $nomeArq);
