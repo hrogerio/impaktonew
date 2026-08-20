@@ -70,7 +70,7 @@ function tabelaCampanhas(array $lista) {
     <div class="table-container">
         <table class="rel-table">
             <thead>
-                <tr><th>Cliente</th><th>Campanha</th><th>Agência</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:right">Pontos</th><th>Docs</th></tr>
+                <tr><th>Cliente</th><th>Campanha</th><th>Agência</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:center">Pontos</th><th>Docs</th></tr>
             </thead>
             <tbody>
                 <?php foreach ($lista as $c):
@@ -115,7 +115,7 @@ function tabelaCampanhas(array $lista) {
                     <td><?= fmtData($c['inicio_contrato']) ?></td>
                     <td><?= fmtData($c['fim_contrato']) ?></td>
                     <td><?= fmtDuracao($c['duracao_dias']) ?></td>
-                    <td style="text-align:right"><strong style="color:var(--color-accent-primary)"><?= $c['qtd_pontos'] ?></strong></td>
+                    <td style="text-align:center"><strong style="color:var(--color-accent-primary)"><?= $c['qtd_pontos'] ?></strong></td>
                     <td>
                         <?php if (!empty($tiposEmOrdem)): ?>
                         <span class="docs-status docs-ok" title="Documentos enviados: <?= htmlspecialchars(implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposEmOrdem))) ?>">✅ <?= htmlspecialchars(implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposEmOrdem))) ?></span>
