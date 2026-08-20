@@ -70,7 +70,7 @@ function tabelaCampanhas(array $lista) {
     <div class="table-container">
         <table class="rel-table">
             <thead>
-                <tr><th>Cliente</th><th>Campanha</th><th>Motivo</th><th>Agência</th><th>Contato</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:right">Pontos</th><th>Docs</th></tr>
+                <tr><th>Cliente</th><th>Campanha</th><th>Agência</th><th>Início</th><th>Fim</th><th>Duração</th><th style="text-align:right">Pontos</th><th>Docs</th></tr>
             </thead>
             <tbody>
                 <?php foreach ($lista as $c):
@@ -100,10 +100,18 @@ function tabelaCampanhas(array $lista) {
                 ?>
                 <tr class="rel-row-clicavel" onclick='abrirDetalhesContrato(<?= $dadosContrato ?>)' title="Ver detalhes do contrato">
                     <td><strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong></td>
-                    <td><?= htmlspecialchars($c['campanha'] ?? '-') ?></td>
-                    <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['motivo'] ?? '-') ?></td>
-                    <td style="color:var(--color-text-muted)"><?= htmlspecialchars($c['agencia'] ?? '-') ?></td>
-                    <td style="font-size:0.78rem"><?= htmlspecialchars($c['contato'] ?? '-') ?></td>
+                    <td>
+                        <?= htmlspecialchars($c['campanha'] ?? '-') ?>
+                        <?php if (!empty($c['motivo']) && $c['motivo'] !== '-' && $c['motivo'] !== ($c['campanha'] ?? '')): ?>
+                        <div style="color:var(--color-text-muted);font-size:0.75rem;"><?= htmlspecialchars($c['motivo']) ?></div>
+                        <?php endif; ?>
+                    </td>
+                    <td style="color:var(--color-text-muted)">
+                        <?= htmlspecialchars($c['agencia'] ?? '-') ?>
+                        <?php if (!empty($c['contato']) && $c['contato'] !== '-'): ?>
+                        <div style="font-size:0.75rem;"><?= htmlspecialchars($c['contato']) ?></div>
+                        <?php endif; ?>
+                    </td>
                     <td><?= fmtData($c['inicio_contrato']) ?></td>
                     <td><?= fmtData($c['fim_contrato']) ?></td>
                     <td><?= fmtDuracao($c['duracao_dias']) ?></td>
