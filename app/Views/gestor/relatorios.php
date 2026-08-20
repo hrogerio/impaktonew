@@ -74,10 +74,11 @@ function tabelaCampanhas(array $lista) {
             </thead>
             <tbody>
                 <?php foreach ($lista as $c):
-                    $docChave = md5(trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['motivo'] ?? '') . '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? ''));
+                    $docChave = md5(trim($c['cliente_raw'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['motivo'] ?? '') . '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? ''));
                     $docsGrupo = $documentosPorGrupo[$docChave] ?? [];
                     $dadosContrato = json_encode([
                         'cliente'         => $c['cliente'] ?? '-',
+                        'cliente_raw'     => $c['cliente_raw'] ?? ($c['cliente'] ?? ''),
                         'agencia'         => $c['agencia'] ?? '',
                         'campanha'        => $c['campanha'] ?? '-',
                         'motivo'          => $c['motivo'] ?? '-',
@@ -790,7 +791,7 @@ function abrirDetalhesContrato(c) {
 
     var pontoIds = pontos.map(function(p){ return p.ponto_id; }).filter(Boolean);
     var params = new URLSearchParams();
-    params.set('cliente', c.cliente || '');
+    params.set('cliente', c.cliente_raw || c.cliente || '');
     params.set('agencia', c.agencia || '');
     params.set('campanha', c.motivo || '');
     params.set('situacao', c.situacao || 'Ocupado');
@@ -828,7 +829,7 @@ function abrirDocumentosRelatorio() {
     if (!_ultimoContrato) return;
     var c = _ultimoContrato;
     _relDocsGrupo = {
-        cliente:  c.cliente  || '',
+        cliente:  c.cliente_raw || c.cliente || '',
         agencia:  c.agencia  || '',
         campanha: c.motivo || '',
         inicio:   (c.inicio_contrato || '').substring(0, 10),

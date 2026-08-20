@@ -228,7 +228,7 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
 /** Chave de agrupamento dos documentos financeiros (mesma lógica de campanhas/_helpers.php e relatorios.php) */
 function docChavePdf(array $c): string {
     return md5(
-        trim($c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['motivo'] ?? '') .
+        trim($c['cliente_raw'] ?? $c['cliente'] ?? '') . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['motivo'] ?? '') .
         '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? '')
     );
 }

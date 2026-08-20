@@ -66,7 +66,8 @@ class RelatorioModel {
             SELECT
                 p.id AS ponto_id, p.numero, p.logradouro, p.cidade, p.regiao,
                 COALESCE(NULLIF(c.contato, ''), NULLIF(p.contato, '')) AS contato,
-                c.cliente AS cliente,
+                COALESCE(NULLIF(TRIM(cl.razao_social),''), c.cliente) AS cliente,
+                c.cliente AS cliente_raw,
                 c.agencia AS agencia,
                 COALESCE(NULLIF(TRIM(c.nome),''), NULLIF(TRIM(c.campanha),'')) AS campanha,
                 c.campanha AS motivo,
@@ -79,6 +80,7 @@ class RelatorioModel {
                 DATEDIFF(CURDATE(), $fim) AS dias_vencido
             FROM pontos p
             LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
+            LEFT JOIN clientes cl ON cl.id = c.cliente_id
             WHERE
                 p.situacao NOT IN ('Disponivel','Disponível')
                 AND $fim IS NOT NULL
@@ -97,7 +99,8 @@ class RelatorioModel {
             SELECT
                 p.id AS ponto_id, p.numero, p.logradouro, p.cidade, p.regiao,
                 COALESCE(NULLIF(c.contato, ''), NULLIF(p.contato, '')) AS contato,
-                c.cliente AS cliente,
+                COALESCE(NULLIF(TRIM(cl.razao_social),''), c.cliente) AS cliente,
+                c.cliente AS cliente_raw,
                 c.agencia AS agencia,
                 COALESCE(NULLIF(TRIM(c.nome),''), NULLIF(TRIM(c.campanha),'')) AS campanha,
                 c.campanha AS motivo,
@@ -109,6 +112,7 @@ class RelatorioModel {
                 DATEDIFF($fim, $inicio) AS duracao_dias
             FROM pontos p
             INNER JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
+            LEFT JOIN clientes cl ON cl.id = c.cliente_id
             WHERE
                 (p.ativo = 1 OR p.ativo IS NULL)
                 AND $inicio IS NOT NULL
