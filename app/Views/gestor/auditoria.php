@@ -392,20 +392,20 @@ function mostrarToastAudit(msg, tipo) {
     if (!t) {
         t = document.createElement('div');
         t.id = 'auditToast';
-        t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;'
-            + 'padding:0.75rem 1.25rem;border-radius:8px;font-size:0.83rem;font-weight:700;'
-            + 'box-shadow:0 4px 16px rgba(0,0,0,0.2);transition:all 0.3s ease;'
-            + 'transform:translateY(80px);opacity:0;';
+        t.style.cssText = 'position:fixed;top:50%;left:50%;z-index:9999;'
+            + 'padding:0.9rem 1.5rem;border-radius:10px;font-size:0.95rem;font-weight:700;'
+            + 'box-shadow:0 8px 32px rgba(0,0,0,0.3);transition:all 0.3s ease;max-width:90vw;text-align:center;'
+            + 'transform:translate(-50%,-50%) scale(0.9);opacity:0;';
         document.body.appendChild(t);
     }
     t.textContent = msg;
     t.style.background = tipo === 'ok' ? '#1a9059' : '#dc3545';
     t.style.color = 'white';
-    t.style.transform = 'translateY(0)';
+    t.style.transform = 'translate(-50%,-50%) scale(1)';
     t.style.opacity = '1';
     clearTimeout(t._tmr);
     t._tmr = setTimeout(function() {
-        t.style.transform = 'translateY(80px)';
+        t.style.transform = 'translate(-50%,-50%) scale(0.9)';
         t.style.opacity = '0';
     }, 3500);
 }

@@ -757,22 +757,22 @@ function mostrarAviso(html, tipo) {
     if (!t) {
         t = document.createElement('div');
         t.id = 'pontoAviso';
-        t.style.cssText = 'position:fixed;bottom:5.5rem;right:1.5rem;z-index:9998;'
-            +'max-width:340px;padding:0.7rem 1rem;border-radius:8px;'
-            +'font-size:0.8rem;font-weight:600;line-height:1.4;'
-            +'box-shadow:0 4px 16px rgba(0,0,0,0.18);'
-            +'transform:translateY(80px);opacity:0;transition:all 0.3s ease;pointer-events:none;';
+        t.style.cssText = 'position:fixed;top:50%;left:50%;z-index:9998;'
+            +'max-width:90vw;padding:0.9rem 1.5rem;border-radius:10px;'
+            +'font-size:0.9rem;font-weight:600;line-height:1.4;text-align:center;'
+            +'box-shadow:0 8px 32px rgba(0,0,0,0.25);'
+            +'transform:translate(-50%,-50%) scale(0.9);opacity:0;transition:all 0.3s ease;pointer-events:none;';
         document.body.appendChild(t);
     }
     t.innerHTML = html;
     t.style.background = tipo === 'laranja' ? '#fff3cd' : '#d4edda';
     t.style.border = tipo === 'laranja' ? '1px solid #ffc107' : '1px solid #28a745';
     t.style.color = tipo === 'laranja' ? '#856404' : '#155724';
-    t.style.transform = 'translateY(0)';
+    t.style.transform = 'translate(-50%,-50%) scale(1)';
     t.style.opacity = '1';
     clearTimeout(t._tmr);
     t._tmr = setTimeout(function() {
-        t.style.transform = 'translateY(80px)';
+        t.style.transform = 'translate(-50%,-50%) scale(0.9)';
         t.style.opacity = '0';
     }, 4500);
 }

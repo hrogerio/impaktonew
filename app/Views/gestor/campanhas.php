@@ -521,12 +521,12 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
 
 <!-- Toast -->
 <div id="cpToast" style="
-    position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;
-    background:#1a9059;color:white;padding:0.7rem 1.25rem;
-    border-radius:8px;font-size:0.83rem;font-weight:700;
-    box-shadow:0 4px 16px rgba(0,0,0,0.2);
-    transform:translateY(80px);opacity:0;transition:all 0.3s ease;
-    pointer-events:none;max-width:340px;
+    position:fixed;top:50%;left:50%;z-index:9999;
+    background:#1a9059;color:white;padding:0.9rem 1.5rem;
+    border-radius:10px;font-size:0.95rem;font-weight:700;
+    box-shadow:0 8px 32px rgba(0,0,0,0.3);
+    transform:translate(-50%,-50%) scale(0.9);opacity:0;transition:all 0.3s ease;
+    pointer-events:none;max-width:90vw;text-align:center;
 "></div>
 
 <script>
@@ -917,11 +917,11 @@ function mostrarToast(msg, tipo) {
     var t = document.getElementById('cpToast');
     t.textContent = msg;
     t.style.background = tipo === 'err' ? '#dc3545' : '#1a9059';
-    t.style.transform  = 'translateY(0)';
+    t.style.transform  = 'translate(-50%,-50%) scale(1)';
     t.style.opacity    = '1';
     clearTimeout(t._tmr);
     t._tmr = setTimeout(function() {
-        t.style.transform = 'translateY(80px)';
+        t.style.transform = 'translate(-50%,-50%) scale(0.9)';
         t.style.opacity   = '0';
     }, 3500);
 }
