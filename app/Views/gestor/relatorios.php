@@ -565,13 +565,13 @@ function tabelaCampanhas(array $lista) {
             <div class="kpi-card kpi-total">
                 <div class="kpi-icon">🏢</div>
                 <div class="kpi-body">
-                    <div class="kpi-value"><?= count($clientes['clientes']) ?></div>
+                    <div class="kpi-value" id="cliKpiTotal"><?= count($clientes['clientes']) ?></div>
                     <div class="kpi-label">Clientes</div>
                 </div>
             </div>
         </div>
 
-        <div class="section-title">📋 Todos os Clientes (<?= count($clientes['clientes']) ?>)</div>
+        <div class="section-title">📋 Todos os Clientes (<span id="cliContagemTitulo"><?= count($clientes['clientes']) ?></span>)</div>
         <?php if (empty($clientes['clientes'])): ?>
             <div class="empty-state"><div class="empty-state-icon">🏢</div><p>Nenhum cliente encontrado.</p></div>
         <?php else: ?>
@@ -603,11 +603,7 @@ function tabelaCampanhas(array $lista) {
                                 "cnpj" => $cl["cnpj"],
                                 "email" => $cl["email"],
                             ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;margin-right:0.5rem;">✏️</button>
-                            <form method="POST" action="/gestor/clientes/excluir" style="display:inline;" onsubmit="return confirm('Excluir este cliente? Essa ação não pode ser desfeita.');">
-                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-                                <input type="hidden" name="id" value="<?= (int)$cl['id'] ?>">
-                                <button type="submit" title="Excluir" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;">🗑️</button>
-                            </form>
+                            <button type="button" title="Excluir" onclick="abrirExclusaoCliente(<?= (int)$cl['id'] ?>, <?= json_encode($cl['razao_social'], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;">🗑️</button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -762,6 +758,24 @@ function tabelaCampanhas(array $lista) {
         <div class="cp-modal-actions">
             <button class="cp-btn-cancelar" onclick="fecharEdicaoCliente()">Cancelar</button>
             <button class="cp-btn-salvar" id="cliEdicaoSalvarBtn" onclick="salvarEdicaoCliente()">💾 Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal de confirmação de exclusão de cliente ── -->
+<div class="cp-modal-overlay" id="cliExclusaoOverlay">
+    <div class="cp-modal" style="width:400px;">
+        <div class="cp-modal-title">🗑️ Excluir Cliente</div>
+        <div class="cp-modal-sub" style="margin-bottom:0;">
+            Tem certeza que deseja excluir <strong id="cliExclusaoNome"></strong>?
+            Essa ação não pode ser desfeita.
+        </div>
+
+        <input type="hidden" id="cliExclusaoId">
+
+        <div class="cp-modal-actions">
+            <button class="cp-btn-cancelar" onclick="fecharExclusaoCliente()">Cancelar</button>
+            <button class="cp-btn-salvar" id="cliExclusaoConfirmarBtn" onclick="confirmarExclusaoCliente()" style="background:#dc3545;">🗑️ Excluir</button>
         </div>
     </div>
 </div>
@@ -1087,6 +1101,57 @@ function salvarEdicaoCliente() {
             btn.disabled = false;
             erroEl.textContent = 'Erro de conexão ao salvar.';
             erroEl.style.display = 'block';
+        });
+}
+
+// ── Confirmação de exclusão de cliente ──
+function abrirExclusaoCliente(id, razaoSocial) {
+    document.getElementById('cliExclusaoId').value = id;
+    document.getElementById('cliExclusaoNome').textContent = razaoSocial;
+    document.getElementById('cliExclusaoOverlay').classList.add('aberto');
+}
+
+function fecharExclusaoCliente() {
+    document.getElementById('cliExclusaoOverlay').classList.remove('aberto');
+}
+
+document.getElementById('cliExclusaoOverlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharExclusaoCliente();
+});
+
+function confirmarExclusaoCliente() {
+    var id = document.getElementById('cliExclusaoId').value;
+    var btn = document.getElementById('cliExclusaoConfirmarBtn');
+    var fd = new FormData();
+    fd.append('csrf_token', CLI_CSRF_TOKEN);
+    fd.append('id', id);
+
+    btn.disabled = true;
+    fetch('/gestor/clientes/excluir', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd,
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            btn.disabled = false;
+            fecharExclusaoCliente();
+            if (!resp.ok) {
+                mostrarToastRelatorio(resp.erro || 'Erro ao excluir.', 'err');
+                return;
+            }
+            var row = document.getElementById('cli-row-' + id);
+            if (row) row.remove();
+            ['cliKpiTotal', 'cliContagemTitulo'].forEach(function(elId) {
+                var el = document.getElementById(elId);
+                if (el) el.textContent = Math.max(0, parseInt(el.textContent, 10) - 1);
+            });
+            mostrarToastRelatorio('Cliente excluído.');
+        })
+        .catch(function() {
+            btn.disabled = false;
+            fecharExclusaoCliente();
+            mostrarToastRelatorio('Erro de conexão ao excluir.', 'err');
         });
 }
 
