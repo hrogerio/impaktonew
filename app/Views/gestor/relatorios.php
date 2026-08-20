@@ -620,6 +620,7 @@ function tabelaCampanhas(array $lista) {
     <div class="tab-content" id="tab-agencias">
 
         <div class="export-bar">
+            <a class="btn-export btn-pdf" href="/gestor/agencias">🏛️ Gerenciar Agências</a>
             <button class="btn-export btn-csv" onclick="exportCSV('tbl-agencias','resumo-agencias')">⬇ CSV</button>
         </div>
 

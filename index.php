@@ -349,6 +349,33 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/excluir_cliente.php';
         break;
 
+    // ── AGÊNCIAS ──────────────────────────────────────────────
+    case 'gestor/agencias':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/agencias.php';
+        break;
+
+    case 'gestor/agencias/novo':
+    case 'gestor/agencias/editar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/agencia_form.php';
+        break;
+
+    case 'gestor/agencias/ficha':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/agencia_ficha.php';
+        break;
+
+    case 'gestor/agencias/salvar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/salvar_agencia.php';
+        break;
+
+    case 'gestor/agencias/excluir':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/excluir_agencia.php';
+        break;
+
     // ── USUÁRIOS (admin) ─────────────────────────────────────
     case 'gestor/usuarios':
         require_role('admin');
