@@ -284,9 +284,9 @@ function tabelaCampanhas(array $lista) {
         .cli-row-editado { background:#fff8e1; box-shadow:inset 3px 0 0 var(--color-accent-primary); transition:background 0.4s ease; }
         .cli-row-editado:hover { background:#fdefc8; }
         .cli-badge-editado {
-            display:inline-block; margin-left:0.5rem; padding:1px 7px;
-            background:var(--color-accent-primary); color:#fff; border-radius:999px;
-            font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.3px;
+            display:inline-block; margin-left:0.4rem;
+            color:var(--color-text-muted); font-style:italic;
+            font-size:0.68rem; font-weight:500;
             vertical-align:middle;
         }
 
