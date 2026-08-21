@@ -34,7 +34,7 @@ body {
     box-shadow:var(--shadow-sm);
 }
 .pub-header-inner {
-    max-width:1200px; margin:0 auto; padding:0 1.5rem;
+    max-width:clamp(1200px, 88vw, 1760px); margin:0 auto; padding:0 1.5rem;
     display:flex; align-items:center; justify-content:space-between;
 }
 .pub-logo { height:34px; }
@@ -52,7 +52,7 @@ body {
     box-shadow:var(--shadow-sm);
 }
 .det-hero-inner {
-    max-width:1200px; margin:0 auto; padding:1rem 1.5rem;
+    max-width:clamp(1200px, 88vw, 1760px); margin:0 auto; padding:1rem 1.5rem;
     display:flex; align-items:center; justify-content:space-between;
     gap:1rem; flex-wrap:wrap;
 }
@@ -115,7 +115,7 @@ body {
 
 /* ── Página / Grid ─────────────────────────────────── */
 .det-page {
-    max-width:1200px; margin:0 auto;
+    max-width:clamp(1200px, 88vw, 1760px); margin:0 auto;
     padding:1.25rem 1.5rem 3rem;
 }
 .det-grid {

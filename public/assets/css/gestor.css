@@ -91,7 +91,7 @@ body {
 }
 
 .container {
-    max-width: 1400px;
+    max-width: clamp(1400px, 90vw, 1920px);
     margin: 0 auto;
     padding: 0 var(--spacing-md);
 }
@@ -172,7 +172,7 @@ a.logo,
 }
 
 .header-content {
-    max-width: 1400px;
+    max-width: clamp(1400px, 90vw, 1920px);
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
