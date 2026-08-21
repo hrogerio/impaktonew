@@ -36,7 +36,7 @@ $temCampanhaAtiva = (bool)$pdo->query("SELECT 1 FROM campanhas WHERE cliente_id 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/assets/css/gestor.css">
+    <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
     <style>
         .cf-page { max-width:800px; margin:0 auto; padding:1.5rem 1.5rem 4rem; }
         .cf-voltar { font-size:0.8rem; font-weight:700; color:var(--color-text-muted); text-decoration:none; }

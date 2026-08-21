@@ -31,7 +31,7 @@ $clientes = $controller->obterClientesAtivos();
 <head>
     <meta charset="UTF-8">
     <title>Gestão de Pontos · Impakto</title>
-    <link rel="stylesheet" href="/public/assets/css/gestor.css">
+    <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
 </head>
 <body>
 

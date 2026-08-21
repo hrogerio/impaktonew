@@ -147,7 +147,7 @@ function tabelaCampanhas(array $lista) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/assets/css/gestor.css">
+    <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
     <link rel="stylesheet" href="/public/assets/css/relatorios.css">
     <style>
         .docs-status { display:inline-block; padding:2px 8px; border-radius:8px; font-size:0.68rem; font-weight:700; white-space:nowrap; }

@@ -49,7 +49,7 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/assets/css/gestor.css">
+    <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
     <link rel="stylesheet" href="/public/assets/css/pre-selecao.css">
 </head>
 <body>

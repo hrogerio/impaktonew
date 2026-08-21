@@ -123,9 +123,9 @@ if ($campVencida) { $sitCor = '#6c757d'; $sitLabel = 'Vencido'; }
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <title>Ponto <?= htmlspecialchars($numFmt) ?> — <?= htmlspecialchars($ponto['logradouro'] ?? '') ?></title>
     <?php if (!$modoPublico): ?>
-    <link rel="stylesheet" href="/public/assets/css/gestor.css">
+    <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
     <?php endif; ?>
-    <link rel="stylesheet" href="/public/assets/css/detalhes.css">
+    <link rel="stylesheet" href="/public/assets/css/detalhes.css?v=2">
 </head>
 <body class="<?= $modoPublico ? 'modo-publico' : 'modo-admin' ?>">
 

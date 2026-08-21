@@ -39,7 +39,7 @@ $candidatas = $pdo->query("
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/assets/css/gestor.css">
+    <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
     <style>
         .imp-lista { background:white; border:1px solid var(--color-border); border-radius:12px; padding:0.5rem 1.25rem; margin-bottom:1.25rem; }
         .imp-linha { display:flex; align-items:center; gap:0.75rem; padding:0.7rem 0; border-bottom:1px solid #f0f2f5; }

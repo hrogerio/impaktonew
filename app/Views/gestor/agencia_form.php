@@ -60,7 +60,7 @@ if (empty($midia)) $midia[] = ['nome' => '', 'email' => ''];
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/assets/css/gestor.css">
+    <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
     <style>
         .ag-form-linha { display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem; }
         .ag-form-linha input { flex:1; padding:0.55rem; border:1px solid var(--color-border); border-radius:8px; }
