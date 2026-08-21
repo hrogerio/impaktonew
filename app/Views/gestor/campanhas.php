@@ -47,7 +47,7 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
     <style>
-        .cp-page { max-width:clamp(1100px, 90vw, 1920px); margin:0 auto; padding:1.5rem 1.5rem 4rem; }
+        .cp-page { max-width:clamp(1400px, 90vw, 1920px); margin:0 auto; padding:1.5rem 1.5rem 4rem; }
 
         /* ── KPIs ── */
         .cp-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; margin-bottom:1.5rem; }

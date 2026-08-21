@@ -33,7 +33,7 @@ $lista = $pdo->query("
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
     <style>
-        .prop-page { max-width:clamp(960px, 90vw, 1920px); margin:0 auto; padding:1.5rem 1.5rem 3rem; }
+        .prop-page { max-width:clamp(1400px, 90vw, 1920px); margin:0 auto; padding:1.5rem 1.5rem 3rem; }
 
         .prop-titulo {
             display:flex; align-items:center; justify-content:space-between;

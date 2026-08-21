@@ -223,7 +223,7 @@ $CORES_SIT = [
             --accent-soft:#fdeae7; --accent-ink:#b3271b;
             --db-shadow: 0 1px 2px rgba(26,29,35,0.06), 0 8px 24px -12px rgba(26,29,35,0.14);
             --db-radius: 14px;
-            max-width:1280px; margin:0 auto; padding:1.75rem 1.75rem 3.5rem;
+            max-width:clamp(1400px, 90vw, 1920px); margin:0 auto; padding:1.75rem 1.5rem 3.5rem;
             display:flex; flex-direction:column; gap:1.5rem;
         }
         .db-page .num { font-variant-numeric: tabular-nums; }

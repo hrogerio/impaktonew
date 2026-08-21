@@ -25,7 +25,7 @@ try {
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
     <style>
-        .ps-page { max-width:clamp(1100px, 90vw, 1920px); margin:0 auto; padding:1.5rem 1.5rem 3rem; }
+        .ps-page { max-width:clamp(1400px, 90vw, 1920px); margin:0 auto; padding:1.5rem 1.5rem 3rem; }
 
         /* ── Header da página ── */
         .ps-titulo {

@@ -82,7 +82,7 @@ $recentes = $pdo->query(
     <link rel="stylesheet" href="/public/assets/css/pontos.css">
     <style>
         /* ── Layout: página rola inteira, sem scroll interno na lista ── */
-        .pontos-page { display:flex; flex-direction:column; padding:0.5rem 1.2rem 2rem; box-sizing:border-box; }
+        .pontos-page { display:flex; flex-direction:column; max-width:clamp(1400px, 90vw, 1920px); margin:0 auto; padding:0.5rem 1.5rem 2rem; box-sizing:border-box; }
         .pontos-left { display:flex; flex-direction:column; }
         .table-container { }
 

@@ -93,7 +93,7 @@ body {
 .container {
     max-width: clamp(1400px, 90vw, 1920px);
     margin: 0 auto;
-    padding: 0 var(--spacing-md);
+    padding: 0 1.5rem;
 }
 
 h2 {
@@ -177,7 +177,7 @@ a.logo,
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 var(--spacing-md);
+    padding: 0 1.5rem;
     gap: var(--spacing-lg);
     height: 52px;
 }
