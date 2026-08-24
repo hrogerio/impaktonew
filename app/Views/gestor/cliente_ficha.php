@@ -25,6 +25,47 @@ if (!$cliente) {
 }
 
 $temCampanhaAtiva = (bool)$pdo->query("SELECT 1 FROM campanhas WHERE cliente_id = " . (int)$id . " AND ativo = 1 LIMIT 1")->fetchColumn();
+
+// ── Histórico: todas as campanhas (ativas e encerradas) já vinculadas a este cliente ──
+$hoje = date('Y-m-d');
+$stmtHist = $pdo->prepare("
+    SELECT c.id, c.ponto_id, c.campanha, c.nome AS nome_projeto, c.situacao,
+           c.inicio, c.fim, c.ativo, c.criado_em,
+           p.numero, p.logradouro, p.cidade, p.regiao
+    FROM campanhas c
+    JOIN pontos p ON p.id = c.ponto_id AND (p.ativo = 1 OR p.ativo IS NULL)
+    WHERE c.cliente_id = ?
+    ORDER BY c.ativo DESC, COALESCE(c.inicio, c.criado_em) DESC, c.criado_em DESC
+");
+$stmtHist->execute([$id]);
+$historicoRows = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
+
+$CORES_SIT = ['Ocupado' => '#dc3545', 'Reservado' => '#fd7e14', 'Permuta' => '#51086e', 'Bisemana' => '#0284c7', 'Vencido' => '#6c757d'];
+
+$historico = [];
+foreach ($historicoRows as $r) {
+    $camp = trim($r['campanha'] ?? '') ?: '—';
+    $nomeProjeto = trim($r['nome_projeto'] ?? '');
+    $key = md5($camp . '|' . $nomeProjeto . '|' . $r['situacao'] . '|' . ($r['inicio'] ?? '') . '|' . ($r['fim'] ?? '') . '|' . $r['ativo']);
+    if (!isset($historico[$key])) {
+        $historico[$key] = [
+            'campanha'     => $camp,
+            'nome_projeto' => $nomeProjeto,
+            'titulo'       => $nomeProjeto !== '' ? $nomeProjeto : ($camp !== '—' ? $camp : 'Sem nome'),
+            'situacao'     => $r['situacao'],
+            'ativo'        => (int)$r['ativo'],
+            'inicio'       => $r['inicio'],
+            'fim'          => $r['fim'],
+            'pontos'       => [],
+        ];
+    }
+    $historico[$key]['pontos'][] = $r;
+}
+
+function cfFmtData(?string $d): ?string {
+    if (!$d || $d === '0000-00-00') return null;
+    try { return (new DateTime($d))->format('d/m/Y'); } catch (Exception $e) { return null; }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -57,6 +98,31 @@ $temCampanhaAtiva = (bool)$pdo->query("SELECT 1 FROM campanhas WHERE cliente_id 
             padding:0.9rem 1.1rem; font-size:0.82rem; color:#9a3412; font-weight:600;
             margin-bottom:1.25rem;
         }
+        .cf-secao-titulo {
+            display:flex; align-items:center; justify-content:space-between; gap:1rem;
+            font-size:0.95rem; font-weight:800; color:var(--color-text-dark);
+            margin:1.5rem 0 0.75rem;
+        }
+        .cf-secao-titulo a { font-size:0.78rem; font-weight:700; color:var(--color-accent-primary); text-decoration:none; }
+        .cf-secao-titulo a:hover { text-decoration:underline; }
+        .cf-hist-item {
+            display:flex; align-items:flex-start; gap:0.75rem;
+            padding:0.85rem 1.1rem; border-bottom:1px solid #f0f2f5;
+        }
+        .cf-hist-item:last-child { border-bottom:none; }
+        .cf-hist-dot { width:10px; height:10px; border-radius:50%; margin-top:6px; flex-shrink:0; }
+        .cf-hist-corpo { flex:1; min-width:0; }
+        .cf-hist-titulo { font-size:0.9rem; font-weight:800; color:var(--color-text-dark); }
+        .cf-hist-motivo { font-size:0.78rem; font-weight:500; color:var(--color-text-muted); margin-left:0.3rem; }
+        .cf-hist-meta { font-size:0.78rem; color:var(--color-text-muted); margin-top:0.2rem; }
+        .cf-hist-badge {
+            font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.4px;
+            padding:2px 8px; border-radius:8px; flex-shrink:0; white-space:nowrap;
+        }
+        .cf-hist-badge.ativa     { background:#dcfce7; color:#166534; }
+        .cf-hist-badge.vencida   { background:#fee2e2; color:#991b1b; }
+        .cf-hist-badge.encerrada { background:#f1f5f9; color:#475569; }
+        .cf-vazio { font-size:0.85rem; color:var(--color-text-muted); font-style:italic; padding:0.5rem 0; }
         @media(max-width:520px) { .cf-grid { grid-template-columns:1fr; } }
     </style>
 </head>
@@ -77,11 +143,6 @@ $temCampanhaAtiva = (bool)$pdo->query("SELECT 1 FROM campanhas WHERE cliente_id 
             <h1 class="cf-nome">🏢 <?= htmlspecialchars($cliente['razao_social']) ?></h1>
         </div>
         <span class="cf-status <?= $temCampanhaAtiva ? 'ativo' : 'inativo' ?>"><?= $temCampanhaAtiva ? 'Ativo' : 'Inativo' ?></span>
-    </div>
-
-    <div class="cf-aviso">
-        🚧 Ficha do cliente ainda em desenvolvimento — por enquanto mostrando só os dados básicos do cadastro.
-        Para ver as campanhas deste cliente, use o filtro na tela de <a href="/gestor/campanhas" style="color:#9a3412">Campanhas</a>.
     </div>
 
     <div class="cf-card">
@@ -117,6 +178,43 @@ $temCampanhaAtiva = (bool)$pdo->query("SELECT 1 FROM campanhas WHERE cliente_id 
             </div>
             <?php endif; ?>
         </div>
+    </div>
+
+    <div class="cf-secao-titulo">
+        <span>📋 Histórico de Campanhas (<?= count($historico) ?>)</span>
+        <a href="/gestor/campanhas?busca=<?= urlencode($cliente['razao_social']) ?>">Ver em Campanhas →</a>
+    </div>
+    <div class="cf-card" style="padding:0;">
+        <?php if (empty($historico)): ?>
+        <div class="cf-vazio" style="padding:1.25rem;">Nenhuma campanha registrada pra este cliente ainda.</div>
+        <?php else: ?>
+            <?php foreach ($historico as $h): ?>
+                <?php
+                    $isVencida = $h['ativo'] && $h['fim'] && substr($h['fim'], 0, 10) < $hoje;
+                    if (!$h['ativo'])       { $dotCor = '#6b7280'; $badgeCls = 'encerrada'; $badgeTxt = 'Encerrada'; }
+                    elseif ($isVencida)     { $dotCor = '#6c757d'; $badgeCls = 'vencida';   $badgeTxt = 'Vencida'; }
+                    else                    { $dotCor = $CORES_SIT[$h['situacao']] ?? '#888'; $badgeCls = 'ativa'; $badgeTxt = 'Ativa'; }
+                    $ini = cfFmtData($h['inicio']);
+                    $fim = cfFmtData($h['fim']);
+                    $nPontos = count($h['pontos']);
+                    $mostraMotivo = $h['nome_projeto'] !== '' && $h['campanha'] !== '—';
+                ?>
+                <div class="cf-hist-item">
+                    <span class="cf-hist-dot" style="background:<?= $dotCor ?>" title="<?= htmlspecialchars($h['situacao']) ?>"></span>
+                    <div class="cf-hist-corpo">
+                        <span class="cf-hist-titulo"><?= htmlspecialchars($h['titulo']) ?></span>
+                        <?php if ($mostraMotivo): ?>
+                        <span class="cf-hist-motivo">(<?= htmlspecialchars($h['campanha']) ?>)</span>
+                        <?php endif; ?>
+                        <div class="cf-hist-meta">
+                            <?php if ($ini || $fim): ?><?= $ini ?? '?' ?> → <?= $fim ?? '?' ?> · <?php endif; ?>
+                            📍 <?= $nPontos ?> ponto<?= $nPontos > 1 ? 's' : '' ?>
+                        </div>
+                    </div>
+                    <span class="cf-hist-badge <?= $badgeCls ?>"><?= $badgeTxt ?></span>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </div>
 
     <a href="/gestor/clientes/editar?id=<?= (int)$cliente['id'] ?>" class="cf-voltar">✏️ Editar cadastro</a>
