@@ -84,7 +84,7 @@ function cfFmtData(?string $d): ?string {
         .cf-voltar:hover { color:var(--color-accent-primary); }
         .cf-head { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:0.75rem 0 1.25rem; flex-wrap:wrap; }
         .cf-head-esq { display:flex; align-items:center; gap:1rem; }
-        .cf-logo { width:56px; height:56px; border-radius:10px; object-fit:contain; background:#f6f7fb; border:1px solid var(--color-border); flex-shrink:0; }
+        .cf-logo { width:80px; height:80px; border-radius:12px; object-fit:contain; background:#f6f7fb; border:1px solid var(--color-border); flex-shrink:0; }
         .cf-nome { font-size:1.4rem; font-weight:800; color:var(--color-text-dark); margin:0; }
         .cf-status { font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; padding:2px 9px; border-radius:8px; }
         .cf-status.ativo   { background:#dcfce7; color:#166534; }
@@ -140,7 +140,7 @@ function cfFmtData(?string $d): ?string {
             <?php if (!empty($cliente['logo'])): ?>
             <img src="/<?= htmlspecialchars($cliente['logo']) ?>" alt="" class="cf-logo">
             <?php endif; ?>
-            <h1 class="cf-nome">🏢 <?= htmlspecialchars($cliente['razao_social']) ?></h1>
+            <h1 class="cf-nome"><?= htmlspecialchars($cliente['razao_social']) ?></h1>
         </div>
         <span class="cf-status <?= $temCampanhaAtiva ? 'ativo' : 'inativo' ?>"><?= $temCampanhaAtiva ? 'Ativo' : 'Inativo' ?></span>
     </div>
