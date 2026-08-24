@@ -34,6 +34,8 @@ $clientes = $controller->obterClientesAtivos();
     <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
 </head>
 <body>
+<?php include __DIR__ . '/../../partials/env_banner.php'; ?>
+
 
 <header class="topo">
     <div class="header-container">

@@ -1,12 +1,14 @@
 <?php
 // app/Views/layouts/app.php - Layout principal
+$appEnv = getenv('APP_ENV') ?: 'production';
+$isProducao = $appEnv === 'production';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $title ?? 'Impakto' ?></title>
+    <title><?= $isProducao ? '' : '[LOCAL] ' ?><?= $title ?? 'Impakto' ?></title>
 
     <!-- CSS -->
     <link rel="stylesheet" href="/assets/css/app.css">
@@ -20,6 +22,11 @@
     <meta name="robots" content="noindex, nofollow">
 </head>
 <body>
+    <?php if (!$isProducao): ?>
+        <div style="position:sticky;top:0;z-index:9999;background:#d97706;color:#fff;text-align:center;font:700 13px/1 -apple-system,Segoe UI,sans-serif;padding:6px 8px;letter-spacing:.03em;">
+            ⚠️ AMBIENTE LOCAL (<?= htmlspecialchars($appEnv) ?>) — não é produção
+        </div>
+    <?php endif; ?>
     <?php if (isset($_SESSION['usuario'])): ?>
         <?php include __DIR__ . '/header.php'; ?>
     <?php endif; ?>

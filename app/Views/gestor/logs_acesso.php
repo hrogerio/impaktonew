@@ -58,6 +58,8 @@ $motivos = [
     <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
 </head>
 <body>
+<?php include __DIR__ . '/../partials/env_banner.php'; ?>
+
 
 <?php require __DIR__ . '/../layouts/_nav.php'; ?>
 

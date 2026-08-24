@@ -123,10 +123,11 @@ if ($banners) {
     $bannerVideo = in_array(strtolower(pathinfo($arquivo, PATHINFO_EXTENSION)), ['mp4', 'webm']);
 }
 ?>
+<?php $appEnv = getenv('APP_ENV') ?: 'production'; $isProducao = $appEnv === 'production'; ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <title>Login · Impakto</title>
+    <title><?= $isProducao ? '' : '[LOCAL] ' ?>Login · Impakto</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/public/assets/img/favicon.png" type="image/png">
@@ -136,6 +137,12 @@ if ($banners) {
     <link rel="stylesheet" href="/public/assets/css/login.css?v=<?= @filemtime(__DIR__ . '/assets/css/login.css') ?>">
 </head>
 <body>
+
+<?php if (!$isProducao): ?>
+    <div style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#d97706;color:#fff;text-align:center;font:700 13px/1 -apple-system,Segoe UI,sans-serif;padding:6px 8px;letter-spacing:.03em;">
+        ⚠️ AMBIENTE LOCAL (<?= htmlspecialchars($appEnv) ?>) — não é produção
+    </div>
+<?php endif; ?>
 
 <div class="login-left">
     <div class="login-container">

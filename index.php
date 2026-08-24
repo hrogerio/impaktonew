@@ -413,6 +413,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/logs_acesso.php';
         break;
 
+    // ── PONTOS INATIVOS ────────────────────────────────────────
+    case 'gestor/pontos-inativos':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/pontos_inativos.php';
+        break;
+
     // ── MAPA DE PONTOS ───────────────────────────────────────
     case 'gestor/mapa':
         auth_required();

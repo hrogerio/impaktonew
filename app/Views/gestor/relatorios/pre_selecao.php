@@ -53,6 +53,8 @@ $pontosJson = json_encode($pontos, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_
     <link rel="stylesheet" href="/public/assets/css/pre-selecao.css">
 </head>
 <body>
+<?php include __DIR__ . '/../../partials/env_banner.php'; ?>
+
 
 <?php require __DIR__ . '/../../layouts/_nav.php'; ?>
 

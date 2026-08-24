@@ -92,6 +92,8 @@ sort($listaAgencias);
     </style>
 </head>
 <body>
+<?php include __DIR__ . '/../partials/env_banner.php'; ?>
+
 
 <?php require __DIR__ . '/../layouts/_nav.php'; ?>
 

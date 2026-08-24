@@ -109,6 +109,8 @@ function badgeSituacao($situacao) {
     <link rel="stylesheet" href="/public/assets/css/detalhes.css">
 </head>
 <body>
+<?php include __DIR__ . '/../partials/env_banner.php'; ?>
+
 
 <div class="header">
     <div class="header-content">

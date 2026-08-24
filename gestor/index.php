@@ -464,6 +464,8 @@ $CORES_SIT = [
     </style>
 </head>
 <body>
+<?php include __DIR__ . '/../app/Views/partials/env_banner.php'; ?>
+
 
 <?php require __DIR__ . '/../app/Views/layouts/_nav.php'; ?>
 

@@ -71,6 +71,8 @@ $temCampanhaAtiva = (bool)$pdo->query("SELECT 1 FROM campanhas WHERE agencia_id 
     </style>
 </head>
 <body>
+<?php include __DIR__ . '/../partials/env_banner.php'; ?>
+
 
 <?php require __DIR__ . '/../layouts/_nav.php'; ?>
 

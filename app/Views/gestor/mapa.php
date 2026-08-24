@@ -90,6 +90,8 @@ $centroLng = count($pontos) ? array_sum(array_column($pontos, 'longitude')) / co
     </style>
 </head>
 <body>
+<?php include __DIR__ . '/../partials/env_banner.php'; ?>
+
 
 <?php require __DIR__ . '/../layouts/_nav.php'; ?>
 

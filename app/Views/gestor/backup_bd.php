@@ -140,6 +140,8 @@ if (is_dir($backupDir)) {
     <link rel="stylesheet" href="/public/assets/css/backup.css">
 </head>
 <body>
+<?php include __DIR__ . '/../partials/env_banner.php'; ?>
+
 
 <?php require __DIR__ . '/../layouts/_nav.php'; ?>
 

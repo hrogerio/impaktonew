@@ -74,7 +74,7 @@ $paginaAtual = $paginaAtual ?? '';
 
             <!-- ⚙ Dropdown Auditoria / Backup -->
             <?php
-            $paginasAdmin = ['auditoria', 'backup', 'usuarios', 'logs-acesso', 'midia-kit'];
+            $paginasAdmin = ['auditoria', 'backup', 'usuarios', 'logs-acesso', 'midia-kit', 'pontos-inativos'];
             $isAdmin = in_array($paginaAtual, $paginasAdmin);
             $souAdmin = ($_SESSION['usuario_role'] ?? 'admin') === 'admin';
             ?>
@@ -90,6 +90,9 @@ $paginaAtual = $paginaAtual ?? '';
                     </a>
                     <a href="/gestor/midia-kit" class="nav-gear-link<?= $paginaAtual === 'midia-kit' ? ' active' : '' ?>">
                         🖼️ Mídia Kit
+                    </a>
+                    <a href="/gestor/pontos-inativos" class="nav-gear-link<?= $paginaAtual === 'pontos-inativos' ? ' active' : '' ?>">
+                        ⏸ Pontos Inativos
                     </a>
                     <?php if ($souAdmin): ?>
                     <div class="nav-gear-divider"></div>

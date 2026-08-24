@@ -128,6 +128,7 @@ if ($campVencida) { $sitCor = '#6c757d'; $sitLabel = 'Vencido'; }
     <link rel="stylesheet" href="/public/assets/css/detalhes.css?v=2">
 </head>
 <body class="<?= $modoPublico ? 'modo-publico' : 'modo-admin' ?>">
+<?php include __DIR__ . '/../partials/env_banner.php'; ?>
 
 <?php if (!$modoPublico): ?>
 <?php require __DIR__ . '/../layouts/_nav.php'; ?>

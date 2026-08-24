@@ -35,6 +35,8 @@ if (!$ponto) {
     </style>
 </head>
 <body>
+<?php include __DIR__ . '/../../partials/env_banner.php'; ?>
+
 
 <div class="ponto-info">
     <h1>Ponto <?= htmlspecialchars($ponto['numero'] ?? '') ?></h1>
