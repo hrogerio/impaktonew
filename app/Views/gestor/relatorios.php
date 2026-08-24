@@ -269,10 +269,12 @@ function tabelaCampanhas(array $lista) {
         .cp-modal-divider { height:1px; background:var(--color-border); margin:1rem 0; }
         .cp-modal-actions { display:flex; gap:0.75rem; justify-content:flex-end; margin-top:1.25rem; }
 
-        .cli-modal-field { margin-bottom:0.9rem; }
+        .cli-modal-field { margin-bottom:0.75rem; }
         .cli-modal-label { display:block; font-size:0.78rem; font-weight:700; color:var(--color-text-muted); margin-bottom:0.3rem; }
         .cli-modal-input { width:100%; padding:0.55rem 0.7rem; border:1.5px solid var(--color-border); border-radius:8px; font-family:'Montserrat',sans-serif; font-size:0.88rem; box-sizing:border-box; }
         .cli-modal-input:focus { outline:none; border-color:var(--color-accent-primary); }
+        .cli-modal-logo-field { margin-bottom:1rem; padding-bottom:0.75rem; border-bottom:1px solid #f0f2f5; }
+        .cli-modal-file { font-size:0.8rem; max-width:100%; }
         .cli-modal-erro { color:#dc3545; font-size:0.8rem; margin-top:0.75rem; display:none; }
         .cp-btn-salvar {
             padding:0.55rem 1.1rem; background:var(--color-accent-primary); color:#fff;
@@ -580,11 +582,18 @@ function tabelaCampanhas(array $lista) {
         <div class="table-container">
             <table class="rel-table" id="tbl-clientes">
                 <thead>
-                    <tr><th>Razão Social</th><th>Nome Fantasia</th><th>CNPJ</th><th>E-mail</th><th>Ações</th></tr>
+                    <tr><th style="width:50px;"></th><th>Razão Social</th><th>Nome Fantasia</th><th>CNPJ</th><th>E-mail</th><th>Ações</th></tr>
                 </thead>
                 <tbody>
                     <?php foreach ($clientes['clientes'] as $cl): ?>
                     <tr id="cli-row-<?= (int)$cl['id'] ?>">
+                        <td class="cli-cel-logo">
+                            <?php if (!empty($cl['logo'])): ?>
+                            <img src="/<?= htmlspecialchars($cl['logo']) ?>" alt="" style="width:36px;height:36px;border-radius:6px;object-fit:contain;background:#f6f7fb;border:1px solid var(--color-border);">
+                            <?php else: ?>
+                            <div style="width:36px;height:36px;border-radius:6px;background:#f6f7fb;border:1px solid var(--color-border);display:flex;align-items:center;justify-content:center;font-size:0.9rem;color:var(--color-text-muted);">🏢</div>
+                            <?php endif; ?>
+                        </td>
                         <td class="cli-cel-razao">
                             <strong>
                                 <?php if (!empty($cl['id'])): ?>
@@ -604,6 +613,7 @@ function tabelaCampanhas(array $lista) {
                                 "nome_fantasia" => $cl["nome_fantasia"],
                                 "cnpj" => $cl["cnpj"],
                                 "email" => $cl["email"],
+                                "logo" => $cl["logo"],
                             ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;margin-right:0.5rem;">✏️</button>
                             <button type="button" title="Excluir" onclick='abrirExclusaoCliente(<?= (int)$cl['id'] ?>, <?= json_encode($cl['razao_social'], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)' style="background:none;border:none;cursor:pointer;font-size:1rem;padding:0;">🗑️</button>
                         </td>
@@ -750,6 +760,16 @@ function tabelaCampanhas(array $lista) {
 
         <input type="hidden" id="cliEdicaoId">
 
+        <div class="cli-modal-field cli-modal-logo-field">
+            <label class="cli-modal-label">Logomarca</label>
+            <div style="display:flex; align-items:center; gap:0.7rem;">
+                <img id="cliEdicaoLogoPreview" src="" alt="" style="width:44px;height:44px;border-radius:8px;object-fit:contain;background:#f6f7fb;border:1px solid var(--color-border);flex-shrink:0;display:none;">
+                <div style="flex:1; min-width:0;">
+                    <input type="file" id="cliEdicaoLogo" class="cli-modal-file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+                    <div style="font-size:0.68rem;color:var(--color-text-muted);margin-top:0.2rem;">PNG, JPG, WEBP ou SVG — até 2 MB.</div>
+                </div>
+            </div>
+        </div>
         <div class="cli-modal-field">
             <label class="cli-modal-label">Razão Social *</label>
             <input type="text" id="cliEdicaoRazaoSocial" class="cli-modal-input" maxlength="200">
@@ -758,13 +778,15 @@ function tabelaCampanhas(array $lista) {
             <label class="cli-modal-label">Nome Fantasia</label>
             <input type="text" id="cliEdicaoNomeFantasia" class="cli-modal-input" maxlength="200">
         </div>
-        <div class="cli-modal-field">
-            <label class="cli-modal-label">CNPJ</label>
-            <input type="text" id="cliEdicaoCnpj" class="cli-modal-input" maxlength="20" placeholder="00.000.000/0000-00">
-        </div>
-        <div class="cli-modal-field">
-            <label class="cli-modal-label">E-mail</label>
-            <input type="email" id="cliEdicaoEmail" class="cli-modal-input" maxlength="150">
+        <div class="cli-modal-field" style="display:flex; gap:0.7rem;">
+            <div style="flex:1; min-width:0;">
+                <label class="cli-modal-label">CNPJ</label>
+                <input type="text" id="cliEdicaoCnpj" class="cli-modal-input" maxlength="20" placeholder="00.000.000/0000-00">
+            </div>
+            <div style="flex:1; min-width:0;">
+                <label class="cli-modal-label">E-mail</label>
+                <input type="email" id="cliEdicaoEmail" class="cli-modal-input" maxlength="150">
+            </div>
         </div>
 
         <div class="cli-modal-erro" id="cliEdicaoErro"></div>
@@ -1064,6 +1086,14 @@ function abrirEdicaoCliente(cliente) {
     document.getElementById('cliEdicaoNomeFantasia').value = cliente.nome_fantasia || '';
     document.getElementById('cliEdicaoCnpj').value = cliente.cnpj || '';
     document.getElementById('cliEdicaoEmail').value = cliente.email || '';
+    document.getElementById('cliEdicaoLogo').value = '';
+    var preview = document.getElementById('cliEdicaoLogoPreview');
+    if (cliente.logo) {
+        preview.src = '/' + cliente.logo;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
     document.getElementById('cliEdicaoErro').style.display = 'none';
     document.getElementById('cliEdicaoOverlay').classList.add('aberto');
 }
@@ -1118,6 +1148,8 @@ function salvarEdicaoCliente() {
     fd.append('nome_fantasia', nomeFantasia);
     fd.append('cnpj', cnpj);
     fd.append('email', email);
+    var logoFile = document.getElementById('cliEdicaoLogo').files[0];
+    if (logoFile) fd.append('logo', logoFile);
 
     btn.disabled = true;
     fetch('/gestor/clientes/salvar', {
@@ -1142,6 +1174,10 @@ function salvarEdicaoCliente() {
                 row.querySelector('.cli-cel-fantasia').textContent = c.nome_fantasia || '-';
                 row.querySelector('.cli-cel-cnpj').textContent = c.cnpj || '-';
                 row.querySelector('.cli-cel-email').textContent = c.email || '-';
+                if (c.logo) {
+                    row.querySelector('.cli-cel-logo').innerHTML =
+                        '<img src="/' + c.logo + '" alt="" style="width:36px;height:36px;border-radius:6px;object-fit:contain;background:#f6f7fb;border:1px solid var(--color-border);">';
+                }
                 marcarClienteEditado(row);
             }
             fecharEdicaoCliente();

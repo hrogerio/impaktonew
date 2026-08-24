@@ -74,18 +74,68 @@ if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     erroCliente($isAjax, "E-mail inválido.", $id);
 }
 
+// ── Upload da logomarca (opcional) ──────────────────────────────────────────
+$logoPath = null;
+if (!empty($_FILES['logo']['name']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+    $file = $_FILES['logo'];
+
+    if ($file['size'] > 2 * 1024 * 1024) {
+        erroCliente($isAjax, "Logomarca muito grande (máx. 2 MB).", $id);
+    }
+
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime  = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+
+    $extMap = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+    $ext = $extMap[$mime] ?? null;
+
+    // SVG às vezes é detectado como text/plain ou text/html pelo finfo — confere
+    // a assinatura do conteúdo como fallback, mas nunca serve inline (sempre via <img>).
+    if ($ext === null) {
+        $inicio = @file_get_contents($file['tmp_name'], false, null, 0, 512);
+        if ($inicio !== false && stripos($inicio, '<svg') !== false) {
+            $ext = 'svg';
+        }
+    }
+
+    if ($ext === null) {
+        erroCliente($isAjax, "Formato de logo inválido. Use PNG, JPG, WEBP ou SVG.", $id);
+    }
+
+    $nomeArq = 'fotos/clientes/logo_' . uniqid() . '.' . $ext;
+    $destDir = __DIR__ . '/../../../../fotos/clientes/';
+    $destino = __DIR__ . '/../../../../' . $nomeArq;
+
+    if (!is_dir($destDir)) {
+        mkdir($destDir, 0755, true);
+    }
+    if (!move_uploaded_file($file['tmp_name'], $destino)) {
+        erroCliente($isAjax, "Falha ao salvar a logomarca.", $id);
+    }
+    $logoPath = $nomeArq;
+}
+
 if ($isAjax) {
     if ($id === 0) {
         erroCliente($isAjax, "Cliente inválido.", $id);
     }
-    $stmt = $pdo->prepare("SELECT id FROM clientes WHERE id = ? LIMIT 1");
+    $stmt = $pdo->prepare("SELECT logo FROM clientes WHERE id = ? LIMIT 1");
     $stmt->execute([$id]);
-    if (!$stmt->fetch()) {
+    $atual = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$atual) {
         erroCliente($isAjax, "Cliente não encontrado.", $id);
     }
 
-    $pdo->prepare("UPDATE clientes SET razao_social = ?, nome_fantasia = ?, cnpj = ?, email = ? WHERE id = ?")
-        ->execute([$razaoSocial, $nomeFantasia !== '' ? $nomeFantasia : null, $cnpj !== '' ? $cnpj : null, $email !== '' ? $email : null, $id]);
+    if ($logoPath === null) {
+        $logoPath = $atual['logo'];
+    } elseif (!empty($atual['logo'])) {
+        $antigo = __DIR__ . '/../../../../' . $atual['logo'];
+        if (file_exists($antigo)) @unlink($antigo);
+    }
+
+    $pdo->prepare("UPDATE clientes SET razao_social = ?, nome_fantasia = ?, logo = ?, cnpj = ?, email = ? WHERE id = ?")
+        ->execute([$razaoSocial, $nomeFantasia !== '' ? $nomeFantasia : null, $logoPath, $cnpj !== '' ? $cnpj : null, $email !== '' ? $email : null, $id]);
 
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
@@ -94,6 +144,7 @@ if ($isAjax) {
             'id' => $id,
             'razao_social' => $razaoSocial,
             'nome_fantasia' => $nomeFantasia !== '' ? $nomeFantasia : null,
+            'logo' => $logoPath,
             'cnpj' => $cnpj !== '' ? $cnpj : null,
             'email' => $email !== '' ? $email : null,
         ],
@@ -101,33 +152,40 @@ if ($isAjax) {
     exit;
 }
 
-$params = [
-    $razaoSocial,
-    $nomeFantasia !== '' ? $nomeFantasia : null,
-    $cnpj !== '' ? $cnpj : null,
-    $endereco !== '' ? $endereco : null,
-    $email !== '' ? $email : null,
-    $telefone !== '' ? $telefone : null,
-    $contato !== '' ? $contato : null,
-    $observacoes !== '' ? $observacoes : null,
-];
-
 if ($id === 0) {
-    $pdo->prepare("INSERT INTO clientes (razao_social, nome_fantasia, cnpj, endereco, email, telefone, contato, observacoes, ativo, criado_por)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)")
-        ->execute(array_merge($params, [$_SESSION['usuario'] ?? null]));
+    $pdo->prepare("INSERT INTO clientes (razao_social, nome_fantasia, logo, cnpj, endereco, email, telefone, contato, observacoes, ativo, criado_por)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)")
+        ->execute([
+            $razaoSocial, $nomeFantasia !== '' ? $nomeFantasia : null, $logoPath,
+            $cnpj !== '' ? $cnpj : null, $endereco !== '' ? $endereco : null, $email !== '' ? $email : null,
+            $telefone !== '' ? $telefone : null, $contato !== '' ? $contato : null, $observacoes !== '' ? $observacoes : null,
+            $_SESSION['usuario'] ?? null,
+        ]);
 
     redirecionarComMsg($voltarUrl, 'criado');
 } else {
-    $stmt = $pdo->prepare("SELECT id FROM clientes WHERE id = ? LIMIT 1");
-    $stmt->execute([$id]);
-    if (!$stmt->fetch()) {
+    $stmtChk = $pdo->prepare("SELECT logo FROM clientes WHERE id = ? LIMIT 1");
+    $stmtChk->execute([$id]);
+    $atual = $stmtChk->fetch(PDO::FETCH_ASSOC);
+    if (!$atual) {
         header("Location: /gestor/clientes");
         exit;
     }
 
-    $pdo->prepare("UPDATE clientes SET razao_social = ?, nome_fantasia = ?, cnpj = ?, endereco = ?, email = ?, telefone = ?, contato = ?, observacoes = ? WHERE id = ?")
-        ->execute(array_merge($params, [$id]));
+    if ($logoPath === null) {
+        $logoPath = $atual['logo'];
+    } elseif (!empty($atual['logo'])) {
+        $antigo = __DIR__ . '/../../../../' . $atual['logo'];
+        if (file_exists($antigo)) @unlink($antigo);
+    }
+
+    $pdo->prepare("UPDATE clientes SET razao_social = ?, nome_fantasia = ?, logo = ?, cnpj = ?, endereco = ?, email = ?, telefone = ?, contato = ?, observacoes = ? WHERE id = ?")
+        ->execute([
+            $razaoSocial, $nomeFantasia !== '' ? $nomeFantasia : null, $logoPath,
+            $cnpj !== '' ? $cnpj : null, $endereco !== '' ? $endereco : null, $email !== '' ? $email : null,
+            $telefone !== '' ? $telefone : null, $contato !== '' ? $contato : null, $observacoes !== '' ? $observacoes : null,
+            $id,
+        ]);
 
     redirecionarComMsg($voltarUrl, 'atualizado');
 }

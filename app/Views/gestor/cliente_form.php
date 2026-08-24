@@ -28,7 +28,7 @@ $referer = $_SERVER['HTTP_REFERER'] ?? '';
 $refPath = parse_url($referer, PHP_URL_PATH) ?: '';
 $voltarUrl = str_starts_with($refPath, '/gestor/') ? $referer : '/gestor/clientes';
 
-$dados = ['id' => 0, 'razao_social' => '', 'nome_fantasia' => '', 'cnpj' => '', 'endereco' => '', 'email' => '', 'telefone' => '', 'contato' => '', 'observacoes' => ''];
+$dados = ['id' => 0, 'razao_social' => '', 'nome_fantasia' => '', 'logo' => '', 'cnpj' => '', 'endereco' => '', 'email' => '', 'telefone' => '', 'contato' => '', 'observacoes' => ''];
 if ($editando) {
     $stmt = $pdo->prepare("SELECT * FROM clientes WHERE id = ? LIMIT 1");
     $stmt->execute([$id]);
@@ -51,6 +51,9 @@ if ($editando) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
+    <style>
+        .cl-logo-preview { width:80px; height:80px; border-radius:10px; object-fit:contain; background:#f6f7fb; border:1px solid var(--color-border); margin-bottom:0.6rem; display:block; }
+    </style>
 </head>
 <body>
 <?php include __DIR__ . '/../partials/env_banner.php'; ?>
@@ -68,10 +71,19 @@ if ($editando) {
         <div class="alerta alerta-err">❌ <?= htmlspecialchars($_GET['erro']) ?></div>
     <?php endif; ?>
 
-    <form method="POST" action="/gestor/clientes/salvar" class="table-container" style="padding:1.5rem;">
+    <form method="POST" action="/gestor/clientes/salvar" enctype="multipart/form-data" class="table-container" style="padding:1.5rem;">
         <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
         <input type="hidden" name="id" value="<?= (int)$dados['id'] ?>">
         <input type="hidden" name="voltar" value="<?= htmlspecialchars($voltarUrl) ?>">
+
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label>Logomarca</label><br>
+            <?php if (!empty($dados['logo'])): ?>
+            <img src="/<?= htmlspecialchars($dados['logo']) ?>" class="cl-logo-preview" alt="Logo atual">
+            <?php endif; ?>
+            <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+            <div style="font-size:0.75rem; color:var(--color-text-muted); margin-top:0.3rem;">PNG, JPG, WEBP ou SVG — até 2 MB.</div>
+        </div>
 
         <div class="form-group" style="margin-bottom:1rem;">
             <label>Razão Social *</label><br>

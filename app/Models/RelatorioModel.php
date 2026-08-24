@@ -199,6 +199,7 @@ class RelatorioModel {
                 cl.id,
                 cl.razao_social AS razao_social,
                 cl.nome_fantasia AS nome_fantasia,
+                cl.logo AS logo,
                 cl.cnpj AS cnpj,
                 cl.email AS email
             FROM clientes cl
