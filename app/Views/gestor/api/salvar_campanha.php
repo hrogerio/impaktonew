@@ -30,15 +30,11 @@ $cliente    = trim($body['cliente']    ?? '');
 $agencia    = trim($body['agencia']    ?? '');
 $campanha   = trim($body['campanha']   ?? '');
 $nome       = trim($body['nome']       ?? '');
-$situacao   = trim($body['situacao']   ?? 'Ocupado');
 $inicio     = trim($body['inicio']     ?? '');
 $fim        = trim($body['fim']        ?? '');
 $contato    = trim($body['contato']    ?? '');
 $obs        = trim($body['observacoes'] ?? '');
 $usuario    = $_SESSION['usuario'] ?? '';
-
-$situacoesValidas = ['Ocupado','Reservado','Permuta','Bisemana','Vencido'];
-if (!in_array($situacao, $situacoesValidas)) $situacao = 'Ocupado';
 
 if (!$pontoId) responderSalvar(['erro'=>'ponto_id invalido']);
 
@@ -76,6 +72,9 @@ try {
         $so = $pdo->prepare("SELECT cliente, agencia, campanha, situacao, inicio, fim, ativo FROM campanhas WHERE id=? AND ponto_id=? LIMIT 1");
         $so->execute([$campanhaId, $pontoId]);
         $antiga = $so->fetch(PDO::FETCH_ASSOC);
+        // Situação não é mais escolhida no form — preserva a que já estava
+        // gravada (pode ser Reservado/Permuta/Bisemana definida por outro fluxo).
+        $situacao = $antiga['situacao'] ?? 'Ocupado';
 
         $stmt = $pdo->prepare("
             UPDATE campanhas
@@ -110,6 +109,10 @@ try {
             ]);
         }
     } else {
+        // Situação não é mais escolhida no form — toda campanha nova entra
+        // como Ocupado; Vencido é calculado na exibição a partir da data fim.
+        $situacao = 'Ocupado';
+
         // ── NOVA campanha: encerra a atual (se houver) ─────
         $pdo->prepare("
             UPDATE campanhas

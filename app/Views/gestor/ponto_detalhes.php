@@ -249,15 +249,14 @@ if ($campVencida) { $sitCor = '#6c757d'; $sitLabel = 'Vencido'; }
 
             <?php if ($campAtiva): ?>
             <div class="det-fields" id="campInfoView">
-                <div class="det-field">
-                    <span class="det-lbl">Situação</span>
-                    <span class="det-val"><span class="sit-badge" id="campSitBadge" style="background:<?= $sitCor ?>"><?= htmlspecialchars($sitLabel) ?></span></span>
-                </div>
-                <?php if ($campAtiva['cliente']): ?>
-                <div class="det-field"><span class="det-lbl">Cliente</span><span class="det-val" id="campCliente"><?= htmlspecialchars($campAtiva['cliente']) ?></span></div>
+                <?php if ($campAtiva['nome']): ?>
+                <div class="det-field"><span class="det-lbl">Campanha</span><span class="det-val"><?= htmlspecialchars($campAtiva['nome']) ?></span></div>
                 <?php endif; ?>
                 <?php if ($campAtiva['campanha']): ?>
-                <div class="det-field"><span class="det-lbl">Campanha</span><span class="det-val"><?= htmlspecialchars($campAtiva['campanha']) ?></span></div>
+                <div class="det-field"><span class="det-lbl">Motivo</span><span class="det-val"><?= htmlspecialchars($campAtiva['campanha']) ?></span></div>
+                <?php endif; ?>
+                <?php if ($campAtiva['cliente']): ?>
+                <div class="det-field"><span class="det-lbl">Cliente</span><span class="det-val" id="campCliente"><?= htmlspecialchars($campAtiva['cliente']) ?></span></div>
                 <?php endif; ?>
                 <?php if ($campAtiva['agencia']): ?>
                 <div class="det-field"><span class="det-lbl">Agência</span><span class="det-val"><?= htmlspecialchars($campAtiva['agencia']) ?></span></div>
@@ -298,29 +297,27 @@ if ($campVencida) { $sitCor = '#6c757d'; $sitLabel = 'Vencido'; }
                     <input type="hidden" id="fCampId" value="<?= (int)($campAtiva['id'] ?? 0) ?>">
                     <div class="camp-form-grid">
                         <div class="camp-fg">
-                            <label class="camp-lbl">Situação</label>
-                            <select id="fSituacao" class="camp-input">
-                                <?php foreach(['Ocupado','Reservado','Permuta','Bisemana','Vencido'] as $s): ?>
-                                <option value="<?= $s ?>" <?= ($campAtiva['situacao'] ?? 'Ocupado') === $s ? 'selected' : '' ?>><?= $s ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                            <label class="camp-lbl">Campanha</label>
+                            <input type="text" id="fNome" class="camp-input"
+                                   value="<?= htmlspecialchars($campAtiva['nome'] ?? '') ?>"
+                                   placeholder="Nome do projeto/campanha">
+                        </div>
+                        <div class="camp-fg">
+                            <label class="camp-lbl">Motivo</label>
+                            <input type="text" id="fCampanha" class="camp-input"
+                                   value="<?= htmlspecialchars($campAtiva['campanha'] ?? 'Institucional') ?>"
+                                   placeholder="Institucional, Dia das Mães...">
                         </div>
                         <div class="camp-fg">
                             <label class="camp-lbl">Cliente</label>
                             <input type="text" id="fCliente" class="camp-input"
                                    value="<?= htmlspecialchars($campAtiva['cliente'] ?? '') ?>"
-                                   list="dl-clientes" autocomplete="off" placeholder="Nome do cliente">
+                                   list="dl-clientes" autocomplete="off" placeholder="Nome do cliente (opcional)">
                             <datalist id="dl-clientes">
                                 <?php foreach ($listaClientes as $c): ?>
                                 <option value="<?= htmlspecialchars($c) ?>">
                                 <?php endforeach; ?>
                             </datalist>
-                        </div>
-                        <div class="camp-fg">
-                            <label class="camp-lbl">Campanha</label>
-                            <input type="text" id="fCampanha" class="camp-input"
-                                   value="<?= htmlspecialchars($campAtiva['campanha'] ?? '') ?>"
-                                   placeholder="Institucional, Dia das Mães...">
                         </div>
                         <div class="camp-fg">
                             <label class="camp-lbl">Agência</label>
@@ -537,14 +534,14 @@ function abrirFormCamp(campId) {
     // Limpa form se nova campanha
     if (!campId) {
         document.getElementById('fCampId').value = '0';
+        document.getElementById('fNome').value      = '';
         document.getElementById('fCliente').value  = '';
-        document.getElementById('fCampanha').value = '';
+        document.getElementById('fCampanha').value = 'Institucional';
         document.getElementById('fAgencia').value  = '';
         document.getElementById('fInicio').value   = '';
         document.getElementById('fFim').value      = '';
         document.getElementById('fContato').value  = '';
         document.getElementById('fObs').value      = '';
-        document.getElementById('fSituacao').value = 'Ocupado';
     } else {
         document.getElementById('fCampId').value = campId;
     }
@@ -559,10 +556,10 @@ function salvarCampanha() {
     var payload = {
         ponto_id:    PONTO_ID,
         campanha_id: campId,
+        nome:        document.getElementById('fNome').value.trim(),
         cliente:     document.getElementById('fCliente').value.trim(),
         campanha:    document.getElementById('fCampanha').value.trim(),
         agencia:     document.getElementById('fAgencia').value.trim(),
-        situacao:    document.getElementById('fSituacao').value,
         inicio:      document.getElementById('fInicio').value,
         fim:         document.getElementById('fFim').value,
         contato:     document.getElementById('fContato').value.trim(),
