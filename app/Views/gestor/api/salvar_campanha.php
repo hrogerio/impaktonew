@@ -54,6 +54,22 @@ function resolverClienteId(PDO $pdo, string $cliente): ?int {
 }
 $clienteId = resolverClienteId($pdo, $cliente);
 
+// Mesma lógica pro cadastro de agências: casa por nome (case-insensitive) ou
+// cria um cadastro mínimo, senão a campanha nunca linka com a ficha da agência.
+function resolverAgenciaId(PDO $pdo, string $agencia): ?int {
+    if ($agencia === '' || strtolower($agencia) === 'direto') return null;
+
+    $busca = $pdo->prepare("SELECT id FROM agencias WHERE LOWER(TRIM(nome)) = LOWER(TRIM(?)) LIMIT 1");
+    $busca->execute([$agencia]);
+    $existente = $busca->fetchColumn();
+    if ($existente) return (int)$existente;
+
+    $pdo->prepare("INSERT INTO agencias (nome, ativo, criado_por) VALUES (?, 1, 'auto-campanha')")
+        ->execute([$agencia]);
+    return (int)$pdo->lastInsertId();
+}
+$agenciaId = resolverAgenciaId($pdo, $agencia);
+
 // Verifica se ponto existe
 $sp = $pdo->prepare("SELECT id, situacao FROM pontos WHERE id = ? AND (ativo=1 OR ativo IS NULL) LIMIT 1");
 $sp->execute([$pontoId]);
@@ -78,12 +94,12 @@ try {
 
         $stmt = $pdo->prepare("
             UPDATE campanhas
-            SET cliente=?, cliente_id=?, agencia=?, campanha=?, nome=?, situacao=?,
+            SET cliente=?, cliente_id=?, agencia=?, agencia_id=?, campanha=?, nome=?, situacao=?,
                 inicio=?, fim=?, contato=?, observacoes=?
             WHERE id=? AND ponto_id=?
         ");
         $stmt->execute([
-            $cliente ?: null, $clienteId, $agencia ?: null, $campanha ?: null, $nome ?: null, $situacao,
+            $cliente ?: null, $clienteId, $agencia ?: null, $agenciaId, $campanha ?: null, $nome ?: null, $situacao,
             $inicio ?: null,  $fim ?: null,     $contato ?: null,  $obs ?: null,
             $campanhaId, $pontoId
         ]);
@@ -122,12 +138,12 @@ try {
 
         // Cria nova campanha
         $stmt = $pdo->prepare("
-            INSERT INTO campanhas (ponto_id, cliente, cliente_id, agencia, campanha, nome, situacao, inicio, fim, contato, observacoes, ativo, criado_por)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+            INSERT INTO campanhas (ponto_id, cliente, cliente_id, agencia, agencia_id, campanha, nome, situacao, inicio, fim, contato, observacoes, ativo, criado_por)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
         ");
         $stmt->execute([
             $pontoId,
-            $cliente ?: null, $clienteId, $agencia ?: null, $campanha ?: null, $nome ?: null,
+            $cliente ?: null, $clienteId, $agencia ?: null, $agenciaId, $campanha ?: null, $nome ?: null,
             $situacao,
             $inicio ?: null, $fim ?: null,
             $contato ?: null, $obs ?: null,

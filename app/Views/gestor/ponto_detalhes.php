@@ -71,8 +71,23 @@ try {
 $listaClientes = $listaAgencias = [];
 if (!$modoPublico) {
     try {
-        $listaClientes = $pdo->query("SELECT DISTINCT cliente FROM campanhas WHERE cliente IS NOT NULL AND cliente != '' ORDER BY cliente")->fetchAll(PDO::FETCH_COLUMN);
-        $listaAgencias = $pdo->query("SELECT DISTINCT agencia FROM campanhas WHERE agencia IS NOT NULL AND agencia != '' ORDER BY agencia")->fetchAll(PDO::FETCH_COLUMN);
+        // Inclui o cadastro de clientes/agências (não só o texto livre já usado em
+        // campanhas), senão um cliente/agência recém-cadastrado não aparece pra
+        // seleção e a campanha nova acaba não linkando com o cadastro existente.
+        $listaClientes = $pdo->query("
+            SELECT nome FROM (
+                SELECT razao_social AS nome FROM clientes WHERE ativo = 1
+                UNION
+                SELECT cliente AS nome FROM campanhas WHERE cliente IS NOT NULL AND cliente != ''
+            ) t ORDER BY nome
+        ")->fetchAll(PDO::FETCH_COLUMN);
+        $listaAgencias = $pdo->query("
+            SELECT nome FROM (
+                SELECT nome FROM agencias WHERE ativo = 1
+                UNION
+                SELECT agencia AS nome FROM campanhas WHERE agencia IS NOT NULL AND agencia != ''
+            ) t ORDER BY nome
+        ")->fetchAll(PDO::FETCH_COLUMN);
     } catch (PDOException $e) {}
 }
 
