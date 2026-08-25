@@ -449,6 +449,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/encerrar_campanha.php';
         break;
 
+    // ── CAMPANHAS: DEVOLVER PRA RESERVAS (POST) ──────────
+    case 'gestor/campanhas/devolver-reserva':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/campanha_devolver_reserva.php';
+        break;
+
     // ── CAMPANHAS: CHECKING (interface de upload) ────────
     case 'gestor/campanhas/checking':
         auth_required();

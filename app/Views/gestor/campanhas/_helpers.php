@@ -55,7 +55,7 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
         FROM campanhas c
         JOIN pontos p ON p.id = c.ponto_id AND (p.ativo = 1 OR p.ativo IS NULL)
         LEFT JOIN clientes cl ON cl.id = c.cliente_id
-        WHERE c.situacao != 'Reservado'
+        WHERE 1=1
     ";
     if ($situacaoFiltro === 'Encerradas') {
         $sql .= " AND c.ativo = 0";
@@ -63,6 +63,8 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
         // CAST pra CHAR evita que o MySQL tente interpretar o literal '0000-00-00'
         // como DATE em modo estrito (erro 1525 "Incorrect DATE value" em producao).
         $sql .= " AND c.ativo = 1 AND c.fim IS NOT NULL AND CAST(c.fim AS CHAR) <> '0000-00-00' AND c.fim < :hoje";
+    } elseif ($situacaoFiltro === 'Reservadas') {
+        $sql .= " AND c.ativo = 1 AND c.situacao = 'Reservado'";
     } else {
         $sql .= " AND c.ativo = 1";
     }
@@ -140,11 +142,15 @@ function campanhaBuscaStr(array $g): string {
     );
 }
 
-/** Cor do status da campanha: Ativa = verde, Vencida = laranja, Encerrada = vermelho */
-function corStatusCampanha(bool $ativo, bool $vencida): string {
-    if (!$ativo)  return '#dc2626';
-    if ($vencida) return '#ea580c';
-    return '#16a34a';
+/**
+ * Status de exibição da campanha (cor/rótulo/classe CSS), regra única do sistema:
+ * Ativa = verde, Reservada = amarelo, Vencida = vermelho, Encerrada = cinza.
+ */
+function statusCampanha(string $situacao, bool $ativo, bool $vencida): array {
+    if (!$ativo)                   return ['cor' => '#6b7280', 'label' => 'Encerrada', 'cls' => 'encerrada'];
+    if ($situacao === 'Reservado') return ['cor' => '#eab308', 'label' => 'Reservada', 'cls' => 'reservada'];
+    if ($vencida)                  return ['cor' => '#dc2626', 'label' => 'Vencida',   'cls' => 'vencida'];
+    return ['cor' => '#16a34a', 'label' => 'Ativa', 'cls' => 'ativa'];
 }
 
 /** Renderiza o HTML de um card de campanha */
@@ -158,7 +164,8 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
     $campIds  = array_column($g['rows'], 'id');
     $pontoIds = array_column($g['rows'], 'ponto_id');
     $isVencida = $g['ativo'] && $g['fim'] && substr($g['fim'], 0, 10) < $hoje;
-    $statusCor = corStatusCampanha((bool)$g['ativo'], (bool)$isVencida);
+    $status    = statusCampanha($g['situacao'], (bool)$g['ativo'], (bool)$isVencida);
+    $statusCor = $status['cor'];
     $dataCard = htmlspecialchars(json_encode([
         'campIds'      => $campIds,
         'pontoIds'     => $pontoIds,
@@ -181,7 +188,7 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
 
     ob_start();
     ?>
-    <div class="cp-card <?= !$g['ativo'] ? 'encerrada' : ($isVencida ? 'vencida' : '') ?>"
+    <div class="cp-card <?= $status['cls'] !== 'ativa' ? $status['cls'] : '' ?>"
          data-key="<?= htmlspecialchars(implode('_', $campIds)) ?>"
          data-busca="<?= htmlspecialchars($buscaStr) ?>"
          data-situacao="<?= htmlspecialchars($g['situacao']) ?>"
@@ -195,7 +202,7 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
         <div class="cp-card-head">
             <div class="cp-card-top">
                 <span class="sit-dot" style="background:<?= $statusCor ?>"
-                      title="<?= !$g['ativo'] ? 'Encerrada' : ($isVencida ? 'Vencida' : htmlspecialchars($g['situacao'])) ?>"></span>
+                      title="<?= htmlspecialchars($status['label']) ?>"></span>
                 <?php
                     $mostraMotivo = $g['nome_projeto'] !== '' && $g['nome'] !== '—';
                     $clienteExibicao = clienteParaExibicao($g['cliente_cadastro'], $g['cliente'], $g['nome_projeto'] ?: null);
@@ -233,13 +240,7 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
                     $cls = $dias <= 7 ? 'prazo-urg' : 'prazo-ale'; ?>
                 <span class="<?= $cls ?>"><?= $dias ?>d</span>
                 <?php endif; ?>
-                <?php if (!$g['ativo']): ?>
-                <span class="status-encerrada">Encerrada</span>
-                <?php elseif ($isVencida): ?>
-                <span class="status-vencida">Vencida</span>
-                <?php else: ?>
-                <span class="status-ativa">Ativa</span>
-                <?php endif; ?>
+                <span class="status-<?= $status['cls'] ?>"><?= htmlspecialchars($status['label']) ?></span>
             </div>
         </div>
 
@@ -294,6 +295,11 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
                 <button class="cp-btn cp-btn-renovar"
                         onclick="abrirRenovacao(this.closest('.cp-card'))"
                         title="Renovar contrato com novas datas">🔄 Renovar</button>
+                <?php endif; ?>
+                <?php if ($status['cls'] !== 'reservada'): ?>
+                <button class="cp-btn cp-btn-reserva"
+                        onclick="devolverReserva(this.closest('.cp-card'), this)"
+                        title="Devolver pra Reservas (aguardando período/P.I.)">↩️ Pra Reservas</button>
                 <?php endif; ?>
                 <button class="cp-btn cp-btn-encerrar"
                         onclick="encerrarGrupo(this.closest('.cp-card'), this)"

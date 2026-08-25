@@ -24,7 +24,7 @@ try {
     $cliente  = strtolower(trim($_GET['cliente'] ?? ''));
     $campanhaFiltro = strtolower(trim($_GET['campanha'] ?? ''));
     $situacao = trim($_GET['situacao'] ?? '');
-    if (!in_array($situacao, ['', 'Encerradas', 'Vencidas'], true)) $situacao = '';
+    if (!in_array($situacao, ['', 'Encerradas', 'Vencidas', 'Reservadas'], true)) $situacao = '';
 
     $hoje   = date('Y-m-d');
     $grupos = campanhasBuscarGrupos($pdo, $situacao);

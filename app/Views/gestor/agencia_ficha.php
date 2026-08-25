@@ -71,8 +71,6 @@ $stmtHist = $pdo->prepare("
 $stmtHist->execute([$id]);
 $historicoRows = $stmtHist->fetchAll(PDO::FETCH_ASSOC);
 
-$CORES_SIT = ['Ocupado' => '#dc3545', 'Reservado' => '#fd7e14', 'Permuta' => '#51086e', 'Bisemana' => '#0284c7', 'Vencido' => '#6c757d'];
-
 $historico = [];
 foreach ($historicoRows as $r) {
     $camp = trim($r['campanha'] ?? '') ?: '—';
@@ -167,6 +165,7 @@ function afFmtData(?string $d): ?string {
             padding:2px 8px; border-radius:8px; flex-shrink:0; white-space:nowrap;
         }
         .cf-hist-badge.ativa     { background:#dcfce7; color:#166534; }
+        .cf-hist-badge.reservada { background:#fef3c7; color:#92400e; }
         .cf-hist-badge.vencida   { background:#fee2e2; color:#991b1b; }
         .cf-hist-badge.encerrada { background:#f1f5f9; color:#475569; }
         @media(max-width:520px) { .cf-grid { grid-template-columns:1fr; } }
@@ -273,9 +272,10 @@ function afFmtData(?string $d): ?string {
             <?php foreach ($historico as $h): ?>
                 <?php
                     $isVencida = $h['ativo'] && $h['fim'] && substr($h['fim'], 0, 10) < $hoje;
-                    if (!$h['ativo'])       { $dotCor = '#6b7280'; $badgeCls = 'encerrada'; $badgeTxt = 'Encerrada'; }
-                    elseif ($isVencida)     { $dotCor = '#6c757d'; $badgeCls = 'vencida';   $badgeTxt = 'Vencida'; }
-                    else                    { $dotCor = $CORES_SIT[$h['situacao']] ?? '#888'; $badgeCls = 'ativa'; $badgeTxt = 'Ativa'; }
+                    if (!$h['ativo'])                     { $dotCor = '#6b7280'; $badgeCls = 'encerrada'; $badgeTxt = 'Encerrada'; }
+                    elseif ($h['situacao'] === 'Reservado') { $dotCor = '#eab308'; $badgeCls = 'reservada'; $badgeTxt = 'Reservada'; }
+                    elseif ($isVencida)                   { $dotCor = '#dc2626'; $badgeCls = 'vencida';   $badgeTxt = 'Vencida'; }
+                    else                                   { $dotCor = '#16a34a'; $badgeCls = 'ativa'; $badgeTxt = 'Ativa'; }
                     $ini = afFmtData($h['inicio']);
                     $fim = afFmtData($h['fim']);
                     $nPontos = count($h['pontos']);

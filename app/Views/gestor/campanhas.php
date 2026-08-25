@@ -18,10 +18,11 @@ $gruposAtivos     = campanhasBuscarGrupos($pdo, '');
 $gruposEncerrados = campanhasBuscarGrupos($pdo, 'Encerradas');
 
 $totalAtivas = count($gruposAtivos);
-$totalEncerradas = count($gruposEncerrados);
 $totalVencidos = 0;
+$totalReservadas = 0;
 foreach ($gruposAtivos as $g) {
     if ($g['fim'] && substr($g['fim'], 0, 10) < $hoje) $totalVencidos++;
+    if ($g['situacao'] === 'Reservado') $totalReservadas++;
 }
 
 $listaCampanhas = [];
@@ -58,7 +59,7 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
         .cp-kpi-label { font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; color:var(--color-text-muted); }
         .cp-kpi-val   { font-size:1.7rem; font-weight:800; color:var(--color-text-dark); line-height:1; }
         .cp-kpi-val.verde   { color:#1a9059; }
-        .cp-kpi-val.laranja { color:#fd7e14; }
+        .cp-kpi-val.amarelo { color:#eab308; }
         .cp-kpi-val.vermelho { color:#dc2626; }
         .cp-kpi-val.azul    { color:#0284c7; }
 
@@ -119,12 +120,15 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
             transition: box-shadow 0.15s;
         }
         .cp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-        .cp-card.encerrada { background:#fef2f2; border-color:#fecaca; }
-        .cp-card.encerrada .cp-card-footer { background:#fee2e2; }
-        .cp-card.encerrada .cp-acordeon-toggle:hover { background:#fee2e2; }
-        .cp-card.vencida   { background:#fff7ed; border-color:#fed7aa; box-shadow: 0 0 0 2px #ffedd5; }
-        .cp-card.vencida .cp-card-footer { background:#ffedd5; }
-        .cp-card.vencida .cp-acordeon-toggle:hover { background:#ffedd5; }
+        .cp-card.encerrada { background:#f8fafc; border-color:#e2e8f0; }
+        .cp-card.encerrada .cp-card-footer { background:#f1f5f9; }
+        .cp-card.encerrada .cp-acordeon-toggle:hover { background:#f1f5f9; }
+        .cp-card.vencida   { background:#fef2f2; border-color:#fecaca; box-shadow: 0 0 0 2px #fee2e2; }
+        .cp-card.vencida .cp-card-footer { background:#fee2e2; }
+        .cp-card.vencida .cp-acordeon-toggle:hover { background:#fee2e2; }
+        .cp-card.reservada { background:#fffbeb; border-color:#fde68a; box-shadow: 0 0 0 2px #fef3c7; }
+        .cp-card.reservada .cp-card-footer { background:#fef3c7; }
+        .cp-card.reservada .cp-acordeon-toggle:hover { background:#fef3c7; }
 
         /* Faixa colorida topo */
         .cp-card-faixa {
@@ -178,8 +182,9 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
         .prazo-urg { background:#fee2e2; color:#991b1b; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
         .prazo-ale { background:#ffedd5; color:#9a3412; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
         .status-ativa    { background:#dcfce7; color:#166534; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
-        .status-vencida  { background:#ffedd5; color:#9a3412; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
-        .status-encerrada{ background:#fee2e2; color:#991b1b; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
+        .status-reservada{ background:#fef3c7; color:#92400e; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
+        .status-vencida  { background:#fee2e2; color:#991b1b; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
+        .status-encerrada{ background:#f1f5f9; color:#475569; font-size:0.62rem; font-weight:800; padding:1px 7px; border-radius:8px; }
 
         /* Lista de painéis (acordeão) */
         .cp-card-paineis { flex:1; }
@@ -238,6 +243,8 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
         .cp-btn-renovar:hover  { background:#dcfce7; }
         .cp-btn-encerrar { background:#fff1f0; color:#c0392b; border:1px solid #fca5a5; }
         .cp-btn-encerrar:hover { background:#fee2e2; }
+        .cp-btn-reserva { background:#fff7ed; color:#c2410c; border:1px solid #fdba74; }
+        .cp-btn-reserva:hover { background:#ffedd5; }
         .cp-btn-checking { background:#fdf4ff; color:#7e22ce; border:1px solid #d8b4fe; text-decoration:none; }
         .cp-btn-checking:hover { background:#f3e8ff; }
         .cp-btn-espelho { background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; text-decoration:none; }
@@ -360,12 +367,12 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
             <div class="cp-kpi-val verde"><?= $totalAtivas ?></div>
         </div>
         <div class="cp-kpi">
-            <div class="cp-kpi-label">Vencidas</div>
-            <div class="cp-kpi-val <?= $totalVencidos > 0 ? 'laranja' : '' ?>"><?= $totalVencidos ?></div>
+            <div class="cp-kpi-label">Reservadas</div>
+            <div class="cp-kpi-val <?= $totalReservadas > 0 ? 'amarelo' : '' ?>"><?= $totalReservadas ?></div>
         </div>
         <div class="cp-kpi">
-            <div class="cp-kpi-label">Encerradas</div>
-            <div class="cp-kpi-val <?= $totalEncerradas > 0 ? 'vermelho' : '' ?>"><?= $totalEncerradas ?></div>
+            <div class="cp-kpi-label">Vencidas</div>
+            <div class="cp-kpi-val <?= $totalVencidos > 0 ? 'vermelho' : '' ?>"><?= $totalVencidos ?></div>
         </div>
     </div>
 
@@ -382,6 +389,9 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
             <?php endforeach; ?>
         </select>
         <div class="cp-radio-group" id="cpFiltroSitGroup">
+            <label class="cp-radio-opt">
+                <input type="radio" name="cpSit" value="Reservadas"> Reservadas
+            </label>
             <label class="cp-radio-opt">
                 <input type="radio" name="cpSit" value="Vencidas"> Vencidas
             </label>
@@ -915,6 +925,36 @@ function encerrarGrupo(card, btn) {
     }).catch(function() {
         btn.disabled = false;
         btn.textContent = '🔒 Encerrar';
+        mostrarToast('❌ Erro de comunicação', 'err');
+    });
+}
+
+// ── Devolver campanha pra Reservas (aguardando período/P.I.) ──
+function devolverReserva(card, btn) {
+    var dados = JSON.parse(card.dataset.campanha || '{}');
+    var nomes = dados.pontoIds.length;
+    var cli   = dados.cliente;
+    if (!confirm('Devolver a campanha de ' + cli + ' (' + nomes + ' ponto' + (nomes > 1 ? 's' : '') + ') pra Reservas?\n\nOs pontos continuam reservados pro cliente, mas a campanha some desta tela até a reserva ser aprovada novamente (período/P.I. definidos).')) return;
+
+    btn.disabled = true;
+    btn.textContent = '⏳';
+
+    fetch('/gestor/campanhas/devolver-reserva', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campIds: dados.campIds, pontoIds: dados.pontoIds })
+    }).then(function(r) { return r.json(); }).then(function(res) {
+        if (res.erro) {
+            btn.disabled = false;
+            btn.textContent = '↩️ Pra Reservas';
+            mostrarToast('❌ Erro ao devolver: ' + res.erro, 'err');
+            return;
+        }
+        card.remove();
+        mostrarToast('✅ Campanha de ' + cli + ' devolvida pra Reservas!', 'ok');
+    }).catch(function() {
+        btn.disabled = false;
+        btn.textContent = '↩️ Pra Reservas';
         mostrarToast('❌ Erro de comunicação', 'err');
     });
 }
