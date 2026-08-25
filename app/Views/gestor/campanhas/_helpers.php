@@ -48,7 +48,7 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
 
     $sql = "
         SELECT
-            c.id, c.ponto_id, c.cliente, c.cliente_id, c.agencia, c.campanha, c.nome AS nome_projeto,
+            c.id, c.ponto_id, c.cliente, c.cliente_id, c.agencia, c.agencia_id, c.campanha, c.nome AS nome_projeto,
             c.situacao, c.inicio, c.fim, c.ativo, c.encerrado_em, c.criado_em,
             p.numero, p.logradouro, p.cidade, p.regiao,
             cl.razao_social AS cliente_cadastro
@@ -106,6 +106,7 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
                 'cliente_id'       => $r['cliente_id'] ? (int)$r['cliente_id'] : null,
                 'cliente_cadastro' => $r['cliente_cadastro'] ? trim($r['cliente_cadastro']) : null,
                 'agencia'          => trim($r['agencia'] ?? ''),
+                'agencia_id'       => $r['agencia_id'] ? (int)$r['agencia_id'] : null,
                 'nome'             => $camp,
                 'nome_projeto'     => $nomeProjeto,
                 'titulo'           => $titulo,
@@ -211,7 +212,17 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
                 <?= htmlspecialchars($clienteExibicao) ?>
                 <?php endif; ?>
             </div>
-            <?php if ($g['agencia']): ?><div class="cp-card-agencia">Agência: <?= htmlspecialchars($g['agencia']) ?></div><?php endif; ?>
+            <?php if ($g['agencia'] && strtolower($g['agencia']) === 'direto'): ?>
+            <div class="cp-card-agencia"><span class="cp-card-direto">Direto</span></div>
+            <?php elseif ($g['agencia']): ?>
+            <div class="cp-card-agencia">Agência:
+                <?php if ($g['agencia_id']): ?>
+                <a href="/gestor/agencias/ficha?id=<?= (int)$g['agencia_id'] ?>" class="cp-card-cliente-link" title="Ver ficha da agência"><?= htmlspecialchars($g['agencia']) ?></a>
+                <?php else: ?>
+                <?= htmlspecialchars($g['agencia']) ?>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
             <div class="cp-card-meta">
                 <?php if ($ini || $fim): ?>
                 <span class="cp-card-periodo">
