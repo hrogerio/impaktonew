@@ -62,7 +62,7 @@ $stmt = $pdo->prepare("
     FROM pontos p
     WHERE p.id IN ($ph)
       AND (p.exclusivo = 0 OR p.exclusivo IS NULL OR p.liberado_comercializacao = 1)
-    ORDER BY p.cidade ASC, p.numero ASC
+    ORDER BY COALESCE(NULLIF(TRIM(p.regiao),''), 'ZZZ') ASC, p.numero ASC
 ");
 $stmt->execute($pontoIds);
 $pontos = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -249,55 +249,62 @@ $pdf->SetXY($RX + 5, $y + 8);
 $pdf->Cell($RW - 6, 4, s('Emitida em ' . date('d/m/Y') . '  ·  Expira em ' . $vencimento), 0, 1, 'L');
 $y += $boxH + 4;
 
-// ── Lista de pontos (2 colunas) ───────────────────────────────────────────────
+// ── Lista agrupada por região ─────────────────────────────────────────────────
 $y += 2;
-$altPonto    = 9.0;
-$yMax        = $PH - 10;
+$altGrupo = 7.5;   // altura do cabeçalho de região
+$altPonto = 8.5;   // altura por linha de ponto
+$yMax     = $PH - 10;
+
+// Agrupar pontos por região (mantendo a ordem do SQL)
+$grupos = []; $ordemReg = [];
+foreach ($pontos as $p) {
+    $reg = trim($p['regiao'] ?? '') ?: 'Sem região';
+    if (!isset($grupos[$reg])) { $grupos[$reg] = []; $ordemReg[] = $reg; }
+    $grupos[$reg][] = $p;
+}
+
+$restantes = 0;
 
 if ($y < $yMax - 15) {
-    $pdf->SetFont(FONT_MAIN, 'B', 8.5);
-    $pdf->SetTextColor(...$MUTED);
-    $pdf->SetXY($RX, $y);
-    $pdf->Cell($RW, 6, 'Pontos', 0, 1, 'L');
-    $y += 7;
+    foreach ($ordemReg as $reg) {
+        if ($y + $altGrupo > $yMax) { $restantes += count($grupos[$reg]); continue; }
 
-    $espacoDisp   = $yMax - $y;
-    $maxPorColuna = max(1, (int)floor($espacoDisp / $altPonto));
-    $numCols      = ($nPontos > $maxPorColuna) ? 2 : 1;
-    $largCol      = $RW / $numCols;
-    $maxTotal     = $numCols * $maxPorColuna;
+        // Cabeçalho da região
+        $nReg = count($grupos[$reg]);
+        $pdf->SetFillColor(245, 245, 248);
+        $pdf->Rect($RX, $y, $RW, $altGrupo - 1, 'F');
+        $pdf->SetFillColor(...$VERM);
+        $pdf->Rect($RX, $y, 2, $altGrupo - 1, 'F');
+        $pdf->SetFont(FONT_MAIN, 'B', 7.5);
+        $pdf->SetTextColor(...$MUTED);
+        $pdf->SetXY($RX + 4, $y + 1.5);
+        $pdf->Cell($RW - 4, 5, s(mb_strtoupper($reg) . '   ' . $nReg . ' ponto' . ($nReg > 1 ? 's' : '')), 0, 1, 'L');
+        $y += $altGrupo;
 
-    $pontosExibidos = array_slice($pontos, 0, $maxTotal);
-    $restantes      = count($pontos) - count($pontosExibidos);
-    $yCol = [$y, $y];
+        foreach ($grupos[$reg] as $p) {
+            if ($y + $altPonto > $yMax) { $restantes++; continue; }
 
-    foreach ($pontosExibidos as $i => $p) {
-        $colAtual = ($numCols === 2 && $i >= $maxPorColuna) ? 1 : 0;
-        $xCol     = $RX + $colAtual * $largCol;
-        $yAtual   = $yCol[$colAtual];
-        if ($yAtual > $yMax) break;
+            // Número
+            $pdf->SetFont(FONT_MAIN, 'B', 9);
+            $pdf->SetTextColor(...$VERM);
+            $pdf->SetXY($RX + 4, $y);
+            $pdf->Cell(16, 5, '#' . str_pad($p['numero'], 3, '0', STR_PAD_LEFT), 0, 0, 'L');
 
-        $pdf->SetFont(FONT_MAIN, 'B', 9.5);
-        $pdf->SetTextColor(...$VERM);
-        $pdf->SetXY($xCol, $yAtual);
-        $pdf->Cell(18, 5, '#' . str_pad($p['numero'], 3, '0', STR_PAD_LEFT), 0, 0, 'L');
-
-        $pdf->SetFont(FONT_MAIN, '', 9.5);
-        $pdf->SetTextColor(...$PRETO);
-        $pdf->SetXY($xCol + 18, $yAtual);
-        $enderecoStr = implode(' - ', array_filter([$p['logradouro'] ?? '', $p['cidade'] ?? '']));
-        $pdf->Cell($largCol - 20, 5, s($enderecoStr), 0, 1, 'L');
-        $yCol[$colAtual] += $altPonto;
+            // Logradouro - Cidade
+            $pdf->SetFont(FONT_MAIN, '', 9);
+            $pdf->SetTextColor(...$PRETO);
+            $pdf->SetXY($RX + 20, $y);
+            $enderecoStr = implode(' - ', array_filter([$p['logradouro'] ?? '', $p['cidade'] ?? '']));
+            $pdf->Cell($RW - 22, 5, s($enderecoStr), 0, 1, 'L');
+            $y += $altPonto;
+        }
     }
 
-    if ($restantes > 0) {
-        $yFim = max($yCol[0], isset($yCol[1]) ? $yCol[1] : 0) + 1;
-        if ($yFim <= $yMax) {
-            $pdf->SetFont(FONT_MAIN, 'I', 8.5);
-            $pdf->SetTextColor(...$MUTED);
-            $pdf->SetXY($RX, $yFim);
-            $pdf->Cell($RW, 5, s("... e mais {$restantes} " . ($restantes === 1 ? 'ponto' : 'pontos')), 0, 1, 'L');
-        }
+    if ($restantes > 0 && $y <= $yMax) {
+        $pdf->SetFont(FONT_MAIN, 'I', 8.5);
+        $pdf->SetTextColor(...$MUTED);
+        $pdf->SetXY($RX, $y);
+        $pdf->Cell($RW, 5, s("... e mais {$restantes} " . ($restantes === 1 ? 'ponto' : 'pontos')), 0, 1, 'L');
     }
 }
 
@@ -387,6 +394,14 @@ foreach ($pontos as $ponto) {
     $pdf->SetTextColor(...$PRETO);
     $pdf->SetXY(33, $FY + 23);
     $pdf->Cell(108, 5, s($loc), 0, 0, 'L');
+
+    // Região
+    if (!empty($ponto['regiao'])) {
+        $pdf->SetFont(FONT_MAIN, '', 9);
+        $pdf->SetTextColor(...$MUTED);
+        $pdf->SetXY(33, $FY + 29);
+        $pdf->Cell(108, 4, s($ponto['regiao']), 0, 0, 'L');
+    }
 
     // ── Botão Google Maps ─────────────────────────────────────────────────────
     if (!empty($ponto['latitude']) && !empty($ponto['longitude'])) {
