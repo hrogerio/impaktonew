@@ -309,13 +309,76 @@ if ($y < $yMax - 15) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PÁGINAS DE FOTOS — uma por ponto
+// PÁGINAS DE FOTOS — agrupadas por região, com lâmina separadora
 // ─────────────────────────────────────────────────────────────────────────────
 $FH     = 35;
 $FOTO_H = $PH - $FH;
 
-foreach ($pontos as $ponto) {
+// Agrupar pontos por região (mantendo ordem do SQL)
+$gruposFotos  = [];
+$ordemRegFotos = [];
+foreach ($pontos as $p) {
+    $reg = trim($p['regiao'] ?? '') ?: 'Sem região';
+    if (!isset($gruposFotos[$reg])) { $gruposFotos[$reg] = []; $ordemRegFotos[] = $reg; }
+    $gruposFotos[$reg][] = $p;
+}
+
+foreach ($ordemRegFotos as $regNome) {
+    $pontosDoGrupo = $gruposFotos[$regNome];
+    $nGrupo        = count($pontosDoGrupo);
+
+    // ── Lâmina separadora de região ──────────────────────────────────────────
     $pdf->AddPage();
+
+    // Painel esquerdo vermelho
+    $pdf->SetFillColor(...$VERM);
+    $pdf->Rect(0, 0, $LW, $PH, 'F');
+
+    // Logo branca
+    if (file_exists($logoPath)) $pdf->Image($logoPath, 8, 10, 62);
+
+    // Linha branca
+    $pdf->SetDrawColor(...$BRANCO);
+    $pdf->SetLineWidth(0.4);
+    $pdf->Line(10, 42, $LW - 10, 42);
+
+    // Contador de pontos da região
+    $pdf->SetFont(FONT_MAIN, 'B', 48);
+    $pdf->SetTextColor(...$BRANCO);
+    $pdf->SetXY(0, 94);
+    $pdf->Cell($LW, 20, (string)$nGrupo, 0, 1, 'C');
+    $pdf->SetFont(FONT_MAIN, '', 10);
+    $pdf->SetTextColor(255, 200, 200);
+    $pdf->SetXY(0, 116);
+    $pdf->Cell($LW, 6, s($nGrupo === 1 ? 'ponto' : 'pontos'), 0, 1, 'C');
+
+    // Painel direito branco
+    $pdf->SetFillColor(...$BRANCO);
+    $pdf->Rect($LW, 0, $PW - $LW, $PH, 'F');
+
+    // Label "REGIÃO"
+    $pdf->SetFont(FONT_MAIN, 'B', 11);
+    $pdf->SetTextColor(...$MUTED);
+    $pdf->SetXY($RX, $PH / 2 - 28);
+    $pdf->Cell($RW, 8, s('REGIÃO'), 0, 1, 'L');
+
+    // Linha vermelha
+    $pdf->SetFillColor(...$VERM);
+    $pdf->Rect($RX, $PH / 2 - 18, 55, 1.2, 'F');
+
+    // Nome da região em destaque
+    $pdf->SetFont(FONT_MAIN, 'B', 34);
+    $pdf->SetTextColor(...$PRETO);
+    $pdf->SetXY($RX, $PH / 2 - 14);
+    $pdf->MultiCell($RW, 16, s($regNome), 0, 'L');
+
+    // Logo rodapé
+    $logoRodape = __DIR__ . '/../../../../public/assets/img/logo.png';
+    if (file_exists($logoRodape)) $pdf->Image($logoRodape, $PW - 38, $PH - 22, 30);
+
+    // ── Páginas de foto de cada ponto do grupo ───────────────────────────────
+    foreach ($pontosDoGrupo as $ponto) {
+        $pdf->AddPage();
 
     $fotoCaminho = $ponto['foto_caminho'] ?? '';
     $imgPath = $fotoCaminho ? __DIR__ . '/../../../../' . ltrim($fotoCaminho, '/') : '';
@@ -445,7 +508,8 @@ foreach ($pontos as $ponto) {
     if (file_exists($logoRodape)) {
         $pdf->Image($logoRodape, $PW - 35, $FY + 10, 30);
     }
-}
+    } // fim foreach ponto
+} // fim foreach região
 
 // ── Download ──────────────────────────────────────────────────────────────────
 ob_end_clean();
