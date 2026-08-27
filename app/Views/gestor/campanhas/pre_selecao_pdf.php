@@ -112,7 +112,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
-$pdf->SetCreator('Impakto Midia OOH');
+$pdf->SetCreator('Impakto Mídia OOH');
 $pdf->SetTitle(s('Pre-Selecao - ' . $cliente));
 
 // Fontes

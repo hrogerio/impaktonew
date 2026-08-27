@@ -60,7 +60,7 @@ if (file_exists($tfpdfPath)) {
     require_once $fpdfPath;
     define('USE_TFPDF', false);
 } else {
-    ob_end_clean(); die('Biblioteca PDF nao encontrada.');
+    ob_end_clean(); die('Biblioteca PDF não encontrada.');
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
-$pdf->SetCreator('Impakto Midia OOH');
+$pdf->SetCreator('Impakto Mídia OOH');
 $pdf->SetTitle(s('Espelho de Colagem - ' . $cliente));
 
 // Fontes
@@ -177,8 +177,8 @@ $yApos = $pdf->GetY() + 4;
 // Campos de informação
 $campos = [
     ['Campanha:', $campanha ?: '-'],
-    ['Agencia:',  $agencia  ?: '-'],
-    ['Periodo:',  dataFmt($inicio) . ' a ' . dataFmt($fim)],
+    ['Agência:',  $agencia  ?: '-'],
+    ['Período:',  dataFmt($inicio) . ' a ' . dataFmt($fim)],
     ['Pontos:',   (string)$nPontos],
 ];
 $y = max($yApos, 70);
@@ -401,7 +401,7 @@ foreach ($chunks as $pagPontos) {
     $pdf->SetFont(FONT_MAIN, '', 6.5);
     $pdf->SetTextColor(...$MUTED);
     $pdf->SetXY(0, $PH - 5);
-    $pdf->Cell($PW, 4, s('Impakto Midia OOH · ' . date('d/m/Y')), 0, 0, 'C');
+    $pdf->Cell($PW, 4, s('Impakto Mídia OOH · ' . date('d/m/Y')), 0, 0, 'C');
 }
 
 // ── Download ──────────────────────────────────────────────────────────────────

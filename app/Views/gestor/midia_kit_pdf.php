@@ -36,7 +36,7 @@ if (file_exists($tfpdfPath)) {
     require_once $fpdfPath;
     define('USE_TFPDF', false);
 } else {
-    ob_end_clean(); die('Biblioteca PDF nao encontrada.');
+    ob_end_clean(); die('Biblioteca PDF não encontrada.');
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -60,8 +60,8 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
-$pdf->SetCreator('Impakto Midia OOH');
-$pdf->SetTitle(s('Midia Kit Institucional - Impakto'));
+$pdf->SetCreator('Impakto Mídia OOH');
+$pdf->SetTitle(s('Mídia Kit Institucional - Impakto'));
 
 if (defined('USE_TFPDF') && USE_TFPDF) {
     $fontDir = __DIR__ . '/../../../lib/fpdf/font/unifont/';

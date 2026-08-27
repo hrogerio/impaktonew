@@ -40,7 +40,7 @@ if (file_exists($tfpdfPath)) {
     require_once $fpdfPath;
     define('USE_TFPDF', false);
 } else {
-    ob_end_clean(); die('Biblioteca PDF nao encontrada.');
+    ob_end_clean(); die('Biblioteca PDF não encontrada.');
 }
 
 function s($str) {
@@ -74,8 +74,8 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(12, 14, 12);
 $pdf->SetAutoPageBreak(true, 16);
-$pdf->SetCreator('Impakto Midia OOH');
-$pdf->SetTitle(s('Relatorio Mensal - Impakto'));
+$pdf->SetCreator('Impakto Mídia OOH');
+$pdf->SetTitle(s('Relatório Mensal - Impakto'));
 
 if (defined('USE_TFPDF') && USE_TFPDF) {
     $fontDir = __DIR__ . '/../../../lib/fpdf/font/unifont/';
@@ -102,7 +102,7 @@ function cabecalho($pdf, $CW, $MX, $VERM, $MUTED) {
 
     $pdf->SetFont(FONT_MAIN, '', 8.5);
     $pdf->SetTextColor(...$MUTED);
-    $pdf->Cell($CW, 8, s('Relatorio gerado em ' . date('d/m/Y H:i')), 0, 1, 'R');
+    $pdf->Cell($CW, 8, s('Relatório gerado em ' . date('d/m/Y H:i')), 0, 1, 'R');
 
     $pdf->SetDrawColor(...$VERM);
     $pdf->SetLineWidth(0.5);
@@ -199,7 +199,7 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
 /** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos) */
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED) {
     tabela($pdf,
-        ['Cliente', 'Campanha', 'Agencia', 'Contato', 'Inicio', 'Fim', 'Duracao (dias)', 'Pontos'],
+        ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração (dias)', 'Pontos'],
         [28, 24, 26, 22, 18, 18, 26, 12],
         array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), $c['duracao_dias'], $c['qtd_pontos']], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
@@ -212,26 +212,26 @@ cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
 // ── Capa curta ──────────────────────────────────────────────────────────
 $pdf->SetFont(FONT_MAIN, 'B', 22);
 $pdf->SetTextColor(...$PRETO);
-$pdf->Cell($CW, 12, s('Relatorio Mensal'), 0, 1, 'L');
+$pdf->Cell($CW, 12, s('Relatório Mensal'), 0, 1, 'L');
 $pdf->SetFont(FONT_MAIN, '', 10.5);
 $pdf->SetTextColor(...$MUTED);
-$pdf->Cell($CW, 7, s('Ocupacao, Contratos, Clientes e Historico de Pontos'), 0, 1, 'L');
+$pdf->Cell($CW, 7, s('Ocupação, Contratos, Clientes e Histórico de Pontos'), 0, 1, 'L');
 $pdf->Ln(4);
 
 // ============================================================
 // 1) OCUPAÇÃO
 // ============================================================
 $oc = $dados['ocupacao'];
-tituloSecao($pdf, 'Ocupacao por Regiao / Cidade', $CW, $MX, $VERM, $PRETO, $MUTED);
+tituloSecao($pdf, 'Ocupação por Região / Cidade', $CW, $MX, $VERM, $PRETO, $MUTED);
 kpis($pdf, [
     ['Total de Pontos', number_format($oc['totais']['geral'])],
     ['Ocupados (' . pctPdf($oc['totais']['ocupados'], $oc['totais']['geral']) . '%)', number_format($oc['totais']['ocupados'])],
     ['Disponiveis (' . pctPdf($oc['totais']['disponiveis'], $oc['totais']['geral']) . '%)', number_format($oc['totais']['disponiveis'])],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
-subtitulo($pdf, 'Por Regiao', $CW, $MUTED);
+subtitulo($pdf, 'Por Região', $CW, $MUTED);
 tabela($pdf,
-    ['Regiao', 'Total', 'Ocup.', 'Disp.', 'Res.', 'Venc.', '% Ocup.'],
+    ['Região', 'Total', 'Ocup.', 'Disp.', 'Res.', 'Venc.', '% Ocup.'],
     [50, 22, 22, 22, 22, 22, 24],
     array_map(fn($r) => [$r['regiao'], $r['total'], $r['ocupados'], $r['disponiveis'], $r['reservados'], $r['vencidos'], pctPdf($r['ocupados'], $r['total']) . '%'], $oc['ocupacao_regiao']),
     $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
@@ -243,12 +243,12 @@ tabela($pdf,
 $ct = $dados['contratos'];
 tituloSecao($pdf, 'Contratos e Tempo de Contrato', $CW, $MX, $VERM, $PRETO, $MUTED);
 kpis($pdf, [
-    ['Duracao Media Geral', round($ct['duracao_agregada']['media_geral_dias'] / 30, 1) . ' meses'],
+    ['Duração Média Geral', round($ct['duracao_agregada']['media_geral_dias'] / 30, 1) . ' meses'],
     ['Contratos Ativos', count($ct['campanhas_ativas'])],
-    ['Ja Vencidos', count($ct['vencidos_agrupado'])],
+    ['Já Vencidos', count($ct['vencidos_agrupado'])],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
-subtitulo($pdf, 'Historico Anual - Contratos Ativos por Mes', $CW, $MUTED);
+subtitulo($pdf, 'Histórico Anual - Contratos Ativos por Mês', $CW, $MUTED);
 tabela($pdf,
     ['Mes', 'Contratos Ativos'],
     [80, 40],
@@ -266,7 +266,7 @@ foreach ($ct['vencendo_agrupado'] as $mes => $campanhas) {
 
 subtitulo($pdf, 'Contratos Vencidos (todos)', $CW, $MUTED);
 tabela($pdf,
-    ['No', 'Cidade', 'Cliente', 'Agencia', 'Venceu em', 'Dias Vencido'],
+    ['Nº', 'Cidade', 'Cliente', 'Agência', 'Venceu em', 'Dias Vencido'],
     [14, 32, 42, 34, 28, 16],
     array_map(fn($c) => [$c['numero'], $c['cidade'], $c['cliente'] ?: '-', $c['agencia'] ?: '-', fmtDataPdf($c['fim_contrato']), $c['dias_vencido']], $ct['vencidos']),
     $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
@@ -276,23 +276,23 @@ tabela($pdf,
 // 3) CLIENTES & AGÊNCIAS
 // ============================================================
 $cl = $dados['clientes'];
-tituloSecao($pdf, 'Clientes e Agencias', $CW, $MX, $VERM, $PRETO, $MUTED);
+tituloSecao($pdf, 'Clientes e Agências', $CW, $MX, $VERM, $PRETO, $MUTED);
 kpis($pdf, [
     ['Clientes', count($cl['clientes'])],
-    ['Agencias', count($cl['agencias'])],
+    ['Agências', count($cl['agencias'])],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
 subtitulo($pdf, 'Todos os Clientes', $CW, $MUTED);
 tabela($pdf,
-    ['Razao Social', 'Nome Fantasia', 'CNPJ', 'E-mail'],
+    ['Razão Social', 'Nome Fantasia', 'CNPJ', 'E-mail'],
     [50, 50, 35, 46],
     array_map(fn($c) => [$c['razao_social'], $c['nome_fantasia'] ?: '-', $c['cnpj'] ?: '-', $c['email'] ?: '-'], $cl['clientes']),
     $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
 );
 
-subtitulo($pdf, 'Resumo por Agencia', $CW, $MUTED);
+subtitulo($pdf, 'Resumo por Agência', $CW, $MUTED);
 tabela($pdf,
-    ['Agencia', 'Clientes', 'Total de Pontos'],
+    ['Agência', 'Clientes', 'Total de Pontos'],
     [90, 40, 40],
     array_map(fn($a) => [$a['agencia'], $a['total_clientes'], $a['total_pontos']], $cl['agencias']),
     $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
@@ -302,23 +302,23 @@ tabela($pdf,
 // 4) HISTÓRICO / AUDITORIA
 // ============================================================
 $hi = $dados['historico'];
-tituloSecao($pdf, 'Historico e Auditoria de Pontos', $CW, $MX, $VERM, $PRETO, $MUTED);
+tituloSecao($pdf, 'Histórico e Auditoria de Pontos', $CW, $MX, $VERM, $PRETO, $MUTED);
 kpis($pdf, [
-    ['Mudancas em ' . $hi['periodo_label'], number_format($hi['total_mudancas'])],
+    ['Mudanças em ' . $hi['periodo_label'], number_format($hi['total_mudancas'])],
     ['Pontos com Mais Giro', count($hi['rotatividade'])],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
-subtitulo($pdf, 'Rotatividade - Pontos com Mais Mudancas de Situacao', $CW, $MUTED);
+subtitulo($pdf, 'Rotatividade - Pontos com Mais Mudanças de Situação', $CW, $MUTED);
 tabela($pdf,
-    ['No', 'Cidade', 'Logradouro', 'Mudancas'],
+    ['Nº', 'Cidade', 'Logradouro', 'Mudanças'],
     [16, 34, 90, 26],
     array_map(fn($r) => [$r['numero'], $r['cidade'], $r['logradouro'], $r['total_mudancas']], $hi['rotatividade']),
     $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
 );
 
-subtitulo($pdf, 'Linha do Tempo - Ultimas Alteracoes', $CW, $MUTED);
+subtitulo($pdf, 'Linha do Tempo - Últimas Alterações', $CW, $MUTED);
 tabela($pdf,
-    ['Data/Hora', 'No', 'Campo', 'De', 'Para'],
+    ['Data/Hora', 'Nº', 'Campo', 'De', 'Para'],
     [30, 16, 28, 44, 44],
     array_map(fn($h) => [(new DateTime($h['alterado_em']))->format('d/m/Y H:i'), $h['numero'], $h['campo'], $h['valor_antes'] ?: '-', $h['valor_depois'] ?: '-'], $hi['timeline']),
     $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED

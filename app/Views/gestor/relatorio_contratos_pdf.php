@@ -38,7 +38,7 @@ if (file_exists($tfpdfPath)) {
     require_once $fpdfPath;
     define('USE_TFPDF', false);
 } else {
-    ob_end_clean(); die('Biblioteca PDF nao encontrada.');
+    ob_end_clean(); die('Biblioteca PDF não encontrada.');
 }
 
 function s($str) {
@@ -74,8 +74,8 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(12, 14, 12);
 $pdf->SetAutoPageBreak(true, 16);
-$pdf->SetCreator('Impakto Midia OOH');
-$pdf->SetTitle(s('Relatorio de Contratos - Impakto'));
+$pdf->SetCreator('Impakto Mídia OOH');
+$pdf->SetTitle(s('Relatório de Contratos - Impakto'));
 
 if (defined('USE_TFPDF') && USE_TFPDF) {
     $fontDir = __DIR__ . '/../../../lib/fpdf/font/unifont/';
@@ -108,7 +108,7 @@ function cabecalho($pdf, $CW, $MX, $VERM, $MUTED) {
     $pdf->SetFont(FONT_MAIN, '', 8.5);
     $pdf->SetTextColor(...$MUTED);
     $pdf->SetXY($MX, 10);
-    $pdf->Cell($CW, 8, s('Relatorio gerado em ' . date('d/m/Y H:i')), 0, 1, 'R');
+    $pdf->Cell($CW, 8, s('Relatório gerado em ' . date('d/m/Y H:i')), 0, 1, 'R');
 
     $pdf->SetDrawColor(...$VERM);
     $pdf->SetLineWidth(0.5);
@@ -252,7 +252,7 @@ function contarSemDocumentosPdf(array $lista, array $documentosPorGrupo): int {
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, array $documentosPorGrupo = [], bool $destaqueTodas = false) {
     $destaque = $destaqueTodas ? true : array_values(array_map(fn($c) => docsLabelPdf($c, $documentosPorGrupo) === 'Sem doc', $lista));
     tabela($pdf,
-        ['Cliente', 'Campanha', 'Agencia', 'Contato', 'Inicio', 'Fim', 'Duracao', 'Pontos', 'Docs'],
+        ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração', 'Pontos', 'Docs'],
         [26, 22, 24, 18, 16, 16, 18, 12, 20],
         array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos'], docsLabelPdf($c, $documentosPorGrupo)], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $destaque
@@ -301,7 +301,7 @@ cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
 // ── Capa curta ──────────────────────────────────────────────────────────
 $pdf->SetFont(FONT_MAIN, 'B', 22);
 $pdf->SetTextColor(...$PRETO);
-$pdf->Cell($CW, 12, s('Relatorio de Contratos'), 0, 1, 'L');
+$pdf->Cell($CW, 12, s('Relatório de Contratos'), 0, 1, 'L');
 $pdf->SetFont(FONT_MAIN, '', 10.5);
 $pdf->SetTextColor(...$MUTED);
 $pdf->Cell($CW, 7, s('Contratos Ativos, Vencidos e a Vencer'), 0, 1, 'L');
@@ -313,7 +313,7 @@ $pdf->Ln(4);
 tituloSecao($pdf, 'Contratos e Tempo de Contrato', $CW, $MX, $VERM, $PRETO, $MUTED);
 kpis($pdf, [
     ['Contratos Ativos', count($ct['campanhas_ativas'])],
-    ['Ja Vencidos', count($ct['vencidos_agrupado'])],
+    ['Já Vencidos', count($ct['vencidos_agrupado'])],
     ['Sem Documentos', contarSemDocumentosPdf($ct['campanhas_ativas'], $documentosPorGrupo)],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
@@ -328,7 +328,7 @@ foreach ($ct['vencendo_agrupado'] as $mes => $campanhas) {
 subtitulo($pdf, 'Contratos Vencidos (todos)', $CW, $MUTED);
 tabelaCampanhasPdf($pdf, $ct['vencidos_agrupado'], $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $documentosPorGrupo, true);
 
-subtitulo($pdf, 'Historico Anual - Contratos Ativos por Mes', $CW, $MUTED);
+subtitulo($pdf, 'Histórico Anual - Contratos Ativos por Mês', $CW, $MUTED);
 graficoBarras($pdf, $ct['ativos_por_mes'], $CW, $MX, $VERM, $PRETO, $MUTED);
 
 ob_end_clean();

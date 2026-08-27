@@ -37,7 +37,7 @@ if (file_exists($tfpdfPath)) {
     require_once $fpdfPath;
     define('USE_TFPDF', false);
 } else {
-    ob_end_clean(); die('Biblioteca PDF nao encontrada.');
+    ob_end_clean(); die('Biblioteca PDF não encontrada.');
 }
 
 function s($str) {
@@ -57,8 +57,8 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(12, 14, 12);
 $pdf->SetAutoPageBreak(true, 16);
-$pdf->SetCreator('Impakto Midia OOH');
-$pdf->SetTitle(s('Relacao de Clientes - Impakto'));
+$pdf->SetCreator('Impakto Mídia OOH');
+$pdf->SetTitle(s('Relação de Clientes - Impakto'));
 
 if (defined('USE_TFPDF') && USE_TFPDF) {
     $fontDir = __DIR__ . '/../../../lib/fpdf/font/unifont/';
@@ -90,7 +90,7 @@ function cabecalho($pdf, $CW, $MX, $VERM, $MUTED) {
     $pdf->SetFont(FONT_MAIN, '', 8.5);
     $pdf->SetTextColor(...$MUTED);
     $pdf->SetXY($MX, 10);
-    $pdf->Cell($CW, 8, s('Relatorio gerado em ' . date('d/m/Y H:i')), 0, 1, 'R');
+    $pdf->Cell($CW, 8, s('Relatório gerado em ' . date('d/m/Y H:i')), 0, 1, 'R');
 
     $pdf->SetDrawColor(...$VERM);
     $pdf->SetLineWidth(0.5);
@@ -151,14 +151,14 @@ cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
 
 $pdf->SetFont(FONT_MAIN, 'B', 22);
 $pdf->SetTextColor(...$PRETO);
-$pdf->Cell($CW, 12, s('Relacao de Clientes'), 0, 1, 'L');
+$pdf->Cell($CW, 12, s('Relação de Clientes'), 0, 1, 'L');
 $pdf->SetFont(FONT_MAIN, '', 10.5);
 $pdf->SetTextColor(...$MUTED);
 $pdf->Cell($CW, 7, s(count($clientes) . ' clientes cadastrados'), 0, 1, 'L');
 $pdf->Ln(4);
 
 tabela($pdf,
-    ['Razao Social', 'Nome Fantasia', 'CNPJ', 'E-mail'],
+    ['Razão Social', 'Nome Fantasia', 'CNPJ', 'E-mail'],
     [55, 55, 35, 41],
     array_map(fn($c) => [$c['razao_social'], $c['nome_fantasia'] ?: '-', $c['cnpj'] ?: '-', $c['email'] ?: '-'], $clientes),
     $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED

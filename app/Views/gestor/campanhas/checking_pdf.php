@@ -92,7 +92,7 @@ if (file_exists($tfpdfPath)) {
     require_once $fpdfPath;
     define('USE_TFPDF', false);
 } else {
-    ob_end_clean(); die('Biblioteca PDF nao encontrada.');
+    ob_end_clean(); die('Biblioteca PDF não encontrada.');
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -135,7 +135,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
 }
 $pdf->SetMargins(0, 0, 0);
 $pdf->SetAutoPageBreak(false, 0);
-$pdf->SetCreator('Impakto Midia OOH');
+$pdf->SetCreator('Impakto Mídia OOH');
 $pdf->SetTitle(s('Checking - ' . ($nomeProjeto ?: $campanha ?: $cliente)));
 
 // Carrega fontes Inter (tFPDF) ou fallback Helvetica (FPDF)
@@ -224,8 +224,8 @@ $yApos = $pdf->GetY() + 4;
 // Campos de informação
 $campos = [];
 if ($nomeProjeto && $campanha) $campos[] = ['Motivo:', $campanha];
-$campos[] = ['Agencia:', $agencia ?: '-'];
-$campos[] = ['Periodo:', dataFmt($inicio) . ' a ' . dataFmt($fim)];
+$campos[] = ['Agência:', $agencia ?: '-'];
+$campos[] = ['Período:', dataFmt($inicio) . ' a ' . dataFmt($fim)];
 $y = max($yApos, 74);
 foreach ($campos as [$lbl, $val]) {
     $pdf->SetFont(FONT_MAIN, 'B', 11);
