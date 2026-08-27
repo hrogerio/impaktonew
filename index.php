@@ -305,6 +305,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/relatorio_contratos_pdf.php';
         break;
 
+    // ── RELATÓRIO DE CLIENTES PDF (download) ─────────────────
+    case 'gestor/relatorios/clientes/pdf':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/relatorio_clientes_pdf.php';
+        break;
+
     // ── AUDITORIA ───────────────────────────────────────────
     case 'gestor/auditoria':
         auth_required();

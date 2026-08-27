@@ -561,8 +561,8 @@ function tabelaCampanhas(array $lista) {
     <div class="tab-content" id="tab-clientes">
 
         <div class="export-bar">
-            <a class="btn-export btn-pdf" href="/gestor/clientes">🏢 Gerenciar Clientes</a>
-            <button class="btn-export btn-csv" onclick="exportCSV('tbl-clientes','pontos-por-cliente')">⬇ CSV</button>
+            <a class="btn-export btn-pdf" href="/gestor/clientes/novo">➕ Novo Cliente</a>
+            <a class="btn-export btn-pdf" href="/gestor/relatorios/clientes/pdf" target="_blank">📄 PDF</a>
         </div>
 
         <div class="kpi-grid" style="grid-template-columns:minmax(180px,220px); margin-bottom:1.25rem;">
