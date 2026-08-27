@@ -399,7 +399,7 @@ try {
 <div class="print-view" id="printView">
     <div class="pv-cabecalho">
         <div>
-            <img src="/public/assets/img/barra.png" alt="Impakto Mídia OOH" style="height:42px;width:auto;margin-bottom:0.4rem;display:block;">
+            <img src="/public/assets/img/logo.png" alt="Impakto Mídia OOH" style="height:42px;width:auto;margin-bottom:0.4rem;display:block;">
             <div class="pv-titulo" id="pvTitulo"></div>
             <div class="pv-sub"    id="pvSub"></div>
         </div>

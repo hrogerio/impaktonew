@@ -95,9 +95,9 @@ $PW = 210; $MX = 12; $CW = $PW - 2 * $MX; // largura útil de conteúdo
 
 // ── Cabeçalho de página (chamado a cada nova página) ───────────────────────
 function cabecalho($pdf, $CW, $MX, $VERM, $MUTED) {
-    $logoPath = __DIR__ . '/../../../public/assets/img/barra.png';
+    $logoPath = __DIR__ . '/../../../public/assets/img/logo.png';
     if (file_exists($logoPath)) {
-        $pdf->Image($logoPath, $MX, 8, 34);
+        $pdf->Image($logoPath, $MX, 9, 30);
     } else {
         $pdf->SetFont(FONT_MAIN, 'B', 14);
         $pdf->SetTextColor(...$VERM);

@@ -186,7 +186,7 @@ function corSit($sit, $cores) { return $cores[$sit] ?? '#888'; }
     <!-- Cabeçalho -->
     <div class="cabecalho">
         <div>
-            <img src="/public/assets/img/barra.png" alt="Impakto Mídia OOH" class="logo">
+            <img src="/public/assets/img/logo.png" alt="Impakto Mídia OOH" class="logo">
             <div class="cab-titulo">Pré-Seleção de Mídia Exterior</div>
             <div class="cab-sub">
                 <?= htmlspecialchars($ps['cliente']) ?>

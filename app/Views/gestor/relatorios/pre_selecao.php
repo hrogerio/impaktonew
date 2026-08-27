@@ -516,7 +516,7 @@ function exportPDF() {
     var qtd     = document.getElementById('resQtd').textContent;
     var periodo = document.getElementById('resPeriodo').textContent;
     var content = document.getElementById('resTable').outerHTML;
-    var logoUrl = window.location.origin + '/public/assets/img/barra.png';
+    var logoUrl = window.location.origin + '/public/assets/img/logo.png';
     var win = window.open('', '_blank');
     win.document.write('<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
         + '<title>Pré-Seleção — ' + cliente + '</title>'
