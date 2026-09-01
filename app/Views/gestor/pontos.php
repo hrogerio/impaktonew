@@ -376,7 +376,7 @@ $recentes = $pdo->query(
                         <th data-col="numero" style="width:52px">Nº<span class="sort-icon"></span></th>
                         <th data-col="logradouro" style="width:35%">Logradouro<span class="sort-icon"></span></th>
                         <th data-col="cidade" style="width:18%">Cidade<span class="sort-icon"></span></th>
-                        <th data-col="cliente" style="width:16%">Cliente<span class="sort-icon"></span></th>
+                        <th data-col="campanha" style="width:16%">Campanha<span class="sort-icon"></span></th>
                         <th data-col="situacao" style="width:20%">Situação / Vencimento<span class="sort-icon"></span></th>
                         <th class="no-print" style="width:80px"></th>
                     </tr>
@@ -646,7 +646,7 @@ function renderLinha(p, busca) {
     html += '<td class="col-num">'+highlight(p.numero,busca)+'</td>';
     html += '<td class="col-txt" title="'+esc(p.logradouro)+(p.descricao?' · '+esc(p.descricao):'')+'">'+highlight(p.logradouro,busca)+(p.descricao?'<span class="col-sub"> · '+highlight(p.descricao.substring(0,50),busca)+'</span>':'')+'</td>';
     html += '<td class="col-txt" title="'+esc(p.cidade)+'">'+highlight(p.cidade,busca)+'</td>';
-    html += '<td class="col-txt" title="'+esc(p.cliente||'-')+(p.agencia?' · '+esc(p.agencia):'')+'">'+highlight(p.cliente||'—',busca)+(p.agencia?'<span class="col-sub"> · '+highlight(p.agencia,busca)+'</span>':'')+'</td>';
+    html += '<td class="col-txt" title="'+esc(p.campanha||'-')+(p.agencia?' · '+esc(p.agencia):'')+'">'+highlight(p.campanha||'—',busca)+(p.agencia?'<span class="col-sub"> · '+highlight(p.agencia,busca)+'</span>':'')+'</td>';
     html += '<td class="col-sit"><div class="sit-badges">'+badgeSit(p.situacao, p)+' '+badgeContrato(p.fim_contrato)+'</div>'+badgeExclusivo(p)+'</td>';
     html += '<td class="no-print" onclick="event.stopPropagation()" style="white-space:nowrap">';
     html += '<a href="/gestor/pontos/detalhes?id='+p.id+'" class="link-info">+Info</a>';
