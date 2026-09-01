@@ -516,15 +516,22 @@ function tabelaCampanhas(array $lista) {
         </div>
         <?php endif; ?>
 
-        <div class="section-title" style="justify-content:space-between;">
+        <div class="section-title" style="justify-content:space-between;flex-wrap:wrap;gap:0.6rem;">
             <span>📋 Contratos Ativos por Cliente</span>
-            <select id="filtroDocs" onchange="filtrarPorDocs()" style="font-size:0.78rem;font-weight:700;color:var(--color-text-dark);border:1px solid var(--color-border);border-radius:6px;padding:0.3rem 0.5rem;font-family:'Montserrat',sans-serif;">
-                <option value="todos">📎 Documentos: Todos</option>
-                <option value="com">✅ Com documentos</option>
-                <option value="sem">⚠️ Sem documentos</option>
-            </select>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+                <input type="text" id="buscaContratosAtivos" oninput="aplicarFiltrosContratosAtivos()"
+                       placeholder="🔎 Buscar cliente, campanha, agência ou contato..."
+                       style="font-size:0.78rem;color:var(--color-text-dark);border:1px solid var(--color-border);border-radius:6px;padding:0.35rem 0.6rem;font-family:'Montserrat',sans-serif;min-width:260px;">
+                <select id="filtroDocs" onchange="aplicarFiltrosContratosAtivos()" style="font-size:0.78rem;font-weight:700;color:var(--color-text-dark);border:1px solid var(--color-border);border-radius:6px;padding:0.3rem 0.5rem;font-family:'Montserrat',sans-serif;">
+                    <option value="todos">📎 Documentos: Todos</option>
+                    <option value="com">✅ Com documentos</option>
+                    <option value="sem">⚠️ Sem documentos</option>
+                </select>
+            </div>
         </div>
-        <?php tabelaCampanhas($contratos['campanhas_ativas']); ?>
+        <div id="tabelaContratosAtivosWrap">
+            <?php tabelaCampanhas($contratos['campanhas_ativas']); ?>
+        </div>
 
         <div class="section-title" style="margin-top:1.5rem">🔴 Contratos Vencidos (<?= count($contratos['vencidos_agrupado']) ?>)</div>
         <?php tabelaCampanhas($contratos['vencidos_agrupado']); ?>
@@ -866,13 +873,15 @@ function switchTab(name, btn) {
     }
 })();
 
-function filtrarPorDocs() {
-    var valor = document.getElementById('filtroDocs').value;
-    var linhas = document.querySelectorAll('#tab-contratos .rel-row-clicavel');
+function aplicarFiltrosContratosAtivos() {
+    var valorDocs = document.getElementById('filtroDocs').value;
+    var termo = (document.getElementById('buscaContratosAtivos').value || '').toLowerCase().trim();
+    var linhas = document.querySelectorAll('#tabelaContratosAtivosWrap .rel-row-clicavel');
     linhas.forEach(function(el) {
         var temDoc = !!el.querySelector('.docs-ok');
-        var mostrar = valor === 'todos' || (valor === 'com' && temDoc) || (valor === 'sem' && !temDoc);
-        el.style.display = mostrar ? '' : 'none';
+        var passaDocs = valorDocs === 'todos' || (valorDocs === 'com' && temDoc) || (valorDocs === 'sem' && !temDoc);
+        var passaBusca = termo === '' || el.textContent.toLowerCase().indexOf(termo) !== -1;
+        el.style.display = (passaDocs && passaBusca) ? '' : 'none';
     });
 }
 
