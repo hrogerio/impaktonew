@@ -254,15 +254,16 @@ function ehNovoPdf(array $c): bool {
     catch (Exception $e) { return false; }
 }
 
-/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos/Novo/Docs).
- *  $destaqueTodas marca a tabela inteira (ex.: Vencidos); senão, destaca linha a linha os contratos sem documento.
+/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos/Novo).
+ *  $destaqueTodas marca a tabela inteira (ex.: Vencidos); senão, destaca linha a linha os contratos sem documento
+ *  (a coluna Docs foi removida pra dar mais espaço às outras, mas o destaque visual continua indicando "sem doc").
  *  Contratos novos (30 dias) ganham "NOVO" na coluna própria, sem espremer o nome do cliente. */
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, array $documentosPorGrupo = [], bool $destaqueTodas = false) {
     $destaque = $destaqueTodas ? true : array_values(array_map(fn($c) => docsLabelPdf($c, $documentosPorGrupo) === 'Sem doc', $lista));
     tabela($pdf,
-        ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração', 'Pontos', 'Novo', 'Docs'],
-        [36, 25, 23, 17, 13, 13, 16, 11, 12, 20],
-        array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos'], ehNovoPdf($c) ? 'NOVO' : '-', docsLabelPdf($c, $documentosPorGrupo)], $lista),
+        ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração', 'Pontos', 'Novo'],
+        [48, 33, 23, 17, 13, 13, 16, 11, 12],
+        array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos'], ehNovoPdf($c) ? 'NOVO' : '-'], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $destaque
     );
 }
