@@ -51,6 +51,7 @@ $paginaAtual = $paginaAtual ?? '';
     <div class="header-content">
         <div class="logo">
             <img src="/public/assets/img/logo.png" alt="Impakto Mídia OOH" class="logo-img">
+            <span class="logo-subtitle">Sistema de Gestão Integrada</span>
         </div>
 
         <nav class="main-nav">

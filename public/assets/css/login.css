@@ -43,9 +43,26 @@ body {
     max-width: 360px;
 }
 
+.logo-form-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+}
+
 .logo-form {
     height: 64px;
-    margin-bottom: 1.75rem;
+    margin-bottom: 0;
+}
+
+.logo-form-subtitle {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #6b7280;
+    line-height: 1.2;
+    padding-left: 0.75rem;
+    border-left: 1px solid #e5e7eb;
+    max-width: 140px;
 }
 
 .login-titulo {

@@ -146,7 +146,10 @@ if ($banners) {
 
 <div class="login-left">
     <div class="login-container">
-        <img src="/public/assets/img/logo.png" alt="Impakto Mídia OOH" class="logo-form">
+        <div class="logo-form-wrap">
+            <img src="/public/assets/img/logo.png" alt="Impakto Mídia OOH" class="logo-form">
+            <span class="logo-form-subtitle">Sistema de Gestão Integrada</span>
+        </div>
 
         <?php if ($erro): ?>
             <div class="erro">
