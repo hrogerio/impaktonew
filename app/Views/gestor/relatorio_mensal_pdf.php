@@ -203,13 +203,13 @@ function ehNovoPdf(array $c): bool {
     catch (Exception $e) { return false; }
 }
 
-/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos).
- *  Contratos novos (30 dias) ganham a marca "[NOVO]" ao lado do cliente. */
+/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos/Novo).
+ *  Contratos novos (30 dias) ganham "NOVO" na coluna própria, sem espremer o nome do cliente. */
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED) {
     tabela($pdf,
-        ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração (dias)', 'Pontos'],
-        [28, 24, 26, 22, 18, 18, 26, 12],
-        array_map(fn($c) => [($c['cliente'] ?: '-') . (ehNovoPdf($c) ? ' [NOVO]' : ''), $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), $c['duracao_dias'], $c['qtd_pontos']], $lista),
+        ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração (dias)', 'Pontos', 'Novo'],
+        [26, 22, 24, 20, 16, 16, 24, 11, 13],
+        array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), $c['duracao_dias'], $c['qtd_pontos'], ehNovoPdf($c) ? 'NOVO' : '-'], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
     );
 }
