@@ -81,7 +81,7 @@ $pontosDisponiveis = $stmtDisp->fetchAll(PDO::FETCH_ASSOC);
 // ── Vencidos + vencendo no mês vigente (campanhas ativas) ──
 $stmtVenc = $pdo->query("
     SELECT p.id, p.numero, p.logradouro, p.cidade, p.tipo, p.situacao,
-           c.cliente AS cliente, c.campanha AS campanha, c.agencia AS agencia, c.inicio AS inicio_contrato,
+           c.cliente AS cliente, c.campanha AS campanha, c.nome AS nome_campanha, c.agencia AS agencia, c.inicio AS inicio_contrato,
            COALESCE(
                CASE WHEN CAST(c.fim AS CHAR) NOT IN ('0000-00-00','') THEN c.fim ELSE NULL END,
                CASE WHEN CAST(p.fim_contrato AS CHAR) NOT IN ('0000-00-00','') THEN p.fim_contrato ELSE NULL END
@@ -122,7 +122,7 @@ $vencimentosPontos = $stmtVenc->fetchAll(PDO::FETCH_ASSOC);
 $vencGrupos = [];
 foreach ($vencimentosPontos as $v) {
     $chave = mb_strtolower(trim(implode('|', [
-        $v['cliente'] ?? '', $v['campanha'] ?? '', $v['agencia'] ?? '',
+        $v['cliente'] ?? '', $v['campanha'] ?? '', $v['nome_campanha'] ?? '', $v['agencia'] ?? '',
         $v['inicio_contrato'] ?? '', $v['fim_contrato'] ?? '',
     ])));
     if (!isset($vencGrupos[$chave])) {
@@ -591,7 +591,7 @@ $CORES_SIT = [
                 <div class="venc-card-top">
                     <span class="venc-tag"><?= htmlspecialchars($v['tipo'] ?: 'Ponto') ?></span>
                 </div>
-                <div class="venc-card-title"><?= htmlspecialchars($v['cliente'] ?: ('Ponto ' . $v['numero'])) ?></div>
+                <div class="venc-card-title"><?= htmlspecialchars($v['nome_campanha'] ?: ($v['campanha'] ?: ('Ponto ' . $v['numero']))) ?></div>
                 <div class="venc-card-sub"><?= htmlspecialchars($v['logradouro']) ?> · <?= htmlspecialchars($v['cidade'] ?? '—') ?></div>
                 <div class="venc-card-qty"><?= $v['qtd_pontos'] ?> <?= $v['qtd_pontos'] == 1 ? 'ponto' : 'pontos' ?></div>
                 <div class="venc-card-chips">
