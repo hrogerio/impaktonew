@@ -52,7 +52,7 @@ function pctPdf($valor, $total) {
 }
 function fmtDataPdf($d) {
     if (!$d || $d === '0000-00-00') return '-';
-    try { return (new DateTime($d))->format('d/m/Y'); } catch (Exception $e) { return '-'; }
+    try { return (new DateTime($d))->format('d/m/y'); } catch (Exception $e) { return '-'; }
 }
 function mesLabelPdf($mesStr) {
     $meses = ['01'=>'Jan','02'=>'Fev','03'=>'Mar','04'=>'Abr','05'=>'Mai','06'=>'Jun',
@@ -208,7 +208,7 @@ function ehNovoPdf(array $c): bool {
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED) {
     tabela($pdf,
         ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração (dias)', 'Pontos', 'Novo'],
-        [37, 31, 24, 18, 16, 16, 20, 12, 12],
+        [37, 37, 24, 18, 13, 13, 20, 12, 12],
         array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), $c['duracao_dias'], $c['qtd_pontos'], ehNovoPdf($c) ? 'NOVO' : '-'], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
     );
