@@ -208,7 +208,7 @@ function ehNovoPdf(array $c): bool {
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED) {
     tabela($pdf,
         ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração (dias)', 'Pontos', 'Novo'],
-        [26, 22, 24, 20, 16, 16, 24, 11, 13],
+        [37, 31, 24, 18, 16, 16, 20, 12, 12],
         array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), $c['duracao_dias'], $c['qtd_pontos'], ehNovoPdf($c) ? 'NOVO' : '-'], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
     );

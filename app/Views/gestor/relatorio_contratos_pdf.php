@@ -261,7 +261,7 @@ function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW
     $destaque = $destaqueTodas ? true : array_values(array_map(fn($c) => docsLabelPdf($c, $documentosPorGrupo) === 'Sem doc', $lista));
     tabela($pdf,
         ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração', 'Pontos', 'Novo', 'Docs'],
-        [24, 20, 22, 17, 15, 15, 17, 11, 13, 18],
+        [30, 25, 23, 17, 16, 16, 16, 11, 12, 20],
         array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos'], ehNovoPdf($c) ? 'NOVO' : '-', docsLabelPdf($c, $documentosPorGrupo)], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $destaque
     );
