@@ -120,7 +120,7 @@ function tabelaCampanhas(array $lista) {
                         catch (Exception $e) { $ehNovo = false; }
                     }
                 ?>
-                <tr class="rel-row-clicavel" onclick='abrirDetalhesContrato(<?= $dadosContrato ?>)' title="Ver detalhes do contrato">
+                <tr class="rel-row-clicavel<?= $ehNovo ? ' linha-contrato-novo' : '' ?>" onclick='abrirDetalhesContrato(<?= $dadosContrato ?>)' title="Ver detalhes do contrato">
                     <td>
                         <strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong>
                         <?php if ($ehNovo): ?>
@@ -557,6 +557,14 @@ function tabelaCampanhas(array $lista) {
                     <option value="com">✅ Com documentos</option>
                     <option value="sem">⚠️ Sem documentos</option>
                 </select>
+                <div class="filtro-radio-novo" style="display:flex;gap:0.75rem;align-items:center;font-size:0.78rem;font-weight:700;color:var(--color-text-dark);font-family:'Montserrat',sans-serif;">
+                    <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;">
+                        <input type="radio" name="filtroNovo" value="todos" checked onchange="aplicarFiltrosContratosAtivos()"> Todos
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;">
+                        <input type="radio" name="filtroNovo" value="novos" onchange="aplicarFiltrosContratosAtivos()"> 🆕 Só novos
+                    </label>
+                </div>
             </div>
         </div>
         <div id="tabelaContratosAtivosWrap">
@@ -905,13 +913,15 @@ function switchTab(name, btn) {
 
 function aplicarFiltrosContratosAtivos() {
     var valorDocs = document.getElementById('filtroDocs').value;
+    var valorNovo = (document.querySelector('input[name="filtroNovo"]:checked') || {}).value || 'todos';
     var termo = (document.getElementById('buscaContratosAtivos').value || '').toLowerCase().trim();
     var linhas = document.querySelectorAll('#tabelaContratosAtivosWrap .rel-row-clicavel');
     linhas.forEach(function(el) {
         var temDoc = !!el.querySelector('.docs-ok');
         var passaDocs = valorDocs === 'todos' || (valorDocs === 'com' && temDoc) || (valorDocs === 'sem' && !temDoc);
+        var passaNovo = valorNovo === 'todos' || (valorNovo === 'novos' && el.classList.contains('linha-contrato-novo'));
         var passaBusca = termo === '' || el.textContent.toLowerCase().indexOf(termo) !== -1;
-        el.style.display = (passaDocs && passaBusca) ? '' : 'none';
+        el.style.display = (passaDocs && passaNovo && passaBusca) ? '' : 'none';
     });
 }
 
