@@ -54,6 +54,16 @@ function contarSemDocumentos(array $lista, array $documentosPorGrupo): int {
     }));
 }
 
+/** Conta contratos cadastrados no sistema nos últimos $dias dias — regra provisória pro financeiro identificar novidades */
+function contarNovosContratos(array $lista, int $dias = 30): int {
+    $limite = new DateTime("-{$dias} days");
+    return count(array_filter($lista, function($c) use ($limite) {
+        if (empty($c['criado_em'])) return false;
+        try { return new DateTime($c['criado_em']) >= $limite; }
+        catch (Exception $e) { return false; }
+    }));
+}
+
 function fmtDuracao($dias) {
     if ($dias === null) return '-';
     $dias = (int)$dias;
@@ -102,9 +112,21 @@ function tabelaCampanhas(array $lista) {
                     $tiposPresentes = array_unique(array_column($docsGrupo, 'tipo'));
                     $labelsTipo = ['CONTRATO' => 'CT', 'PP' => 'P.P.', 'PI' => 'P.I.'];
                     $tiposEmOrdem = array_values(array_filter(['CONTRATO', 'PP', 'PI'], fn($t) => in_array($t, $tiposPresentes, true)));
+
+                    // Contrato "novo": cadastrado no sistema nos últimos 30 dias (regra provisória, ajustável)
+                    $ehNovo = false;
+                    if (!empty($c['criado_em'])) {
+                        try { $ehNovo = (new DateTime())->diff(new DateTime($c['criado_em']))->days <= 30; }
+                        catch (Exception $e) { $ehNovo = false; }
+                    }
                 ?>
                 <tr class="rel-row-clicavel" onclick='abrirDetalhesContrato(<?= $dadosContrato ?>)' title="Ver detalhes do contrato">
-                    <td><strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong></td>
+                    <td>
+                        <strong><?= htmlspecialchars($c['cliente'] ?? '-') ?></strong>
+                        <?php if ($ehNovo): ?>
+                        <span class="tag-novo-contrato" title="Cadastrado nos últimos 30 dias">🆕 Novo</span>
+                        <?php endif; ?>
+                    </td>
                     <td>
                         <?= htmlspecialchars($c['campanha'] ?? '-') ?>
                         <?php if (!empty($c['motivo']) && $c['motivo'] !== '-' && $c['motivo'] !== ($c['campanha'] ?? '')): ?>
@@ -151,6 +173,7 @@ function tabelaCampanhas(array $lista) {
     <link rel="stylesheet" href="/public/assets/css/relatorios.css">
     <style>
         .docs-status { display:inline-block; padding:2px 8px; border-radius:8px; font-size:0.68rem; font-weight:700; white-space:nowrap; }
+        .tag-novo-contrato { display:inline-block; margin-left:0.4rem; padding:1px 7px; border-radius:8px; background:#dbeafe; color:#1d4ed8; font-size:0.65rem; font-weight:800; white-space:nowrap; vertical-align:middle; }
         .docs-status.docs-ok    { background:#dcfce7; color:#166534; }
         .docs-status.docs-falta { background:#fef3c7; color:#92400e; }
 
@@ -476,12 +499,19 @@ function tabelaCampanhas(array $lista) {
             <a class="btn-export btn-pdf" href="/gestor/relatorios/contratos/pdf" target="_blank">📄 PDF de Contratos</a>
         </div>
 
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,minmax(180px,220px)); margin-bottom:1.25rem;">
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,minmax(180px,220px)); margin-bottom:1.25rem;">
             <div class="kpi-card">
                 <div class="kpi-icon" style="background:#eef6ff;">📄</div>
                 <div class="kpi-body">
                     <div class="kpi-value" style="color:#3498db"><?= count($contratos['campanhas_ativas']) ?></div>
                     <div class="kpi-label">Contratos Ativos</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#dbeafe;">🆕</div>
+                <div class="kpi-body">
+                    <div class="kpi-value" style="color:#1d4ed8"><?= contarNovosContratos($contratos['campanhas_ativas'], 30) ?></div>
+                    <div class="kpi-label">Novos (30 dias)</div>
                 </div>
             </div>
             <div class="kpi-card">

@@ -109,6 +109,7 @@ class RelatorioModel {
                 $fim AS fim_contrato,
                 c.inicio AS inicio_doc,
                 c.fim AS fim_doc,
+                c.criado_em AS criado_em,
                 DATEDIFF($fim, $inicio) AS duracao_dias
             FROM pontos p
             INNER JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1 AND c.situacao IN ('Ocupado','Vencido')
