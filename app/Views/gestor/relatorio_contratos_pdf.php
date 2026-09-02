@@ -247,14 +247,22 @@ function contarSemDocumentosPdf(array $lista, array $documentosPorGrupo): int {
     return count(array_filter($lista, fn($c) => empty($documentosPorGrupo[docChavePdf($c)] ?? [])));
 }
 
+/** Contrato cadastrado no sistema nos últimos 30 dias — mesmo critério usado na tela de Relatórios */
+function ehNovoPdf(array $c): bool {
+    if (empty($c['criado_em'])) return false;
+    try { return (new DateTime())->diff(new DateTime($c['criado_em']))->days <= 30; }
+    catch (Exception $e) { return false; }
+}
+
 /** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos/Docs).
- *  $destaqueTodas marca a tabela inteira (ex.: Vencidos); senão, destaca linha a linha os contratos sem documento. */
+ *  $destaqueTodas marca a tabela inteira (ex.: Vencidos); senão, destaca linha a linha os contratos sem documento.
+ *  Contratos novos (30 dias) ganham a marca "[NOVO]" ao lado do cliente. */
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, array $documentosPorGrupo = [], bool $destaqueTodas = false) {
     $destaque = $destaqueTodas ? true : array_values(array_map(fn($c) => docsLabelPdf($c, $documentosPorGrupo) === 'Sem doc', $lista));
     tabela($pdf,
         ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração', 'Pontos', 'Docs'],
         [26, 22, 24, 18, 16, 16, 18, 12, 20],
-        array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos'], docsLabelPdf($c, $documentosPorGrupo)], $lista),
+        array_map(fn($c) => [($c['cliente'] ?: '-') . (ehNovoPdf($c) ? ' [NOVO]' : ''), $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos'], docsLabelPdf($c, $documentosPorGrupo)], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $destaque
     );
 }
@@ -313,6 +321,7 @@ $pdf->Ln(4);
 tituloSecao($pdf, 'Contratos e Tempo de Contrato', $CW, $MX, $VERM, $PRETO, $MUTED);
 kpis($pdf, [
     ['Contratos Ativos', count($ct['campanhas_ativas'])],
+    ['Novos (30 dias)', count(array_filter($ct['campanhas_ativas'], 'ehNovoPdf'))],
     ['Já Vencidos', count($ct['vencidos_agrupado'])],
     ['Sem Documentos', contarSemDocumentosPdf($ct['campanhas_ativas'], $documentosPorGrupo)],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);

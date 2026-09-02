@@ -196,12 +196,20 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
     $pdf->Ln(3);
 }
 
-/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos) */
+/** Contrato cadastrado no sistema nos últimos 30 dias — mesmo critério usado na tela de Relatórios */
+function ehNovoPdf(array $c): bool {
+    if (empty($c['criado_em'])) return false;
+    try { return (new DateTime())->diff(new DateTime($c['criado_em']))->days <= 30; }
+    catch (Exception $e) { return false; }
+}
+
+/** Tabela padrão de campanhas (Cliente/Campanha/Agência/Início/Fim/Duração/Pontos).
+ *  Contratos novos (30 dias) ganham a marca "[NOVO]" ao lado do cliente. */
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED) {
     tabela($pdf,
         ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração (dias)', 'Pontos'],
         [28, 24, 26, 22, 18, 18, 26, 12],
-        array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), $c['duracao_dias'], $c['qtd_pontos']], $lista),
+        array_map(fn($c) => [($c['cliente'] ?: '-') . (ehNovoPdf($c) ? ' [NOVO]' : ''), $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), $c['duracao_dias'], $c['qtd_pontos']], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED
     );
 }
@@ -226,7 +234,7 @@ tituloSecao($pdf, 'Ocupação por Região / Cidade', $CW, $MX, $VERM, $PRETO, $M
 kpis($pdf, [
     ['Total de Pontos', number_format($oc['totais']['geral'])],
     ['Ocupados (' . pctPdf($oc['totais']['ocupados'], $oc['totais']['geral']) . '%)', number_format($oc['totais']['ocupados'])],
-    ['Disponiveis (' . pctPdf($oc['totais']['disponiveis'], $oc['totais']['geral']) . '%)', number_format($oc['totais']['disponiveis'])],
+    ['Disponíveis (' . pctPdf($oc['totais']['disponiveis'], $oc['totais']['geral']) . '%)', number_format($oc['totais']['disponiveis'])],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
 subtitulo($pdf, 'Por Região', $CW, $MUTED);
@@ -245,6 +253,7 @@ tituloSecao($pdf, 'Contratos e Tempo de Contrato', $CW, $MX, $VERM, $PRETO, $MUT
 kpis($pdf, [
     ['Duração Média Geral', round($ct['duracao_agregada']['media_geral_dias'] / 30, 1) . ' meses'],
     ['Contratos Ativos', count($ct['campanhas_ativas'])],
+    ['Novos (30 dias)', count(array_filter($ct['campanhas_ativas'], 'ehNovoPdf'))],
     ['Já Vencidos', count($ct['vencidos_agrupado'])],
 ], $CW, $MX, $PRETO, $MUTED, $CINZAC);
 
