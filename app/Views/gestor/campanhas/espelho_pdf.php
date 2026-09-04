@@ -19,9 +19,10 @@ if (!isset($_SESSION['usuario'])) {
 require_once __DIR__ . '/../../../../config/database.php';
 $pdo = getDatabase();
 
-$cliente  = trim($_GET['cliente']  ?? '');
-$agencia  = trim($_GET['agencia']  ?? '');
-$campanha = trim($_GET['campanha'] ?? '');
+$cliente     = trim($_GET['cliente']  ?? '');
+$agencia     = trim($_GET['agencia']  ?? '');
+$campanha    = trim($_GET['campanha'] ?? '');
+$nomeProjeto = trim($_GET['nome_projeto'] ?? '');
 $situacao = trim($_GET['situacao'] ?? 'Ocupado');
 $inicio   = trim($_GET['inicio']   ?? '') ?: null;
 $fim      = trim($_GET['fim']      ?? '') ?: null;
@@ -167,20 +168,20 @@ $pdf->Cell($RW, 10, s('ESPELHO DE COLAGEM'), 0, 1, 'L');
 $pdf->SetFillColor(...$VERM);
 $pdf->Rect($RX, 26, 50, 1.2, 'F');
 
-// Nome do cliente
+// Nome da CAMPANHA em destaque (mesmo critério do Checking: nome do projeto, senão motivo, senão cliente)
+$tituloCampanha = $nomeProjeto ?: $campanha ?: $cliente;
 $pdf->SetFont(FONT_MAIN, 'B', 22);
 $pdf->SetTextColor(...$PRETO);
 $pdf->SetXY($RX, 30);
-$pdf->MultiCell($RW, 11, s($cliente), 0, 'L');
+$pdf->MultiCell($RW, 11, s($tituloCampanha), 0, 'L');
 $yApos = $pdf->GetY() + 4;
 
-// Campos de informação
-$campos = [
-    ['Campanha:', $campanha ?: '-'],
-    ['Agência:',  $agencia  ?: '-'],
-    ['Período:',  dataFmt($inicio) . ' a ' . dataFmt($fim)],
-    ['Pontos:',   (string)$nPontos],
-];
+// Campos de informação (mesmos labels do Checking)
+$campos = [];
+if ($nomeProjeto && $campanha) $campos[] = ['Motivo:', $campanha];
+$campos[] = ['Agência:', $agencia ?: '-'];
+$campos[] = ['Período:', dataFmt($inicio) . ' a ' . dataFmt($fim)];
+$campos[] = ['Pontos:',  (string)$nPontos];
 $y = max($yApos, 70);
 foreach ($campos as [$lbl, $val]) {
     $pdf->SetFont(FONT_MAIN, 'B', 9.5);
