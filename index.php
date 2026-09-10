@@ -503,6 +503,42 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/processar_vencidos.php';
         break;
 
+    // ── FINANCEIRO: LISTA DE PEDIDOS (P.I. / P.P.) ───────
+    case 'gestor/financeiro/pedidos':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/financeiro/pedidos.php';
+        break;
+
+    // ── FINANCEIRO: NOVO PEDIDO ───────────────────────────
+    case 'gestor/financeiro/pedidos/novo':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/financeiro/pedido_form.php';
+        break;
+
+    // ── FINANCEIRO: EDITAR PEDIDO ─────────────────────────
+    case 'gestor/financeiro/pedidos/editar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/financeiro/pedido_form.php';
+        break;
+
+    // ── FINANCEIRO: SALVAR PEDIDO (API, POST) ────────────
+    case 'gestor/financeiro/pedidos/salvar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/pedido_salvar.php';
+        break;
+
+    // ── FINANCEIRO: EXCLUIR PEDIDO (API, POST) ───────────
+    case 'gestor/financeiro/pedidos/excluir':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/pedido_excluir.php';
+        break;
+
+    // ── FINANCEIRO: PDF DO PEDIDO (download) ─────────────
+    case 'gestor/financeiro/pedidos/pdf':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/financeiro/pedido_pdf.php';
+        break;
+
     // ── MÍDIA KIT (tela de administração) ────────────────
     case 'gestor/midia-kit':
         auth_required();
