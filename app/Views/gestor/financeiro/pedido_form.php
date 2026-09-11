@@ -81,6 +81,25 @@ function v($val) { return htmlspecialchars((string)($val ?? '')); }
         .pf-total-row td { font-weight:800; padding-top:0.6rem; }
         .pf-actions { display:flex; gap:0.6rem; margin-top:1.5rem; }
         .pf-hint { font-size:0.72rem; color:var(--color-text-muted); margin-top:0.25rem; }
+        .pf-mes-ano { display:flex; gap:0.5rem; }
+        .pf-mes-ano select { display:none; }
+        .pf-cselect { position:relative; flex:1; font-family:'Montserrat',sans-serif; font-size:0.85rem; }
+        .pf-cselect-btn {
+            display:flex; align-items:center; justify-content:space-between; gap:0.4rem;
+            width:100%; box-sizing:border-box; padding:0.5rem 0.6rem; border:1px solid var(--color-border);
+            border-radius:7px; background:white; color:var(--color-text-dark); cursor:pointer; user-select:none;
+        }
+        .pf-cselect-btn.placeholder { color:var(--color-text-muted); }
+        .pf-cselect-btn .arrow { font-size:0.65rem; color:var(--color-text-muted); }
+        .pf-cselect.aberto .pf-cselect-btn { border-color:var(--color-accent-primary); }
+        .pf-cselect-list {
+            display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:50;
+            background:white; border:1px solid var(--color-border); border-radius:8px;
+            box-shadow:0 6px 18px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto; padding:0.25rem 0;
+        }
+        .pf-cselect.aberto .pf-cselect-list { display:block; }
+        .pf-cselect-opt { padding:0.45rem 0.7rem; cursor:pointer; color:var(--color-text-dark); }
+        .pf-cselect-opt:hover, .pf-cselect-opt.ativa { background:#fff5f5; color:var(--color-accent-primary); }
         .pf-inline-btn { display:flex; gap:0.5rem; align-items:flex-end; }
     </style>
 </head>
@@ -112,13 +131,49 @@ function v($val) { return htmlspecialchars((string)($val ?? '')); }
                         <input type="date" id="f_data_emissao" value="<?= v($pedido['data_emissao'] ?? date('Y-m-d')) ?>">
                         <?php if ($pedido): ?><div class="pf-hint">Alterar não muda a numeração já emitida.</div><?php endif; ?>
                     </div>
+                    <?php
+                    $mesesNomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                    $anoAtual = (int)date('Y');
+                    $mesIni = $pedido['periodo_inicio'] ?? null;
+                    $mesFim = $pedido['periodo_fim'] ?? null;
+                    $selMesIni = $mesIni ? (int)substr($mesIni, 5, 2) : 0;
+                    $selAnoIni = $mesIni ? (int)substr($mesIni, 0, 4) : 0;
+                    $selMesFim = $mesFim ? (int)substr($mesFim, 5, 2) : 0;
+                    $selAnoFim = $mesFim ? (int)substr($mesFim, 0, 4) : 0;
+                    ?>
                     <div class="form-group">
                         <label>Período — início</label>
-                        <input type="month" id="f_periodo_inicio" value="<?= v(substr($pedido['periodo_inicio'] ?? '', 0, 7)) ?>">
+                        <div class="pf-mes-ano">
+                            <select id="f_periodo_inicio_mes">
+                                <option value="">Mês</option>
+                                <?php foreach ($mesesNomes as $i => $nome): ?>
+                                    <option value="<?= $i + 1 ?>" <?= $selMesIni === $i + 1 ? 'selected' : '' ?>><?= $nome ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <select id="f_periodo_inicio_ano">
+                                <option value="">Ano</option>
+                                <?php for ($a = $anoAtual - 1; $a <= $anoAtual + 4; $a++): ?>
+                                    <option value="<?= $a ?>" <?= $selAnoIni === $a ? 'selected' : '' ?>><?= $a ?></option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Período — fim</label>
-                        <input type="month" id="f_periodo_fim" value="<?= v(substr($pedido['periodo_fim'] ?? '', 0, 7)) ?>">
+                        <div class="pf-mes-ano">
+                            <select id="f_periodo_fim_mes">
+                                <option value="">Mês</option>
+                                <?php foreach ($mesesNomes as $i => $nome): ?>
+                                    <option value="<?= $i + 1 ?>" <?= $selMesFim === $i + 1 ? 'selected' : '' ?>><?= $nome ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <select id="f_periodo_fim_ano">
+                                <option value="">Ano</option>
+                                <?php for ($a = $anoAtual - 1; $a <= $anoAtual + 4; $a++): ?>
+                                    <option value="<?= $a ?>" <?= $selAnoFim === $a ? 'selected' : '' ?>><?= $a ?></option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
                         <div class="pf-hint" id="periodoResumo">&nbsp;</div>
                     </div>
                     <div class="form-group full">
@@ -380,8 +435,16 @@ function coletarParcelas() {
 
 document.getElementById('f_qtd_parcelas').addEventListener('input', recalcularTotal);
 
-// ── Período: calcula automaticamente a quantidade de meses entre início e fim ──
+// ── Período: dois selects (mês + ano) por ponta, combinados em "AAAA-MM" ──
 const MESES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function valorPeriodo(prefixo) {
+    const mes = document.getElementById(`f_periodo_${prefixo}_mes`).value;
+    const ano = document.getElementById(`f_periodo_${prefixo}_ano`).value;
+    if (!mes || !ano) return '';
+    return `${ano}-${String(mes).padStart(2, '0')}`;
+}
+
 function mesesEntreSelects(inicio, fim) {
     if (!inicio || !fim) return null;
     const [ai, mi] = inicio.split('-').map(Number);
@@ -389,8 +452,8 @@ function mesesEntreSelects(inicio, fim) {
     return Math.max(1, (af - ai) * 12 + (mf - mi) + 1);
 }
 function atualizarPeriodo(autoQtd) {
-    const inicio = document.getElementById('f_periodo_inicio').value;
-    const fim = document.getElementById('f_periodo_fim').value;
+    const inicio = valorPeriodo('inicio');
+    const fim = valorPeriodo('fim');
     const qtd = mesesEntreSelects(inicio, fim);
     const resumo = document.getElementById('periodoResumo');
     if (qtd === null) { resumo.innerHTML = '&nbsp;'; return; }
@@ -402,8 +465,72 @@ function atualizarPeriodo(autoQtd) {
         recalcularTotal();
     }
 }
-document.getElementById('f_periodo_inicio').addEventListener('change', () => atualizarPeriodo(true));
-document.getElementById('f_periodo_fim').addEventListener('change', () => atualizarPeriodo(true));
+['f_periodo_inicio_mes', 'f_periodo_inicio_ano', 'f_periodo_fim_mes', 'f_periodo_fim_ano'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => atualizarPeriodo(true));
+});
+
+// ── Select customizado (sempre abre pra baixo) pros campos de mês/ano ──────
+function initCustomSelects() {
+    document.querySelectorAll('.pf-mes-ano select').forEach(sel => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'pf-cselect';
+
+        const btn = document.createElement('div');
+        btn.className = 'pf-cselect-btn';
+        btn.tabIndex = 0;
+        const btnLabel = document.createElement('span');
+        const arrow = document.createElement('span');
+        arrow.className = 'arrow';
+        arrow.textContent = '▾';
+        btn.appendChild(btnLabel);
+        btn.appendChild(arrow);
+
+        const list = document.createElement('div');
+        list.className = 'pf-cselect-list';
+
+        function labelPara(valor) {
+            const opt = Array.from(sel.options).find(o => o.value === valor);
+            return opt ? opt.textContent : '';
+        }
+        function atualizarBotao() {
+            const val = sel.value;
+            btnLabel.textContent = val === '' ? labelPara('') : labelPara(val);
+            btn.classList.toggle('placeholder', val === '');
+            list.querySelectorAll('.pf-cselect-opt').forEach(o => o.classList.toggle('ativa', o.dataset.value === val));
+        }
+
+        Array.from(sel.options).forEach(opt => {
+            if (opt.value === '') return;
+            const item = document.createElement('div');
+            item.className = 'pf-cselect-opt';
+            item.textContent = opt.textContent;
+            item.dataset.value = opt.value;
+            item.addEventListener('click', () => {
+                sel.value = opt.value;
+                atualizarBotao();
+                wrapper.classList.remove('aberto');
+                sel.dispatchEvent(new Event('change'));
+            });
+            list.appendChild(item);
+        });
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.pf-cselect.aberto').forEach(w => { if (w !== wrapper) w.classList.remove('aberto'); });
+            wrapper.classList.toggle('aberto');
+        });
+
+        wrapper.appendChild(btn);
+        wrapper.appendChild(list);
+        sel.insertAdjacentElement('afterend', wrapper);
+        atualizarBotao();
+    });
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.pf-cselect.aberto').forEach(w => w.classList.remove('aberto'));
+    });
+}
+initCustomSelects();
 
 // Autopreenche dados do cliente ao digitar uma razão social já cadastrada
 document.getElementById('f_cliente_razao_social').addEventListener('change', function() {
@@ -433,8 +560,8 @@ function montarPayload() {
         tipo: TIPO,
         status: document.getElementById('f_status').checked ? 'emitido' : 'rascunho',
         data_emissao: document.getElementById('f_data_emissao').value,
-        periodo_inicio: document.getElementById('f_periodo_inicio').value,
-        periodo_fim: document.getElementById('f_periodo_fim').value,
+        periodo_inicio: valorPeriodo('inicio'),
+        periodo_fim: valorPeriodo('fim'),
         nome_campanha: document.getElementById('f_nome_campanha').value,
         cliente_razao_social: document.getElementById('f_cliente_razao_social').value,
         cliente_cnpj: document.getElementById('f_cliente_cnpj').value,
