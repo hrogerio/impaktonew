@@ -473,6 +473,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/campanhas/checking_historico.php';
         break;
 
+    // ── CAMPANHAS: CHECKING EXCLUIR GRUPO (API, POST) ────
+    case 'gestor/campanhas/checking/excluir-grupo':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/checking_excluir_grupo.php';
+        break;
+
     // ── CAMPANHAS: CHECKING UPLOAD (API, POST) ───────────
     case 'gestor/campanhas/checking/upload':
         auth_required();

@@ -47,6 +47,11 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $grupos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
+}
+$csrf = $_SESSION['csrf_token'];
+
 function fmtDataHist($d) {
     if (!$d) return '—';
     try { return (new DateTime($d))->format('d/m/Y'); } catch (Exception $e) { return $d; }
@@ -162,11 +167,27 @@ $paginaAtual = 'campanhas';
 .ckh-btn-abrir:hover { background: #6b21a8; }
 .ckh-btn-pdf { background: #f3f4f6; color: var(--color-text-dark); border: 1.5px solid var(--color-border); }
 .ckh-btn-pdf:hover { background: #e5e7eb; }
+.ckh-btn-excluir { background: #fef2f2; color: #c0392b; border: 1.5px solid #fca5a5; cursor: pointer; font-family: inherit; }
+.ckh-btn-excluir:hover { background: #fde8e8; }
+.ckh-btn-excluir:disabled { opacity: 0.5; cursor: default; }
 
 .ckh-vazio {
     text-align: center; padding: 3rem 1rem; color: var(--color-text-muted);
 }
 .ckh-vazio-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+/* ── Toast ───────────────────────────────────── */
+.ckh-toast {
+    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(60px);
+    background: #1a1a2e; color: #fff;
+    padding: 0.7rem 1.4rem; border-radius: 30px;
+    font-size: 0.82rem; font-weight: 600;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.2);
+    transition: transform 0.3s, opacity 0.3s; opacity: 0; z-index: 999;
+}
+.ckh-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.ckh-toast.ok   { background: #166534; }
+.ckh-toast.err  { background: #c0392b; }
 </style>
 </head>
 <body>
@@ -227,7 +248,7 @@ $paginaAtual = 'campanhas';
                 ? htmlspecialchars($g['nome_projeto']) . ' <span class="ckh-card-titulo-sep">&gt;</span> ' . htmlspecialchars($g['campanha'] ?: '—')
                 : htmlspecialchars($g['campanha'] ?: '(sem nome de campanha)');
         ?>
-        <div class="ckh-card">
+        <div class="ckh-card" id="grupo-<?= md5($g['cliente'].'|'.$g['agencia'].'|'.$g['campanha'].'|'.$g['situacao'].'|'.$g['inicio'].'|'.$g['fim']) ?>">
             <div class="ckh-card-info">
                 <div class="ckh-card-titulo"><?= $titulo ?></div>
                 <div class="ckh-card-sub">
@@ -245,12 +266,72 @@ $paginaAtual = 'campanhas';
                 <span class="ckh-fotos-badge">📷 <?= $g['total_fotos'] ?> foto<?= $g['total_fotos'] != 1 ? 's' : '' ?></span>
                 <a href="/gestor/campanhas/checking/pdf?<?= htmlspecialchars($q) ?>" target="_blank" class="ckh-btn ckh-btn-pdf">📄 PDF</a>
                 <a href="/gestor/campanhas/checking?<?= htmlspecialchars($q) ?>" class="ckh-btn ckh-btn-abrir">Abrir →</a>
+                <button type="button" class="ckh-btn ckh-btn-excluir"
+                        data-cliente="<?= htmlspecialchars($g['cliente']) ?>"
+                        data-agencia="<?= htmlspecialchars($g['agencia']) ?>"
+                        data-campanha="<?= htmlspecialchars($g['campanha']) ?>"
+                        data-situacao="<?= htmlspecialchars($g['situacao']) ?>"
+                        data-inicio="<?= htmlspecialchars($g['inicio'] ? substr($g['inicio'], 0, 10) : '') ?>"
+                        data-fim="<?= htmlspecialchars($g['fim'] ? substr($g['fim'], 0, 10) : '') ?>"
+                        data-titulo="<?= htmlspecialchars(trim(($g['nome_projeto'] ? $g['nome_projeto'] . ' > ' : '') . ($g['campanha'] ?: $g['cliente']))) ?>"
+                        onclick="excluirGrupo(this)"
+                        title="Excluir este checking (todas as fotos)">🗑️ Excluir</button>
             </div>
         </div>
         <?php endforeach; ?>
     <?php endif; ?>
 
 </div>
+
+<!-- Toast -->
+<div class="ckh-toast" id="ckhToast"></div>
+
+<script>
+var CSRF = <?= json_encode($csrf) ?>;
+
+function toast(msg, tipo) {
+    var t = document.getElementById('ckhToast');
+    t.textContent = msg;
+    t.className = 'ckh-toast show ' + (tipo || '');
+    setTimeout(function() { t.className = 'ckh-toast'; }, 3000);
+}
+
+function excluirGrupo(btn) {
+    var dados = btn.dataset;
+    if (!confirm('Excluir permanentemente o checking "' + dados.titulo + '"?\n\nTodas as fotos e observações serão removidas. Essa ação não pode ser desfeita.')) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Excluindo…';
+
+    var fd = new FormData();
+    fd.append('csrf_token', CSRF);
+    fd.append('cliente',    dados.cliente);
+    fd.append('agencia',    dados.agencia);
+    fd.append('campanha',   dados.campanha);
+    fd.append('situacao',   dados.situacao);
+    fd.append('inicio',     dados.inicio);
+    fd.append('fim',        dados.fim);
+
+    fetch('/gestor/campanhas/checking/excluir-grupo', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (!data.ok) {
+            toast('❌ ' + (data.erro || 'Erro ao excluir'), 'err');
+            btn.disabled = false;
+            btn.textContent = '🗑️ Excluir';
+            return;
+        }
+        var card = btn.closest('.ckh-card');
+        if (card) card.remove();
+        toast('🗑️ Checking excluído.', 'ok');
+    })
+    .catch(function() {
+        toast('❌ Erro de comunicação.', 'err');
+        btn.disabled = false;
+        btn.textContent = '🗑️ Excluir';
+    });
+}
+</script>
 
 </body>
 </html>
