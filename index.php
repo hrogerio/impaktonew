@@ -467,6 +467,12 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/campanhas/checking.php';
         break;
 
+    // ── CAMPANHAS: CHECKING HISTÓRICO (busca e consulta) ─
+    case 'gestor/campanhas/checking/historico':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/campanhas/checking_historico.php';
+        break;
+
     // ── CAMPANHAS: CHECKING UPLOAD (API, POST) ───────────
     case 'gestor/campanhas/checking/upload':
         auth_required();

@@ -318,6 +318,7 @@ $paginaAtual = 'campanhas';
             </div>
         </div>
         <div class="ck-header-right">
+            <a href="/gestor/campanhas/checking/historico" class="ck-btn-voltar">🕓 Histórico</a>
             <a href="/gestor/campanhas" class="ck-btn-voltar">← Voltar</a>
             <a href="/gestor/campanhas/checking/pdf?<?= htmlspecialchars($pdfQ) ?>"
                target="_blank"

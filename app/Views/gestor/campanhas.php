@@ -343,6 +343,10 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
     <!-- ── Título ── -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem">
         <h1 style="font-size:1.3rem;font-weight:800;color:var(--color-text-dark);margin:0">📢 Campanhas</h1>
+        <a href="/gestor/campanhas/checking/historico"
+           style="display:inline-flex;align-items:center;gap:0.4rem;background:#fdf4ff;color:#7e22ce;border:1px solid #d8b4fe;border-radius:8px;padding:0.5rem 0.9rem;font-size:0.8rem;font-weight:700;text-decoration:none">
+            🕓 Histórico de Checking
+        </a>
     </div>
 
     <!-- ── Alerta de vencidos ── -->
