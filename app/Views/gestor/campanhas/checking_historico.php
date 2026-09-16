@@ -45,9 +45,9 @@ if ($busca !== '') {
     array_push($params, $like, $like, $like, $like);
 }
 if (!$mostrarTodos) {
-    // Por padrão só mostra checkings de campanhas cujo período cruza o mês atual
-    $where[] = "(cf.inicio IS NULL OR cf.inicio <= ?) AND (cf.fim IS NULL OR cf.fim >= ?)";
-    array_push($params, $ultimoDiaMes, $primeiroDiaMes);
+    // Por padrão só mostra checkings de campanhas iniciadas no mês atual
+    $where[] = "cf.inicio IS NOT NULL AND cf.inicio BETWEEN ? AND ?";
+    array_push($params, $primeiroDiaMes, $ultimoDiaMes);
 }
 if ($where) {
     $sql .= " WHERE " . implode(' AND ', $where);
@@ -234,7 +234,7 @@ $paginaAtual = 'campanhas';
         <b><?= count($grupos) ?></b> checking<?= count($grupos) !== 1 ? 's' : '' ?> encontrado<?= count($grupos) !== 1 ? 's' : '' ?>
         <?= $busca !== '' ? ' para "' . htmlspecialchars($busca) . '"' : '' ?>
         <?php if (!$mostrarTodos): ?>
-            <span>· campanhas ativas em <?= htmlspecialchars($mesesPt[(int)date('n')] . '/' . date('Y')) ?></span>
+            <span>· campanhas iniciadas em <?= htmlspecialchars($mesesPt[(int)date('n')] . '/' . date('Y')) ?></span>
             <a href="?todos=1" class="ckh-busca-limpar">Ver histórico completo</a>
         <?php elseif ($busca === ''): ?>
             <span>· histórico completo</span>
@@ -248,7 +248,7 @@ $paginaAtual = 'campanhas';
         <?php if ($busca !== ''): ?>
             Nenhum checking encontrado para essa busca.
         <?php elseif (!$mostrarTodos): ?>
-            Nenhum checking de campanha ativa neste mês.
+            Nenhum checking de campanha iniciada neste mês.
             <a href="?todos=1">Ver histórico completo</a>
         <?php else: ?>
             Nenhum checking fotográfico realizado ainda.
