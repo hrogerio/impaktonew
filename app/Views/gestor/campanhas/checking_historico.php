@@ -29,8 +29,7 @@ $sql = "
     LEFT JOIN campanhas c
         ON c.ponto_id = cf.ponto_id
        AND c.cliente   = cf.cliente
-       AND c.campanha  = cf.campanha
-       AND c.situacao  = cf.situacao
+       AND COALESCE(NULLIF(c.campanha, ''), '—') = COALESCE(NULLIF(cf.campanha, ''), '—')
        AND c.inicio <=> cf.inicio
        AND c.fim    <=> cf.fim
 ";
@@ -244,9 +243,13 @@ $paginaAtual = 'campanhas';
                 ? (fmtDataHist($g['inicio']) . ' → ' . fmtDataHist($g['fim']))
                 : '—';
 
+            // "—" é o placeholder usado na tela de Campanhas quando não há motivo
+            // definido; trata como vazio aqui também pra não exibir o traço cru.
+            $motivo = ($g['campanha'] === '—') ? '' : trim($g['campanha'] ?? '');
+
             $titulo = $g['nome_projeto']
-                ? htmlspecialchars($g['nome_projeto']) . ' <span class="ckh-card-titulo-sep">&gt;</span> ' . htmlspecialchars($g['campanha'] ?: '—')
-                : htmlspecialchars($g['campanha'] ?: '(sem nome de campanha)');
+                ? htmlspecialchars($g['nome_projeto']) . ($motivo ? ' <span class="ckh-card-titulo-sep">&gt;</span> ' . htmlspecialchars($motivo) : '')
+                : htmlspecialchars($motivo ?: '(sem nome de campanha)');
         ?>
         <div class="ckh-card" id="grupo-<?= md5($g['cliente'].'|'.$g['agencia'].'|'.$g['campanha'].'|'.$g['situacao'].'|'.$g['inicio'].'|'.$g['fim']) ?>">
             <div class="ckh-card-info">
@@ -273,7 +276,7 @@ $paginaAtual = 'campanhas';
                         data-situacao="<?= htmlspecialchars($g['situacao']) ?>"
                         data-inicio="<?= htmlspecialchars($g['inicio'] ? substr($g['inicio'], 0, 10) : '') ?>"
                         data-fim="<?= htmlspecialchars($g['fim'] ? substr($g['fim'], 0, 10) : '') ?>"
-                        data-titulo="<?= htmlspecialchars(trim(($g['nome_projeto'] ? $g['nome_projeto'] . ' > ' : '') . ($g['campanha'] ?: $g['cliente']))) ?>"
+                        data-titulo="<?= htmlspecialchars(trim(($g['nome_projeto'] ? $g['nome_projeto'] . ' > ' : '') . ($motivo ?: $g['cliente']))) ?>"
                         onclick="excluirGrupo(this)"
                         title="Excluir este checking (todas as fotos)">🗑️ Excluir</button>
             </div>
