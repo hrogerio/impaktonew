@@ -14,7 +14,11 @@ if (!isset($_SESSION['usuario'])) {
 require_once __DIR__ . '/../../../../config/database.php';
 $pdo = getDatabase();
 
-$busca = trim($_GET['busca'] ?? '');
+$busca       = trim($_GET['busca'] ?? '');
+$mostrarTodos = ($busca !== '') || isset($_GET['todos']);
+
+$primeiroDiaMes = date('Y-m-01');
+$ultimoDiaMes   = date('Y-m-t');
 
 $sql = "
     SELECT
@@ -33,11 +37,20 @@ $sql = "
        AND c.inicio <=> cf.inicio
        AND c.fim    <=> cf.fim
 ";
+$where  = [];
 $params = [];
 if ($busca !== '') {
-    $sql .= " WHERE cf.cliente LIKE ? OR cf.agencia LIKE ? OR cf.campanha LIKE ? OR c.nome LIKE ? ";
+    $where[] = "(cf.cliente LIKE ? OR cf.agencia LIKE ? OR cf.campanha LIKE ? OR c.nome LIKE ?)";
     $like = '%' . $busca . '%';
-    $params = [$like, $like, $like, $like];
+    array_push($params, $like, $like, $like, $like);
+}
+if (!$mostrarTodos) {
+    // Por padrão só mostra checkings de campanhas cujo período cruza o mês atual
+    $where[] = "(cf.inicio IS NULL OR cf.inicio <= ?) AND (cf.fim IS NULL OR cf.fim >= ?)";
+    array_push($params, $ultimoDiaMes, $primeiroDiaMes);
+}
+if ($where) {
+    $sql .= " WHERE " . implode(' AND ', $where);
 }
 $sql .= " GROUP BY cf.cliente, cf.agencia, cf.campanha, cf.situacao, cf.inicio, cf.fim
           ORDER BY ultimo_envio DESC";
@@ -59,6 +72,8 @@ function fmtDataHoraHist($d) {
     if (!$d) return '—';
     try { return (new DateTime($d))->format('d/m/Y \à\s H:i'); } catch (Exception $e) { return $d; }
 }
+
+$mesesPt = [1=>'Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 $paginaAtual = 'campanhas';
 ?>
@@ -218,12 +233,26 @@ $paginaAtual = 'campanhas';
     <div class="ckh-count">
         <b><?= count($grupos) ?></b> checking<?= count($grupos) !== 1 ? 's' : '' ?> encontrado<?= count($grupos) !== 1 ? 's' : '' ?>
         <?= $busca !== '' ? ' para "' . htmlspecialchars($busca) . '"' : '' ?>
+        <?php if (!$mostrarTodos): ?>
+            <span>· campanhas ativas em <?= htmlspecialchars($mesesPt[(int)date('n')] . '/' . date('Y')) ?></span>
+            <a href="?todos=1" class="ckh-busca-limpar">Ver histórico completo</a>
+        <?php elseif ($busca === ''): ?>
+            <span>· histórico completo</span>
+            <a href="/gestor/campanhas/checking/historico" class="ckh-busca-limpar">Ver só o mês atual</a>
+        <?php endif; ?>
     </div>
 
     <?php if (empty($grupos)): ?>
     <div class="ckh-vazio">
         <div class="ckh-vazio-icon">📷</div>
-        <?= $busca !== '' ? 'Nenhum checking encontrado para essa busca.' : 'Nenhum checking fotográfico realizado ainda.' ?>
+        <?php if ($busca !== ''): ?>
+            Nenhum checking encontrado para essa busca.
+        <?php elseif (!$mostrarTodos): ?>
+            Nenhum checking de campanha ativa neste mês.
+            <a href="?todos=1">Ver histórico completo</a>
+        <?php else: ?>
+            Nenhum checking fotográfico realizado ainda.
+        <?php endif; ?>
     </div>
     <?php else: ?>
         <?php foreach ($grupos as $g):
