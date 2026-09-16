@@ -33,7 +33,7 @@ $csrf = $_SESSION['csrf_token'];
 
 // Busca pontos ordenados por numero
 $ph   = implode(',', array_fill(0, count($pontoIds), '?'));
-$stmt = $pdo->prepare("SELECT id, numero, logradouro, bairro, cidade, regiao, latitude, longitude FROM pontos WHERE id IN ($ph) ORDER BY numero ASC");
+$stmt = $pdo->prepare("SELECT id, numero, logradouro, descricao, bairro, cidade, regiao, latitude, longitude FROM pontos WHERE id IN ($ph) ORDER BY numero ASC");
 $stmt->execute($pontoIds);
 $pontos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -339,13 +339,17 @@ $paginaAtual = 'campanhas';
     <!-- Cards por ponto -->
     <?php foreach ($pontos as $p):
         $fotos = $existentes[$p['id']] ?? [];
+        $tituloPonto = trim($p['descricao'] ?? '') !== '' ? $p['descricao'] : $p['logradouro'];
+        $subInfoPonto = ($tituloPonto === $p['logradouro'])
+            ? [$p['cidade'] ?? '', $p['regiao'] ?? '']
+            : [$p['logradouro'] ?? '', $p['cidade'] ?? '', $p['regiao'] ?? ''];
     ?>
     <div class="ck-ponto-card" id="card-ponto-<?= $p['id'] ?>">
         <div class="ck-ponto-head">
             <span class="ck-ponto-num"><?= str_pad($p['numero'], 3, '0', STR_PAD_LEFT) ?></span>
             <div class="ck-ponto-info">
-                <div class="ck-ponto-log"><?= htmlspecialchars($p['logradouro']) ?></div>
-                <div class="ck-ponto-cid"><?= htmlspecialchars(implode(' · ', array_filter([$p['cidade'] ?? '', $p['regiao'] ?? '']))) ?></div>
+                <div class="ck-ponto-log"><?= htmlspecialchars($tituloPonto) ?></div>
+                <div class="ck-ponto-cid"><?= htmlspecialchars(implode(' · ', array_filter($subInfoPonto))) ?></div>
             </div>
             <?php if (!empty($p['latitude']) && !empty($p['longitude'])): ?>
             <a href="https://maps.google.com/?q=<?= $p['latitude'] ?>,<?= $p['longitude'] ?>"
