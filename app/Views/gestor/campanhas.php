@@ -493,7 +493,7 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
         <div class="cp-modal-field">
             <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--color-text-dark);">
                 <input type="checkbox" id="cpModalCortesia" style="width:16px;height:16px;">
-                🎁 Cortesia (sem contrato/P.I./P.P. — não entra no alerta de documentos)
+                🎁 Cortesia
             </label>
         </div>
 
