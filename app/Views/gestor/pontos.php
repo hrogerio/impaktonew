@@ -29,7 +29,11 @@ $sql = "
            CASE
                WHEN c.fim IS NULL OR CAST(c.fim AS CHAR) = '0000-00-00'
                THEN NULL ELSE DATE(c.fim)
-           END AS fim_contrato
+           END AS fim_contrato,
+           CASE
+               WHEN c.inicio IS NULL OR CAST(c.inicio AS CHAR) = '0000-00-00'
+               THEN NULL ELSE DATE(c.inicio)
+           END AS inicio_contrato
     FROM pontos p
     LEFT JOIN campanhas c ON c.ponto_id = p.id AND c.ativo = 1
     LEFT JOIN clientes cl ON cl.id = c.cliente_id
@@ -271,6 +275,18 @@ $recentes = $pdo->query(
         }
         .push-bar-close:hover { color:white; background:rgba(255,255,255,0.1); }
 
+        /* ── Chip "Fotos do mês" ── */
+        .btn-chip-fotos {
+            display:inline-flex; align-items:center; gap:0.3rem;
+            font-family:'Montserrat', sans-serif; font-size:0.7rem; font-weight:600;
+            color:var(--color-text-muted); background:#f8fafc;
+            border:1.5px solid var(--color-border); border-radius:20px;
+            padding:0.28rem 0.7rem; cursor:pointer;
+            transition:all 0.15s;
+        }
+        .btn-chip-fotos:hover { border-color:#cbd5e1; color:var(--color-text-dark); }
+        .btn-chip-fotos.ativo { border-color:var(--color-accent-primary); color:var(--color-accent-primary); background:#fff3f2; }
+
         @media print { .no-print { display:none !important; } body { overflow:auto; } }
     </style>
 </head>
@@ -339,15 +355,7 @@ $recentes = $pdo->query(
                 <option value="<?= htmlspecialchars($c) ?>"><?= htmlspecialchars($c) ?></option>
                 <?php endforeach; ?>
             </select>
-            <select class="filtro-select" id="filtroVencimento">
-                <option value="">Todos os prazos</option>
-                <option value="mes_atual">🔴 Vencidos ou vencendo este mês</option>
-                <option value="7">⚠️ Vencendo em 7 dias</option>
-                <option value="15">Vencendo em 15 dias</option>
-                <option value="30">Vencendo em 30 dias</option>
-                <option value="vencido">🔴 Já vencidos</option>
-                <option value="sem_prazo">Sem prazo definido</option>
-            </select>
+            <button type="button" class="btn-chip-fotos" id="btnFotosMes" title="Pontos com campanha iniciada neste mês — use para atualizar as fotos">📷 Fotos do mês</button>
             <button class="btn-limpar-filtros" id="btnLimpar">✕ Limpar filtros</button>
         </div>
         <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.3rem;">
@@ -408,7 +416,7 @@ var selecao  = new Set(JSON.parse(localStorage.getItem(CART_KEY) || '[]'));
 var sortCol  = 'numero', sortDir = 'asc';
 var listaVisivelAtual = []; // pontos atualmente renderizados na tabela (vazio no estado padrão sem filtro)
 var FILTROS_KEY = 'impakto_pontos_filtros_v1';
-var filtros  = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', vencimento:'' };
+var filtros  = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', fotosMes:false };
 function salvarFiltros() {
     try { sessionStorage.setItem(FILTROS_KEY, JSON.stringify(filtros)); } catch(e) {}
 }
@@ -592,22 +600,10 @@ function filtrar(lista) {
             return false;
         }
         if (filtros.corredor && (p.corredor||'').trim() !== filtros.corredor) return false;
-        if (filtros.vencimento) {
-            var hoje = new Date(); hoje.setHours(0,0,0,0);
-            var fim  = p.fim_contrato ? new Date(p.fim_contrato) : null;
-            if (filtros.vencimento === 'sem_prazo') {
-                if (fim) return false;
-            } else if (filtros.vencimento === 'vencido') {
-                if (!fim || fim >= hoje) return false;
-            } else if (filtros.vencimento === 'mes_atual') {
-                if (!fim) return false;
-                var fimDoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
-                if (fim > fimDoMes) return false;
-            } else {
-                var dias = parseInt(filtros.vencimento, 10);
-                var limite = new Date(hoje); limite.setDate(hoje.getDate() + dias);
-                if (!fim || fim < hoje || fim > limite) return false;
-            }
+        if (filtros.fotosMes) {
+            var hoje = new Date();
+            var inicio = p.inicio_contrato ? new Date(p.inicio_contrato) : null;
+            if (!inicio || inicio.getFullYear() !== hoje.getFullYear() || inicio.getMonth() !== hoje.getMonth()) return false;
         }
         if (busca) {
             var campos = [p.numero,p.logradouro,p.descricao,p.cidade,p.regiao,p.cliente,p.campanha,p.motivo,p.agencia,p.corredor];
@@ -821,7 +817,7 @@ document.getElementById('searchClear').addEventListener('click', function() {
     document.getElementById('searchInput').focus();
 });
 
-var mapaFiltros = { filtroRegiao:'regiao', filtroCidade:'cidade', filtroCampanha:'campanha', filtroSituacao:'situacao', filtroCorredor:'corredor', filtroVencimento:'vencimento' };
+var mapaFiltros = { filtroRegiao:'regiao', filtroCidade:'cidade', filtroCampanha:'campanha', filtroSituacao:'situacao', filtroCorredor:'corredor' };
 Object.keys(mapaFiltros).forEach(function(id) {
     document.getElementById(id).addEventListener('change', function() {
         filtros[mapaFiltros[id]] = this.value;
@@ -830,20 +826,30 @@ Object.keys(mapaFiltros).forEach(function(id) {
         renderTabela();
     });
 });
+function setBtnFotosMes(ativo) {
+    filtros.fotosMes = ativo;
+    document.getElementById('btnFotosMes').className = 'btn-chip-fotos'+(ativo?' ativo':'');
+}
+document.getElementById('btnFotosMes').addEventListener('click', function() {
+    setBtnFotosMes(!filtros.fotosMes);
+    salvarFiltros();
+    renderTabela();
+});
 document.getElementById('btnLimpar').addEventListener('click', function() {
-    filtros = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', vencimento:'' };
+    filtros = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', fotosMes:false };
     document.getElementById('searchInput').value = '';
     document.getElementById('searchClear').className = 'search-clear';
     Object.keys(mapaFiltros).forEach(function(id) {
         document.getElementById(id).value = '';
         document.getElementById(id).className = 'filtro-select';
     });
+    setBtnFotosMes(false);
     salvarFiltros();
     renderTabela();
 });
 
 // ── Restaurar filtros ao voltar para esta página (sessionStorage), ou aplicar
-//    filtros vindos por link (?situacao=...&vencimento=...), que têm prioridade ──
+//    filtros vindos por link (?situacao=...&fotosMes=1), que têm prioridade ──
 (function restaurarFiltros() {
     var salvo;
     try { salvo = JSON.parse(sessionStorage.getItem(FILTROS_KEY) || 'null'); } catch(e) { salvo = null; }
@@ -856,9 +862,10 @@ document.getElementById('btnLimpar').addEventListener('click', function() {
         if (params.has(chave)) { doUrl[chave] = params.get(chave); temParamUrl = true; }
     });
     if (params.has('busca')) { doUrl.busca = params.get('busca'); temParamUrl = true; }
+    if (params.has('fotosMes')) { doUrl.fotosMes = params.get('fotosMes') === '1'; temParamUrl = true; }
 
     if (!salvo && !temParamUrl) return;
-    filtros = Object.assign({ busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', vencimento:'' }, salvo, temParamUrl ? doUrl : {});
+    filtros = Object.assign({ busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', fotosMes:false }, salvo, temParamUrl ? doUrl : {});
     document.getElementById('searchInput').value = filtros.busca;
     document.getElementById('searchClear').className = 'search-clear'+(filtros.busca?' visible':'');
     Object.keys(mapaFiltros).forEach(function(id) {
@@ -866,6 +873,7 @@ document.getElementById('btnLimpar').addEventListener('click', function() {
         document.getElementById(id).value = val;
         document.getElementById(id).className = 'filtro-select'+(val?' ativo':'');
     });
+    setBtnFotosMes(!!filtros.fotosMes);
     salvarFiltros();
     renderTabela();
 })();
