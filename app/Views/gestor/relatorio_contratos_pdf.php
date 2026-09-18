@@ -242,9 +242,9 @@ function docsLabelPdf(array $c, array $documentosPorGrupo): string {
     return $tiposEmOrdem ? implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposEmOrdem)) : 'Sem doc';
 }
 
-/** Conta quantos contratos da lista não têm nenhum documento financeiro enviado */
+/** Conta quantos contratos da lista não têm nenhum documento financeiro enviado (ignora cortesias) */
 function contarSemDocumentosPdf(array $lista, array $documentosPorGrupo): int {
-    return count(array_filter($lista, fn($c) => empty($documentosPorGrupo[docChavePdf($c)] ?? [])));
+    return count(array_filter($lista, fn($c) => empty($c['cortesia']) && empty($documentosPorGrupo[docChavePdf($c)] ?? [])));
 }
 
 /** Contrato cadastrado no sistema nos últimos 30 dias — mesmo critério usado na tela de Relatórios */
@@ -259,7 +259,7 @@ function ehNovoPdf(array $c): bool {
  *  (a coluna Docs foi removida pra dar mais espaço às outras, mas o destaque visual continua indicando "sem doc").
  *  Contratos novos (30 dias) ganham "NOVO" na coluna própria, sem espremer o nome do cliente. */
 function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, array $documentosPorGrupo = [], bool $destaqueTodas = false) {
-    $destaque = $destaqueTodas ? true : array_values(array_map(fn($c) => docsLabelPdf($c, $documentosPorGrupo) === 'Sem doc', $lista));
+    $destaque = $destaqueTodas ? true : array_values(array_map(fn($c) => empty($c['cortesia']) && docsLabelPdf($c, $documentosPorGrupo) === 'Sem doc', $lista));
     tabela($pdf,
         ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração', 'Pontos', 'Novo'],
         [48, 33, 23, 17, 13, 13, 16, 11, 12],

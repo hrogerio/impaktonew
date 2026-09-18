@@ -46,9 +46,10 @@ function fmtData($data) {
     catch (Exception $e) { return '-'; }
 }
 
-/** Conta quantos contratos da lista não têm nenhum documento financeiro enviado */
+/** Conta quantos contratos da lista não têm nenhum documento financeiro enviado (ignora cortesias, que não precisam de doc) */
 function contarSemDocumentos(array $lista, array $documentosPorGrupo): int {
     return count(array_filter($lista, function($c) use ($documentosPorGrupo) {
+        if (!empty($c['cortesia'])) return false;
         $chave = md5(trim($c['cliente_raw'] ?? ($c['cliente'] ?? '')) . '|' . trim($c['agencia'] ?? '') . '|' . trim($c['motivo'] ?? '') . '|' . ($c['inicio_doc'] ?? '') . '|' . ($c['fim_doc'] ?? ''));
         return empty($documentosPorGrupo[$chave] ?? []);
     }));
@@ -144,7 +145,9 @@ function tabelaCampanhas(array $lista) {
                     <td><?= fmtDuracao($c['duracao_dias']) ?></td>
                     <td style="text-align:center"><strong style="color:var(--color-accent-primary)"><?= $c['qtd_pontos'] ?></strong></td>
                     <td>
-                        <?php if (!empty($tiposEmOrdem)): ?>
+                        <?php if (!empty($c['cortesia'])): ?>
+                        <span class="docs-status docs-cortesia" title="Cortesia — não precisa de contrato/P.I./P.P.">🎁 Cortesia</span>
+                        <?php elseif (!empty($tiposEmOrdem)): ?>
                         <span class="docs-status docs-ok" title="Documentos enviados: <?= htmlspecialchars(implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposEmOrdem))) ?>">✅ <?= htmlspecialchars(implode(', ', array_map(fn($t) => $labelsTipo[$t], $tiposEmOrdem))) ?></span>
                         <?php else: ?>
                         <span class="docs-status docs-falta" title="Nenhum documento enviado ainda">⚠️ Sem doc</span>
@@ -176,6 +179,7 @@ function tabelaCampanhas(array $lista) {
         .tag-novo-contrato { display:inline-block; margin-left:0.4rem; padding:1px 7px; border-radius:8px; background:#dbeafe; color:#1d4ed8; font-size:0.65rem; font-weight:800; white-space:nowrap; vertical-align:middle; }
         .docs-status.docs-ok    { background:#dcfce7; color:#166534; }
         .docs-status.docs-falta { background:#fef3c7; color:#92400e; }
+        .docs-status.docs-cortesia { background:#ede9fe; color:#5b21b6; }
 
         .rel-row-clicavel { cursor:pointer; }
         .rel-row-clicavel:hover { background:#f9fafb; }
@@ -918,7 +922,8 @@ function aplicarFiltrosContratosAtivos() {
     var linhas = document.querySelectorAll('#tabelaContratosAtivosWrap .rel-row-clicavel');
     linhas.forEach(function(el) {
         var temDoc = !!el.querySelector('.docs-ok');
-        var passaDocs = valorDocs === 'todos' || (valorDocs === 'com' && temDoc) || (valorDocs === 'sem' && !temDoc);
+        var ehCortesia = !!el.querySelector('.docs-cortesia');
+        var passaDocs = valorDocs === 'todos' || (valorDocs === 'com' && temDoc) || (valorDocs === 'sem' && !temDoc && !ehCortesia);
         var passaNovo = valorNovo === 'todos' || (valorNovo === 'novos' && el.classList.contains('linha-contrato-novo'));
         var passaBusca = termo === '' || el.textContent.toLowerCase().indexOf(termo) !== -1;
         el.style.display = (passaDocs && passaNovo && passaBusca) ? '' : 'none';

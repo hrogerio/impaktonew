@@ -34,6 +34,7 @@ $inicio     = trim($body['inicio']     ?? '');
 $fim        = trim($body['fim']        ?? '');
 $contato    = trim($body['contato']    ?? '');
 $obs        = trim($body['observacoes'] ?? '');
+$cortesia   = !empty($body['cortesia']) ? 1 : 0;
 $usuario    = $_SESSION['usuario'] ?? '';
 
 if (!$pontoId) responderSalvar(['erro'=>'ponto_id invalido']);
@@ -95,12 +96,12 @@ try {
         $stmt = $pdo->prepare("
             UPDATE campanhas
             SET cliente=?, cliente_id=?, agencia=?, agencia_id=?, campanha=?, nome=?, situacao=?,
-                inicio=?, fim=?, contato=?, observacoes=?
+                inicio=?, fim=?, contato=?, observacoes=?, cortesia=?
             WHERE id=? AND ponto_id=?
         ");
         $stmt->execute([
             $cliente ?: null, $clienteId, $agencia ?: null, $agenciaId, $campanha ?: null, $nome ?: null, $situacao,
-            $inicio ?: null,  $fim ?: null,     $contato ?: null,  $obs ?: null,
+            $inicio ?: null,  $fim ?: null,     $contato ?: null,  $obs ?: null, $cortesia,
             $campanhaId, $pontoId
         ]);
 
@@ -138,15 +139,15 @@ try {
 
         // Cria nova campanha
         $stmt = $pdo->prepare("
-            INSERT INTO campanhas (ponto_id, cliente, cliente_id, agencia, agencia_id, campanha, nome, situacao, inicio, fim, contato, observacoes, ativo, criado_por)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+            INSERT INTO campanhas (ponto_id, cliente, cliente_id, agencia, agencia_id, campanha, nome, situacao, inicio, fim, contato, observacoes, cortesia, ativo, criado_por)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
         ");
         $stmt->execute([
             $pontoId,
             $cliente ?: null, $clienteId, $agencia ?: null, $agenciaId, $campanha ?: null, $nome ?: null,
             $situacao,
             $inicio ?: null, $fim ?: null,
-            $contato ?: null, $obs ?: null,
+            $contato ?: null, $obs ?: null, $cortesia,
             $usuario
         ]);
         $campanhaId = (int)$pdo->lastInsertId();

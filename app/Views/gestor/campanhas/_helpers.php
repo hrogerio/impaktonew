@@ -49,7 +49,7 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
     $sql = "
         SELECT
             c.id, c.ponto_id, c.cliente, c.cliente_id, c.agencia, c.agencia_id, c.campanha, c.nome AS nome_projeto,
-            c.situacao, c.inicio, c.fim, c.ativo, c.encerrado_em, c.criado_em,
+            c.situacao, c.inicio, c.fim, c.ativo, c.encerrado_em, c.criado_em, c.cortesia,
             p.numero, p.logradouro, p.cidade, p.regiao,
             cl.razao_social AS cliente_cadastro
         FROM campanhas c
@@ -114,6 +114,7 @@ function campanhasBuscarGrupos(PDO $pdo, string $situacaoFiltro): array {
                 'titulo'           => $titulo,
                 'situacao'         => $r['situacao'],
                 'ativo'            => (int)$r['ativo'],
+                'cortesia'         => (int)$r['cortesia'],
                 'inicio'           => $r['inicio'],
                 'fim'              => $r['fim'],
                 'rows'             => [],
@@ -174,6 +175,7 @@ function renderCampanhaCard(array $g, array $CORES, string $hoje): string {
         'nome'         => $g['nome'],
         'nome_projeto' => $g['nome_projeto'],
         'situacao'     => $g['situacao'],
+        'cortesia'   => (bool)$g['cortesia'],
         'inicio'     => $g['inicio'] ? substr($g['inicio'], 0, 10) : '',
         'fim'        => $g['fim']    ? substr($g['fim'],    0, 10) : '',
         'isVencida'  => (bool)$isVencida,

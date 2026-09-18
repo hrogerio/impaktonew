@@ -490,6 +490,13 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
             </div>
         </div>
 
+        <div class="cp-modal-field">
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--color-text-dark);">
+                <input type="checkbox" id="cpModalCortesia" style="width:16px;height:16px;">
+                🎁 Cortesia (sem contrato/P.I./P.P. — não entra no alerta de documentos)
+            </label>
+        </div>
+
         <div class="cp-modal-actions">
             <button class="cp-btn-cancelar" onclick="fecharModal()">Cancelar</button>
             <button class="cp-btn-salvar" id="cpBtnSalvar" onclick="salvarEdicao()">💾 Salvar alterações</button>
@@ -730,6 +737,7 @@ function abrirEdicao(card) {
     document.getElementById('cpModalNome').value         = (dados.nome && dados.nome !== '—') ? dados.nome : '';
     document.getElementById('cpModalInicio').value   = dados.inicio  || '';
     document.getElementById('cpModalFim').value      = dados.fim     || '';
+    document.getElementById('cpModalCortesia').checked = !!dados.cortesia;
     document.getElementById('cpBtnSalvar').disabled  = false;
     document.getElementById('cpBtnSalvar').textContent = '💾 Salvar alterações';
     document.getElementById('cpModalOverlay').classList.add('aberto');
@@ -839,6 +847,7 @@ function salvarEdicao() {
     var nome        = document.getElementById('cpModalNome').value.trim();
     var inicio      = document.getElementById('cpModalInicio').value;
     var fim         = document.getElementById('cpModalFim').value;
+    var cortesia    = document.getElementById('cpModalCortesia').checked;
 
     if (!cliente) { alert('Informe o nome do cliente.'); return; }
 
@@ -863,6 +872,7 @@ function salvarEdicao() {
                     situacao:    dados.situacao,
                     inicio:      inicio || null,
                     fim:         fim    || null,
+                    cortesia:    cortesia,
                 })
             }).then(function(r) {
                 if (!r.ok) throw new Error('HTTP ' + r.status);
