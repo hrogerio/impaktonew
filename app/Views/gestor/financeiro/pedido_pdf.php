@@ -274,7 +274,7 @@ if (!empty($parcelas)) {
     $porCol   = (int)ceil($totalParcelas / $numCols);
     $gap      = 4;
     $largCol  = ($CW - $gap * ($numCols - 1)) / $numCols;
-    $altCel   = 9;
+    $altCel   = 13;
 
     $pdf->SetLineWidth(0.25);
     foreach ($parcelas as $i => $p) {
@@ -298,6 +298,13 @@ if (!empty($parcelas)) {
         $pdf->SetTextColor(...$PRETO);
         $pdf->SetXY($cellX + 3 + $wNum, $cellY + 2.2);
         $pdf->Cell($largCol - 6 - $wNum, 4.6, s(dataExtensa($p['data_vencimento'])), 0, 0, 'L');
+
+        if ($p['valor'] !== null) {
+            $pdf->SetFont(FONT_MAIN, 'B', 8.5);
+            $pdf->SetTextColor(...$VERM);
+            $pdf->SetXY($cellX + 3, $cellY + 2.2 + 4.6);
+            $pdf->Cell($largCol - 6, 4.2, s(moedaBr((float)$p['valor'])), 0, 0, 'L');
+        }
     }
     $y += $porCol * ($altCel + 2) + 4;
 }
