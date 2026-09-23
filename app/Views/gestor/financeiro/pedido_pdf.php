@@ -270,11 +270,12 @@ if (!empty($parcelas)) {
     $y += 7;
 
     $totalParcelas = count($parcelas);
-    $numCols  = $totalParcelas > 8 ? 3 : ($totalParcelas > 4 ? 2 : 1);
+    // Só 2 colunas no máximo, pra sobrar largura o bastante pra data + valor na mesma linha
+    $numCols  = $totalParcelas > 4 ? 2 : 1;
     $porCol   = (int)ceil($totalParcelas / $numCols);
     $gap      = 4;
     $largCol  = ($CW - $gap * ($numCols - 1)) / $numCols;
-    $altCel   = 13;
+    $altCel   = 9;
 
     $pdf->SetLineWidth(0.25);
     foreach ($parcelas as $i => $p) {
@@ -294,16 +295,19 @@ if (!empty($parcelas)) {
         $pdf->SetXY($cellX + 3, $cellY + 2.2);
         $pdf->Cell($wNum, 4.6, s($numLabel), 0, 0, 'L');
 
+        $valorTxt = $p['valor'] !== null ? moedaBr((float)$p['valor']) : '';
+        $wValor = $valorTxt !== '' ? $pdf->GetStringWidth(s($valorTxt)) + 3 : 0;
+
         $pdf->SetFont(FONT_MAIN, '', 8.5);
         $pdf->SetTextColor(...$PRETO);
         $pdf->SetXY($cellX + 3 + $wNum, $cellY + 2.2);
-        $pdf->Cell($largCol - 6 - $wNum, 4.6, s(dataExtensa($p['data_vencimento'])), 0, 0, 'L');
+        $pdf->Cell($largCol - 6 - $wNum - $wValor, 4.6, s(dataExtensa($p['data_vencimento'])), 0, 0, 'L');
 
-        if ($p['valor'] !== null) {
+        if ($valorTxt !== '') {
             $pdf->SetFont(FONT_MAIN, 'B', 8.5);
             $pdf->SetTextColor(...$VERM);
-            $pdf->SetXY($cellX + 3, $cellY + 2.2 + 4.6);
-            $pdf->Cell($largCol - 6, 4.2, s(moedaBr((float)$p['valor'])), 0, 0, 'L');
+            $pdf->SetXY($cellX + 3, $cellY + 2.2);
+            $pdf->Cell($largCol - 6, 4.6, s($valorTxt), 0, 0, 'R');
         }
     }
     $y += $porCol * ($altCel + 2) + 4;
