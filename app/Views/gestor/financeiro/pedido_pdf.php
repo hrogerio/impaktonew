@@ -385,7 +385,7 @@ if ($assinanteInfo) {
             $imgW = $ih > 0 ? $imgH * ($iw / $ih) : $imgW;
         }
         $imgX = $ML + ($colW - $imgW) / 2;
-        $imgY = $y - $alturaAssinatura + 3;
+        $imgY = $y - $imgH - 2; // encosta perto da linha, independente da altura da imagem
         $pdf->Image($assinaturaPath, $imgX, $imgY, $imgW, $imgH);
     }
 }
