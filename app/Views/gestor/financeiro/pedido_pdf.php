@@ -362,7 +362,7 @@ $y = $pdf->GetY() + 8;
 
 // Reserva espaço extra pra imagem da assinatura, se houver
 $assinanteInfo = $pedido['assinante'] && isset(ASSINANTES[$pedido['assinante']]) ? ASSINANTES[$pedido['assinante']] : null;
-$alturaAssinatura = $assinanteInfo ? 16 : 6;
+$alturaAssinatura = $assinanteInfo ? 12 : 6;
 $y += $alturaAssinatura;
 
 if ($y > 270) { $pdf->AddPage(); $y = 20; $y += $alturaAssinatura; }
@@ -375,10 +375,17 @@ if ($assinanteInfo) {
     $assinaturaPath = __DIR__ . '/../../../../public/assets/img/assinaturas/' . $assinanteInfo['imagem'];
     if (file_exists($assinaturaPath)) {
         [$iw, $ih] = @getimagesize($assinaturaPath) ?: [0, 0];
-        $imgW = 32;
-        $imgH = $iw > 0 ? $imgW * ($ih / $iw) : 10;
+        // Limita por largura E altura, pra assinaturas com proporções bem diferentes
+        // (ex: mais "quadradas") não ficarem grandes/desproporcionais na página.
+        $imgW = 22;
+        $imgH = $iw > 0 ? $imgW * ($ih / $iw) : 8;
+        $alturaMax = 8;
+        if ($imgH > $alturaMax) {
+            $imgH = $alturaMax;
+            $imgW = $ih > 0 ? $imgH * ($iw / $ih) : $imgW;
+        }
         $imgX = $ML + ($colW - $imgW) / 2;
-        $imgY = $y - $alturaAssinatura + 2;
+        $imgY = $y - $alturaAssinatura + 3;
         $pdf->Image($assinaturaPath, $imgX, $imgY, $imgW, $imgH);
     }
 }
