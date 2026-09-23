@@ -43,6 +43,16 @@ $clientesCadastro = $pdo->query("
     FROM clientes WHERE ativo = 1 ORDER BY razao_social ASC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
+// Cadastro de pontos, pro campo "Ponto" dos itens do P.I. (busca por número/endereço/cidade)
+$pontosCadastro = $pdo->query("
+    SELECT id, numero, logradouro, cidade
+    FROM pontos WHERE ativo = 1 ORDER BY numero ASC
+")->fetchAll(PDO::FETCH_ASSOC);
+foreach ($pontosCadastro as &$p) {
+    $p['label'] = '#' . $p['numero'] . ' — ' . $p['logradouro'] . ' — ' . $p['cidade'];
+}
+unset($p);
+
 function v($val) { return htmlspecialchars((string)($val ?? '')); }
 ?>
 <!DOCTYPE html>
@@ -228,6 +238,13 @@ function v($val) { return htmlspecialchars((string)($val ?? '')); }
 
             <div class="pf-section">
                 <h2>Itens</h2>
+                <?php if ($tipo === 'PI'): ?>
+                <datalist id="dlPontos">
+                    <?php foreach ($pontosCadastro as $p): ?>
+                        <option value="<?= v($p['label']) ?>">
+                    <?php endforeach; ?>
+                </datalist>
+                <?php endif; ?>
                 <table class="pf-itens-table" id="tabelaItens">
                     <thead>
                         <tr id="cabecalhoItens"></tr>
@@ -274,6 +291,21 @@ function v($val) { return htmlspecialchars((string)($val ?? '')); }
             </div>
 
             <div class="pf-section">
+                <h2>Assinatura</h2>
+                <div class="pf-grid">
+                    <div class="form-group">
+                        <label>Responsável que assina pela Impakto *</label>
+                        <select id="f_assinante" required>
+                            <option value="">Selecione...</option>
+                            <?php foreach (ASSINANTES as $chave => $dados): ?>
+                                <option value="<?= v($chave) ?>" <?= ($pedido['assinante'] ?? '') === $chave ? 'selected' : '' ?>><?= v($dados['nome']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pf-section">
                 <h2>Observações</h2>
                 <div class="form-group full">
                     <textarea id="f_observacoes" rows="3"><?= v($pedido['observacoes'] ?? '') ?></textarea>
@@ -301,12 +333,13 @@ const TIPO = document.getElementById('f_tipo').value;
 const ITENS_INICIAIS = <?= json_encode($itens, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 const PARCELAS_INICIAIS = <?= json_encode($parcelas, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 const CLIENTES = <?= json_encode($clientesCadastro, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+const PONTOS = <?= json_encode($pontosCadastro ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
-// Colunas por tipo: PI = Mídia/Praça/Qtd/Valor unit./Valor total · PP = Mat-Serviço/Descrição/Valor unit./Valor total
+// Colunas por tipo: PI = Mídia/Ponto/Valor unit./Valor total · PP = Mat-Serviço/Descrição/Valor unit./Valor total
 const MIDIAS_PI = ['Outdoor Papel', 'Outdoor Lonado', 'Painel 9x3', 'Painel 9x6', 'Painel 9x4', 'Painel 18x3', 'Painel 3x9', 'Frontlight', 'Projeto Especial', 'Outros'];
 
 const COLUNAS = TIPO === 'PI'
-    ? [{k:'campo1', label:'Mídia', options: MIDIAS_PI}, {k:'campo2', label:'Praça'}, {k:'quantidade', label:'Qtd'}, {k:'valor_unitario', label:'Valor Unitário'}, {k:'valor_total', label:'Valor Total'}]
+    ? [{k:'campo1', label:'Mídia', options: MIDIAS_PI}, {k:'campo2', label:'Ponto', tipo:'ponto'}, {k:'valor_unitario', label:'Valor Unitário'}, {k:'valor_total', label:'Valor Total'}]
     : [{k:'campo1', label:'Mat/Serviço'}, {k:'campo2', label:'Descrição'}, {k:'valor_unitario', label:'Valor Unitário'}, {k:'valor_total', label:'Valor Total'}];
 
 function montarCabecalho() {
@@ -331,11 +364,27 @@ function linhaHtml(item) {
             ).join('');
             return `<td><select data-campo="${c.k}" onchange="itemAlterado(this)">${opts}</select></td>`;
         }
+        if (c.tipo === 'ponto') {
+            const pontoId = item.ponto_id ?? '';
+            return `<td>
+                <input type="text" list="dlPontos" data-campo="${c.k}" value="${val}" placeholder="Nº, endereço ou cidade..." oninput="pontoAlterado(this)">
+                <input type="hidden" data-campo="ponto_id" value="${pontoId}">
+            </td>`;
+        }
         const tipoInput = (c.k === 'quantidade' || c.k === 'valor_unitario' || c.k === 'valor_total') ? 'number' : 'text';
         const step = tipoInput === 'number' ? 'step="0.01"' : '';
         return `<td><input type="${tipoInput}" ${step} data-campo="${c.k}" value="${val}" oninput="itemAlterado(this)"></td>`;
     }).join('');
     return `<tr>${campos}<td><button type="button" class="pf-rm-item" onclick="this.closest('tr').remove(); recalcularTotal();" title="Remover">✕</button></td></tr>`;
+}
+
+// Ao escolher um ponto cadastrado (via datalist), guarda o ponto_id vinculado
+function pontoAlterado(inputEl) {
+    const tr = inputEl.closest('tr');
+    const hidden = tr.querySelector('[data-campo="ponto_id"]');
+    const match = PONTOS.find(p => p.label === inputEl.value);
+    if (hidden) hidden.value = match ? match.id : '';
+    recalcularTotal();
 }
 
 function adicionarItem(item) {
@@ -349,9 +398,15 @@ function itemAlterado(inputEl) {
         const qtdEl = tr.querySelector('[data-campo="quantidade"]');
         const vUnitEl = tr.querySelector('[data-campo="valor_unitario"]');
         const vTotalEl = tr.querySelector('[data-campo="valor_total"]');
-        const qtd = qtdEl ? parseFloat(qtdEl.value || 0) : 0;
         const vUnit = vUnitEl ? parseFloat(vUnitEl.value || 0) : 0;
-        if (vTotalEl && qtd > 0 && vUnit > 0) vTotalEl.value = (qtd * vUnit).toFixed(2);
+        if (vTotalEl && qtdEl) {
+            // Com quantidade (P.P.): total = qtd × unitário
+            const qtd = parseFloat(qtdEl.value || 0);
+            if (qtd > 0 && vUnit > 0) vTotalEl.value = (qtd * vUnit).toFixed(2);
+        } else if (vTotalEl && vUnit > 0) {
+            // Sem quantidade (P.I., 1 ponto por linha): total = unitário
+            vTotalEl.value = vUnit.toFixed(2);
+        }
     }
     recalcularTotal();
 }
@@ -572,6 +627,7 @@ function montarPayload() {
         cliente_telefone: document.getElementById('f_cliente_telefone').value,
         cliente_email: document.getElementById('f_cliente_email').value,
         observacoes: document.getElementById('f_observacoes').value,
+        assinante: document.getElementById('f_assinante').value,
         qtd_parcelas: parseInt(document.getElementById('f_qtd_parcelas').value || '1', 10),
         valor_bruto: document.getElementById('f_valor_bruto').value,
         itens: coletarItens(),

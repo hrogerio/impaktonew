@@ -5,8 +5,8 @@
  * Body JSON: { id?, tipo, status, data_emissao, periodo_inicio, periodo_fim, nome_campanha,
  *              cliente_razao_social, cliente_cnpj, cliente_ie, cliente_endereco,
  *              cliente_cidade, cliente_cep, cliente_telefone, cliente_email,
- *              observacoes, qtd_parcelas, valor_bruto,
- *              itens: [{campo1,campo2,quantidade,valor_unitario,valor_total}],
+ *              observacoes, assinante, qtd_parcelas, valor_bruto,
+ *              itens: [{campo1,campo2,ponto_id,quantidade,valor_unitario,valor_total}],
  *              parcelas: [{numero,data_vencimento,valor}] }
  */
 ini_set('display_errors', 0);
@@ -60,25 +60,28 @@ $clienteEmail  = trim($body['cliente_email'] ?? '') ?: null;
 
 $observacoes  = trim($body['observacoes'] ?? '') ?: null;
 $qtdParcelas  = max(1, (int)($body['qtd_parcelas'] ?? 1));
+$assinante    = trim($body['assinante'] ?? '') ?: null;
 
 if ($clienteRazao === '') responderPedido(['erro' => 'cliente_obrigatorio']);
+if ($assinante !== null && !isset(ASSINANTES[$assinante])) responderPedido(['erro' => 'assinante_invalido']);
 
 // Itens: normaliza e descarta linhas totalmente vazias
 $itensBrutos = is_array($body['itens'] ?? null) ? $body['itens'] : [];
 $itens = [];
 foreach ($itensBrutos as $it) {
-    $campo1 = trim($it['campo1'] ?? '');
-    $campo2 = trim($it['campo2'] ?? '');
-    $qtd    = ($it['quantidade'] ?? '') !== '' ? (float)$it['quantidade'] : null;
-    $vUnit  = ($it['valor_unitario'] ?? '') !== '' ? (float)$it['valor_unitario'] : null;
-    $vTotal = (float)($it['valor_total'] ?? 0);
+    $campo1  = trim($it['campo1'] ?? '');
+    $campo2  = trim($it['campo2'] ?? '');
+    $pontoId = ($it['ponto_id'] ?? '') !== '' ? (int)$it['ponto_id'] : null;
+    $qtd     = ($it['quantidade'] ?? '') !== '' ? (float)$it['quantidade'] : null;
+    $vUnit   = ($it['valor_unitario'] ?? '') !== '' ? (float)$it['valor_unitario'] : null;
+    $vTotal  = (float)($it['valor_total'] ?? 0);
 
     if ($campo1 === '' && $campo2 === '' && $vTotal == 0) continue; // linha em branco
-    $itens[] = [$campo1 ?: null, $campo2 ?: null, $qtd, $vUnit, $vTotal];
+    $itens[] = [$campo1 ?: null, $campo2 ?: null, $pontoId, $qtd, $vUnit, $vTotal];
 }
 if (empty($itens)) responderPedido(['erro' => 'itens_obrigatorios']);
 
-$valorTotal = array_sum(array_column($itens, 4)); // valor mensal (soma dos itens)
+$valorTotal = array_sum(array_column($itens, 5)); // valor mensal (soma dos itens)
 $valorBruto = ($body['valor_bruto'] ?? '') !== '' ? (float)$body['valor_bruto'] : $valorTotal * $qtdParcelas;
 
 // Parcelas: normaliza e descarta linhas sem data
@@ -107,14 +110,14 @@ try {
                 status=?, data_emissao=?, periodo_inicio=?, periodo_fim=?, nome_campanha=?,
                 cliente_razao_social=?, cliente_cnpj=?, cliente_ie=?, cliente_endereco=?,
                 cliente_cidade=?, cliente_cep=?, cliente_telefone=?, cliente_email=?,
-                observacoes=?, qtd_parcelas=?, valor_total=?, valor_bruto=?
+                observacoes=?, qtd_parcelas=?, valor_total=?, valor_bruto=?, assinante=?
             WHERE id=?
         ");
         $stmt->execute([
             $status, $dataEmissao, $periodoInicio, $periodoFim, $nomeCampanha,
             $clienteRazao, $clienteCnpj, $clienteIe, $clienteEnd,
             $clienteCidade, $clienteCep, $clienteTel, $clienteEmail,
-            $observacoes, $qtdParcelas, $valorTotal, $valorBruto,
+            $observacoes, $qtdParcelas, $valorTotal, $valorBruto, $assinante,
             $id,
         ]);
         // Numeração é definida na criação e nunca muda depois.
@@ -136,24 +139,24 @@ try {
                 (tipo, numero_data, numero_seq, status, data_emissao, periodo_inicio, periodo_fim, nome_campanha,
                  cliente_razao_social, cliente_cnpj, cliente_ie, cliente_endereco,
                  cliente_cidade, cliente_cep, cliente_telefone, cliente_email,
-                 observacoes, qtd_parcelas, valor_total, valor_bruto, criado_por)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 observacoes, qtd_parcelas, valor_total, valor_bruto, assinante, criado_por)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $tipo, $numeroData, $numeroSeq, $status, $dataEmissao, $periodoInicio, $periodoFim, $nomeCampanha,
             $clienteRazao, $clienteCnpj, $clienteIe, $clienteEnd,
             $clienteCidade, $clienteCep, $clienteTel, $clienteEmail,
-            $observacoes, $qtdParcelas, $valorTotal, $valorBruto, $usuario,
+            $observacoes, $qtdParcelas, $valorTotal, $valorBruto, $assinante, $usuario,
         ]);
         $pedidoId = (int)$pdo->lastInsertId();
     }
 
     $insItem = $pdo->prepare("
-        INSERT INTO pedidos_financeiros_itens (pedido_id, ordem, campo1, campo2, quantidade, valor_unitario, valor_total)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO pedidos_financeiros_itens (pedido_id, ordem, campo1, campo2, ponto_id, quantidade, valor_unitario, valor_total)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
-    foreach ($itens as $i => [$campo1, $campo2, $qtd, $vUnit, $vTotal]) {
-        $insItem->execute([$pedidoId, $i, $campo1, $campo2, $qtd, $vUnit, $vTotal]);
+    foreach ($itens as $i => [$campo1, $campo2, $pontoId, $qtd, $vUnit, $vTotal]) {
+        $insItem->execute([$pedidoId, $i, $campo1, $campo2, $pontoId, $qtd, $vUnit, $vTotal]);
     }
 
     $insParcela = $pdo->prepare("

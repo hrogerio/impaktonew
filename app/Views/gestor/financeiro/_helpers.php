@@ -2,6 +2,16 @@
 // Helpers compartilhados entre as telas de Financeiro (listagem, formulário, PDF).
 
 /**
+ * Únicos responsáveis autorizados a assinar um P.I./P.P. pela Impakto.
+ * A imagem fica em public/assets/img/assinaturas/.
+ */
+const ASSINANTES = [
+    'marcos_caupani'        => ['nome' => 'Marcos Caupani',            'imagem' => 'marcos_caupani.png'],
+    'antonio_carlos_araujo' => ['nome' => 'Antônio Carlos de Araújo',  'imagem' => 'antonio_carlos_araujo.png'],
+    'vitor_lima'            => ['nome' => 'Vitor Lima',                 'imagem' => 'vitor_lima.png'],
+];
+
+/**
  * Converte a sequência do dia (1,2,3...) em letra (A,B,C...Z,AA,AB...),
  * no mesmo esquema usado para colunas de planilha.
  */

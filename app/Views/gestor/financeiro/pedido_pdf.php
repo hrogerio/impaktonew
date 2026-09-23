@@ -199,11 +199,10 @@ $y += 4;
 // ── Tabela de itens ──────────────────────────────────────────────────────────
 if ($tipo === 'PI') {
     $cols = [
-        ['label' => 'MÍDIA',  'w' => 36, 'align' => 'L', 'key' => 'campo1'],
-        ['label' => 'PRAÇA',  'w' => 56, 'align' => 'L', 'key' => 'campo2'],
-        ['label' => 'QTD',    'w' => 16, 'align' => 'C', 'key' => 'quantidade'],
-        ['label' => 'VALOR UNITÁRIO', 'w' => 32, 'align' => 'R', 'key' => 'valor_unitario'],
-        ['label' => 'VALOR TOTAL', 'w' => $CW - 36 - 56 - 16 - 32, 'align' => 'R', 'key' => 'valor_total'],
+        ['label' => 'MÍDIA', 'w' => 40, 'align' => 'L', 'key' => 'campo1'],
+        ['label' => 'PONTO', 'w' => 78, 'align' => 'L', 'key' => 'campo2'],
+        ['label' => 'VALOR UNITÁRIO', 'w' => 34, 'align' => 'R', 'key' => 'valor_unitario'],
+        ['label' => 'VALOR TOTAL', 'w' => $CW - 40 - 78 - 34, 'align' => 'R', 'key' => 'valor_total'],
     ];
 } else {
     $cols = [
@@ -359,12 +358,31 @@ $pdf->SetFont(FONT_MAIN, '', 8);
 $pdf->SetTextColor(...$MUTED);
 $pdf->SetXY($ML, $y);
 $pdf->MultiCell($CW, 4.2, s('Concordamos com as condições do presente pedido, principalmente das notas importantes.'), 0, 'L');
-$y = $pdf->GetY() + 10;
+$y = $pdf->GetY() + 8;
 
-if ($y > 270) { $pdf->AddPage(); $y = 20; }
+// Reserva espaço extra pra imagem da assinatura, se houver
+$assinanteInfo = $pedido['assinante'] && isset(ASSINANTES[$pedido['assinante']]) ? ASSINANTES[$pedido['assinante']] : null;
+$alturaAssinatura = $assinanteInfo ? 16 : 6;
+$y += $alturaAssinatura;
+
+if ($y > 270) { $pdf->AddPage(); $y = 20; $y += $alturaAssinatura; }
 
 // ── Assinaturas ────────────────────────────────────────────────────────────
 $colW = ($CW - 10) / 2;
+
+// Imagem da assinatura escolhida, centralizada acima da linha esquerda
+if ($assinanteInfo) {
+    $assinaturaPath = __DIR__ . '/../../../../public/assets/img/assinaturas/' . $assinanteInfo['imagem'];
+    if (file_exists($assinaturaPath)) {
+        [$iw, $ih] = @getimagesize($assinaturaPath) ?: [0, 0];
+        $imgW = 32;
+        $imgH = $iw > 0 ? $imgW * ($ih / $iw) : 10;
+        $imgX = $ML + ($colW - $imgW) / 2;
+        $imgY = $y - $alturaAssinatura + 2;
+        $pdf->Image($assinaturaPath, $imgX, $imgY, $imgW, $imgH);
+    }
+}
+
 $pdf->SetDrawColor(...$PRETO);
 $pdf->SetLineWidth(0.3);
 $pdf->Line($ML, $y, $ML + $colW, $y);
@@ -377,6 +395,13 @@ $pdf->SetXY($ML, $y);
 $pdf->Cell($colW, 5, s('Assinatura / ' . $empresa['razao_social']), 0, 0, 'C');
 $pdf->SetXY($ML + $colW + 10, $y);
 $pdf->Cell($colW, 5, s('Assinatura do responsável pelo pedido'), 0, 1, 'C');
+
+if ($assinanteInfo) {
+    $pdf->SetFont(FONT_MAIN, '', 7.5);
+    $pdf->SetTextColor(...$MUTED);
+    $pdf->SetXY($ML, $y + 4.5);
+    $pdf->Cell($colW, 4, s($assinanteInfo['nome']), 0, 0, 'C');
+}
 
 // ── Download ──────────────────────────────────────────────────────────────
 ob_end_clean();

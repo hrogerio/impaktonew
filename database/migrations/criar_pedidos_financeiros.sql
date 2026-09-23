@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS pedidos_financeiros (
     qtd_parcelas          SMALLINT UNSIGNED NOT NULL DEFAULT 1,
     valor_total           DECIMAL(12,2) NOT NULL DEFAULT 0,  -- soma dos itens (= valor mensal quando qtd_parcelas > 1)
     valor_bruto           DECIMAL(12,2) NOT NULL DEFAULT 0,  -- valor total do contrato (valor_total × qtd_parcelas, editável)
+    assinante             VARCHAR(50)  DEFAULT NULL,        -- responsável Impakto que assina o pedido (chave fixa, ver ASSINANTES)
 
     criado_por            VARCHAR(100) DEFAULT NULL,
     criado_em             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -45,14 +46,18 @@ CREATE TABLE IF NOT EXISTS pedidos_financeiros_itens (
     pedido_id    INT UNSIGNED NOT NULL,
     ordem        SMALLINT UNSIGNED NOT NULL DEFAULT 0,
     campo1       VARCHAR(200) DEFAULT NULL,   -- P.I.: Mídia · P.P.: Mat/Serviço
-    campo2       VARCHAR(200) DEFAULT NULL,   -- P.I.: Praça · P.P.: Descrição
+    campo2       VARCHAR(200) DEFAULT NULL,   -- P.I.: Ponto (texto) · P.P.: Descrição
+    ponto_id     INT UNSIGNED DEFAULT NULL,   -- P.I.: ponto cadastrado vinculado (tabela `pontos`)
     quantidade   DECIMAL(10,2) DEFAULT NULL,
     valor_unitario DECIMAL(12,2) DEFAULT NULL,
     valor_total  DECIMAL(12,2) NOT NULL DEFAULT 0,
 
     CONSTRAINT fk_pedidos_itens_pedido FOREIGN KEY (pedido_id)
         REFERENCES pedidos_financeiros (id) ON DELETE CASCADE,
-    INDEX idx_pedido (pedido_id)
+    CONSTRAINT fk_pedidos_itens_ponto FOREIGN KEY (ponto_id)
+        REFERENCES pontos (id) ON DELETE SET NULL,
+    INDEX idx_pedido (pedido_id),
+    INDEX idx_ponto (ponto_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS pedidos_financeiros_parcelas (
