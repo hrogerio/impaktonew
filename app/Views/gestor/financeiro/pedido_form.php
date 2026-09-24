@@ -141,6 +141,7 @@ function v($val) { return htmlspecialchars((string)($val ?? '')); }
                         <input type="date" id="f_data_emissao" value="<?= v($pedido['data_emissao'] ?? date('Y-m-d')) ?>">
                         <?php if ($pedido): ?><div class="pf-hint">Alterar não muda a numeração já emitida.</div><?php endif; ?>
                     </div>
+                    <?php if ($tipo === 'PI'): ?>
                     <?php
                     $mesesNomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
                     $anoAtual = (int)date('Y');
@@ -186,6 +187,7 @@ function v($val) { return htmlspecialchars((string)($val ?? '')); }
                         </div>
                         <div class="pf-hint" id="periodoResumo">&nbsp;</div>
                     </div>
+                    <?php endif; ?>
                     <div class="form-group full">
                         <label>Nome da campanha</label>
                         <input type="text" id="f_nome_campanha" value="<?= v($pedido['nome_campanha'] ?? '') ?>">
@@ -494,8 +496,11 @@ document.getElementById('f_qtd_parcelas').addEventListener('input', recalcularTo
 const MESES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
 function valorPeriodo(prefixo) {
-    const mes = document.getElementById(`f_periodo_${prefixo}_mes`).value;
-    const ano = document.getElementById(`f_periodo_${prefixo}_ano`).value;
+    const elMes = document.getElementById(`f_periodo_${prefixo}_mes`);
+    const elAno = document.getElementById(`f_periodo_${prefixo}_ano`);
+    if (!elMes || !elAno) return ''; // P.P. não tem esses campos
+    const mes = elMes.value;
+    const ano = elAno.value;
     if (!mes || !ano) return '';
     return `${ano}-${String(mes).padStart(2, '0')}`;
 }
@@ -507,10 +512,11 @@ function mesesEntreSelects(inicio, fim) {
     return Math.max(1, (af - ai) * 12 + (mf - mi) + 1);
 }
 function atualizarPeriodo(autoQtd) {
+    const resumo = document.getElementById('periodoResumo');
+    if (!resumo) return; // P.P. não tem esses campos
     const inicio = valorPeriodo('inicio');
     const fim = valorPeriodo('fim');
     const qtd = mesesEntreSelects(inicio, fim);
-    const resumo = document.getElementById('periodoResumo');
     if (qtd === null) { resumo.innerHTML = '&nbsp;'; return; }
     const [, mi] = inicio.split('-').map(Number);
     const [, mf] = fim.split('-').map(Number);
@@ -521,7 +527,7 @@ function atualizarPeriodo(autoQtd) {
     }
 }
 ['f_periodo_inicio_mes', 'f_periodo_inicio_ano', 'f_periodo_fim_mes', 'f_periodo_fim_ano'].forEach(id => {
-    document.getElementById(id).addEventListener('change', () => atualizarPeriodo(true));
+    document.getElementById(id)?.addEventListener('change', () => atualizarPeriodo(true));
 });
 
 // ── Select customizado (sempre abre pra baixo) pros campos de mês/ano ──────
