@@ -52,7 +52,7 @@ $campanhas  = $pdo->query("
     HAVING campanha IS NOT NULL AND campanha != ''
     ORDER BY campanha
 ")->fetchAll(PDO::FETCH_COLUMN);
-$corredores = $pdo->query("SELECT DISTINCT corredor FROM pontos WHERE corredor IS NOT NULL AND corredor != '' AND (ativo=1 OR ativo IS NULL) ORDER BY corredor")->fetchAll(PDO::FETCH_COLUMN);
+$tipos = $pdo->query("SELECT DISTINCT tipo FROM pontos WHERE tipo IS NOT NULL AND tipo != '' AND (ativo=1 OR ativo IS NULL) ORDER BY tipo")->fetchAll(PDO::FETCH_COLUMN);
 
 // Garante UTF-8 válido em todos os campos antes do json_encode
 array_walk_recursive($pontos, function(&$v) {
@@ -349,10 +349,10 @@ $recentes = $pdo->query(
                 <option value="Bisemana">Bisemana</option>
                 <option value="__exclusivo__">🔒 Exclusivo</option>
             </select>
-            <select class="filtro-select" id="filtroCorredor">
-                <option value="">Todos os corredores</option>
-                <?php foreach ($corredores as $c): ?>
-                <option value="<?= htmlspecialchars($c) ?>"><?= htmlspecialchars($c) ?></option>
+            <select class="filtro-select" id="filtroTipo">
+                <option value="">Todos os tipos</option>
+                <?php foreach ($tipos as $t): ?>
+                <option value="<?= htmlspecialchars($t) ?>"><?= htmlspecialchars($t) ?></option>
                 <?php endforeach; ?>
             </select>
             <button type="button" class="btn-chip-fotos" id="btnFotosMes" title="Pontos com campanha iniciada neste mês — use para atualizar as fotos">📷 Fotos do mês</button>
@@ -416,7 +416,7 @@ var selecao  = new Set(JSON.parse(localStorage.getItem(CART_KEY) || '[]'));
 var sortCol  = 'numero', sortDir = 'asc';
 var listaVisivelAtual = []; // pontos atualmente renderizados na tabela (vazio no estado padrão sem filtro)
 var FILTROS_KEY = 'impakto_pontos_filtros_v1';
-var filtros  = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', fotosMes:false };
+var filtros  = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', tipo:'', fotosMes:false };
 function salvarFiltros() {
     try { sessionStorage.setItem(FILTROS_KEY, JSON.stringify(filtros)); } catch(e) {}
 }
@@ -599,14 +599,14 @@ function filtrar(lista) {
         } else if (filtros.situacao && (p.situacao||'').trim() !== filtros.situacao) {
             return false;
         }
-        if (filtros.corredor && (p.corredor||'').trim() !== filtros.corredor) return false;
+        if (filtros.tipo && (p.tipo||'').trim() !== filtros.tipo) return false;
         if (filtros.fotosMes) {
             var hoje = new Date();
             var inicio = p.inicio_contrato ? new Date(p.inicio_contrato) : null;
             if (!inicio || inicio.getFullYear() !== hoje.getFullYear() || inicio.getMonth() !== hoje.getMonth()) return false;
         }
         if (busca) {
-            var campos = [p.numero,p.logradouro,p.descricao,p.cidade,p.regiao,p.cliente,p.campanha,p.motivo,p.agencia,p.corredor];
+            var campos = [p.numero,p.logradouro,p.descricao,p.cidade,p.regiao,p.cliente,p.campanha,p.motivo,p.agencia,p.tipo];
             return campos.some(function(c){ return normalizar(c).indexOf(busca) !== -1; });
         }
         return true;
@@ -817,7 +817,7 @@ document.getElementById('searchClear').addEventListener('click', function() {
     document.getElementById('searchInput').focus();
 });
 
-var mapaFiltros = { filtroRegiao:'regiao', filtroCidade:'cidade', filtroCampanha:'campanha', filtroSituacao:'situacao', filtroCorredor:'corredor' };
+var mapaFiltros = { filtroRegiao:'regiao', filtroCidade:'cidade', filtroCampanha:'campanha', filtroSituacao:'situacao', filtroTipo:'tipo' };
 Object.keys(mapaFiltros).forEach(function(id) {
     document.getElementById(id).addEventListener('change', function() {
         filtros[mapaFiltros[id]] = this.value;
@@ -836,7 +836,7 @@ document.getElementById('btnFotosMes').addEventListener('click', function() {
     renderTabela();
 });
 document.getElementById('btnLimpar').addEventListener('click', function() {
-    filtros = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', fotosMes:false };
+    filtros = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', tipo:'', fotosMes:false };
     document.getElementById('searchInput').value = '';
     document.getElementById('searchClear').className = 'search-clear';
     Object.keys(mapaFiltros).forEach(function(id) {
@@ -865,7 +865,7 @@ document.getElementById('btnLimpar').addEventListener('click', function() {
     if (params.has('fotosMes')) { doUrl.fotosMes = params.get('fotosMes') === '1'; temParamUrl = true; }
 
     if (!salvo && !temParamUrl) return;
-    filtros = Object.assign({ busca:'', regiao:'', cidade:'', campanha:'', situacao:'', corredor:'', fotosMes:false }, salvo, temParamUrl ? doUrl : {});
+    filtros = Object.assign({ busca:'', regiao:'', cidade:'', campanha:'', situacao:'', tipo:'', fotosMes:false }, salvo, temParamUrl ? doUrl : {});
     document.getElementById('searchInput').value = filtros.busca;
     document.getElementById('searchClear').className = 'search-clear'+(filtros.busca?' visible':'');
     Object.keys(mapaFiltros).forEach(function(id) {
