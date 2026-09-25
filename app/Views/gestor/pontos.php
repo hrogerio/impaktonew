@@ -53,6 +53,7 @@ $campanhas  = $pdo->query("
     ORDER BY campanha
 ")->fetchAll(PDO::FETCH_COLUMN);
 $tipos = $pdo->query("SELECT DISTINCT tipo FROM pontos WHERE tipo IS NOT NULL AND tipo != '' AND (ativo=1 OR ativo IS NULL) ORDER BY tipo")->fetchAll(PDO::FETCH_COLUMN);
+$formatos = $pdo->query("SELECT DISTINCT formato FROM pontos WHERE formato IS NOT NULL AND formato != '' AND (ativo=1 OR ativo IS NULL) ORDER BY formato")->fetchAll(PDO::FETCH_COLUMN);
 
 // Garante UTF-8 válido em todos os campos antes do json_encode
 array_walk_recursive($pontos, function(&$v) {
@@ -355,6 +356,12 @@ $recentes = $pdo->query(
                 <option value="<?= htmlspecialchars($t) ?>"><?= htmlspecialchars($t) ?></option>
                 <?php endforeach; ?>
             </select>
+            <select class="filtro-select" id="filtroFormato">
+                <option value="">Todos os formatos</option>
+                <?php foreach ($formatos as $f): ?>
+                <option value="<?= htmlspecialchars($f) ?>"><?= htmlspecialchars($f) ?></option>
+                <?php endforeach; ?>
+            </select>
             <button type="button" class="btn-chip-fotos" id="btnFotosMes" title="Pontos com campanha iniciada neste mês — use para atualizar as fotos">📷 Fotos do mês</button>
             <button class="btn-limpar-filtros" id="btnLimpar">✕ Limpar filtros</button>
         </div>
@@ -416,7 +423,7 @@ var selecao  = new Set(JSON.parse(localStorage.getItem(CART_KEY) || '[]'));
 var sortCol  = 'numero', sortDir = 'asc';
 var listaVisivelAtual = []; // pontos atualmente renderizados na tabela (vazio no estado padrão sem filtro)
 var FILTROS_KEY = 'impakto_pontos_filtros_v1';
-var filtros  = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', tipo:'', fotosMes:false };
+var filtros  = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', tipo:'', formato:'', fotosMes:false };
 function salvarFiltros() {
     try { sessionStorage.setItem(FILTROS_KEY, JSON.stringify(filtros)); } catch(e) {}
 }
@@ -600,13 +607,14 @@ function filtrar(lista) {
             return false;
         }
         if (filtros.tipo && (p.tipo||'').trim() !== filtros.tipo) return false;
+        if (filtros.formato && (p.formato||'').trim() !== filtros.formato) return false;
         if (filtros.fotosMes) {
             var hoje = new Date();
             var inicio = p.inicio_contrato ? new Date(p.inicio_contrato) : null;
             if (!inicio || inicio.getFullYear() !== hoje.getFullYear() || inicio.getMonth() !== hoje.getMonth()) return false;
         }
         if (busca) {
-            var campos = [p.numero,p.logradouro,p.descricao,p.cidade,p.regiao,p.cliente,p.campanha,p.motivo,p.agencia,p.tipo];
+            var campos = [p.numero,p.logradouro,p.descricao,p.cidade,p.regiao,p.cliente,p.campanha,p.motivo,p.agencia,p.tipo,p.formato];
             return campos.some(function(c){ return normalizar(c).indexOf(busca) !== -1; });
         }
         return true;
@@ -817,7 +825,7 @@ document.getElementById('searchClear').addEventListener('click', function() {
     document.getElementById('searchInput').focus();
 });
 
-var mapaFiltros = { filtroRegiao:'regiao', filtroCidade:'cidade', filtroCampanha:'campanha', filtroSituacao:'situacao', filtroTipo:'tipo' };
+var mapaFiltros = { filtroRegiao:'regiao', filtroCidade:'cidade', filtroCampanha:'campanha', filtroSituacao:'situacao', filtroTipo:'tipo', filtroFormato:'formato' };
 Object.keys(mapaFiltros).forEach(function(id) {
     document.getElementById(id).addEventListener('change', function() {
         filtros[mapaFiltros[id]] = this.value;
@@ -836,7 +844,7 @@ document.getElementById('btnFotosMes').addEventListener('click', function() {
     renderTabela();
 });
 document.getElementById('btnLimpar').addEventListener('click', function() {
-    filtros = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', tipo:'', fotosMes:false };
+    filtros = { busca:'', regiao:'', cidade:'', campanha:'', situacao:'', tipo:'', formato:'', fotosMes:false };
     document.getElementById('searchInput').value = '';
     document.getElementById('searchClear').className = 'search-clear';
     Object.keys(mapaFiltros).forEach(function(id) {
@@ -865,7 +873,7 @@ document.getElementById('btnLimpar').addEventListener('click', function() {
     if (params.has('fotosMes')) { doUrl.fotosMes = params.get('fotosMes') === '1'; temParamUrl = true; }
 
     if (!salvo && !temParamUrl) return;
-    filtros = Object.assign({ busca:'', regiao:'', cidade:'', campanha:'', situacao:'', tipo:'', fotosMes:false }, salvo, temParamUrl ? doUrl : {});
+    filtros = Object.assign({ busca:'', regiao:'', cidade:'', campanha:'', situacao:'', tipo:'', formato:'', fotosMes:false }, salvo, temParamUrl ? doUrl : {});
     document.getElementById('searchInput').value = filtros.busca;
     document.getElementById('searchClear').className = 'search-clear'+(filtros.busca?' visible':'');
     Object.keys(mapaFiltros).forEach(function(id) {
