@@ -52,16 +52,18 @@ function montarEndereco(array $r): string {
     if ($tipo !== '' && $logr !== '' && stripos($logr, $tipo) !== 0) {
         $logr = "{$tipo} {$logr}";
     }
-    $linha = implode(', ', array_filter([$logr, trim((string)($r['numero'] ?? '')), trim((string)($r['complemento'] ?? ''))], 'strlen'));
+    $numero = trim((string)($r['numero'] ?? ''));
+    if (in_array(strtoupper($numero), ['SN', 'S/N'], true)) $numero = 'S/N';
+    $linha = implode(', ', array_filter([TextoReceita::formatar($logr), $numero, TextoReceita::formatar($r['complemento'] ?? '')], 'strlen'));
 
-    $cidade = trim((string)($r['municipio'] ?? ''));
+    $cidade = TextoReceita::formatar($r['municipio'] ?? '');
     $uf     = trim((string)($r['uf'] ?? ''));
     $cidadeUf = $cidade !== '' && $uf !== '' ? "{$cidade}/{$uf}" : $cidade . $uf;
 
     $cep = preg_replace('/\D/', '', (string)($r['cep'] ?? ''));
     $cep = strlen($cep) === 8 ? 'CEP ' . substr($cep, 0, 5) . '-' . substr($cep, 5) : '';
 
-    return implode(' - ', array_filter([$linha, trim((string)($r['bairro'] ?? '')), $cidadeUf, $cep], 'strlen'));
+    return implode(' - ', array_filter([$linha, TextoReceita::formatar($r['bairro'] ?? ''), $cidadeUf, $cep], 'strlen'));
 }
 
 function buscarBrasilApi(string $cnpj): array {
@@ -95,6 +97,7 @@ if (!cnpjValido($cnpj)) {
 
 // CNPJ já cadastrado em outro cliente? (o campo é gravado com ou sem máscara)
 require_once __DIR__ . '/../../../../config/database.php';
+require_once __DIR__ . '/../../../Services/TextoReceita.php';
 $pdo = getDatabase();
 $stmt = $pdo->prepare("
     SELECT id, razao_social FROM clientes
@@ -126,8 +129,9 @@ respostaCnpj(200, [
     'situacao'  => $situacao,
     'dados'     => [
         'cnpj'          => formatarCnpj($cnpj),
-        'razao_social'  => trim((string)($r['razao_social'] ?? '')),
-        'nome_fantasia' => trim((string)($r['nome_fantasia'] ?? '')),
+        // MEI vem com a raiz do CNPJ na frente do nome ("50.258.626 FULANO DE TAL").
+        'razao_social'  => TextoReceita::formatar(preg_replace('/^\d{2}\.?\d{3}\.?\d{3}\s+/', '', $r['razao_social'] ?? '')),
+        'nome_fantasia' => TextoReceita::formatar($r['nome_fantasia'] ?? ''),
         'endereco'      => montarEndereco($r),
         'email'         => mb_strtolower(trim((string)($r['email'] ?? ''))),
         'telefone'      => formatarTelefone($r['ddd_telefone_1'] ?? ''),
