@@ -53,6 +53,12 @@ if ($editando) {
     <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
     <style>
         .cl-logo-preview { width:80px; height:80px; border-radius:10px; object-fit:contain; background:#f6f7fb; border:1px solid var(--color-border); margin-bottom:0.6rem; display:block; }
+        .cl-cnpj-msg { font-size:0.8rem; margin-top:0.4rem; line-height:1.4; }
+        .cl-cnpj-msg.ok   { color:#15803d; }
+        .cl-cnpj-msg.aviso { color:#b45309; }
+        .cl-cnpj-msg.erro { color:#b91c1c; }
+        .cl-cnpj-msg a { color:inherit; font-weight:600; }
+        .cl-preenchido { background:#f0fdf4 !important; transition:background 1.5s; }
     </style>
 </head>
 <body>
@@ -86,6 +92,18 @@ if ($editando) {
         </div>
 
         <div class="form-group" style="margin-bottom:1rem;">
+            <label>CNPJ</label><br>
+            <div style="display:flex; gap:0.5rem;">
+                <input type="text" name="cnpj" id="cl-cnpj" maxlength="20"
+                       value="<?= htmlspecialchars($dados['cnpj'] ?? '') ?>"
+                       placeholder="00.000.000/0000-00"
+                       style="flex:1; min-width:0; padding:0.6rem; border:1px solid var(--color-border); border-radius:8px;">
+                <button type="button" id="cl-cnpj-buscar" class="btn-backup" style="white-space:nowrap;">🔍 Buscar dados</button>
+            </div>
+            <div id="cl-cnpj-msg" class="cl-cnpj-msg" hidden></div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
             <label>Razão Social *</label><br>
             <input type="text" name="razao_social" required maxlength="200"
                    value="<?= htmlspecialchars($dados['razao_social']) ?>"
@@ -99,13 +117,6 @@ if ($editando) {
                    style="width:100%; padding:0.6rem; border:1px solid var(--color-border); border-radius:8px;">
         </div>
 
-        <div class="form-group" style="margin-bottom:1rem;">
-            <label>CNPJ</label><br>
-            <input type="text" name="cnpj" maxlength="20"
-                   value="<?= htmlspecialchars($dados['cnpj'] ?? '') ?>"
-                   placeholder="00.000.000/0000-00"
-                   style="width:100%; padding:0.6rem; border:1px solid var(--color-border); border-radius:8px;">
-        </div>
 
         <div class="form-group" style="margin-bottom:1rem;">
             <label>Endereço</label><br>
@@ -150,6 +161,96 @@ if ($editando) {
     </form>
 
 </div>
+
+<script>
+// Busca os dados do CNPJ na Receita (via BrasilAPI) e preenche só os campos vazios,
+// pra não sobrescrever o que já foi digitado/editado.
+(function () {
+    const form   = document.querySelector('form[action="/gestor/clientes/salvar"]');
+    const campo  = document.getElementById('cl-cnpj');
+    const botao  = document.getElementById('cl-cnpj-buscar');
+    const msg    = document.getElementById('cl-cnpj-msg');
+    const idAtual = form.querySelector('input[name="id"]').value;
+    const rotulos = { razao_social: 'Razão Social', nome_fantasia: 'Nome Fantasia', endereco: 'Endereço', email: 'E-mail', telefone: 'Telefone' };
+    let ultimaConsulta = '';
+
+    function limpar(v) { return v.toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+
+    function mostrar(tipo, html) {
+        msg.className = 'cl-cnpj-msg ' + tipo;
+        msg.innerHTML = html;
+        msg.hidden = false;
+    }
+
+    function esc(s) {
+        return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    async function buscar() {
+        const cnpj = limpar(campo.value);
+        if (cnpj.length !== 14) {
+            mostrar('erro', 'Digite os 14 caracteres do CNPJ.');
+            return;
+        }
+        ultimaConsulta = cnpj;
+        botao.disabled = true;
+        botao.textContent = '⏳ Buscando...';
+        try {
+            const resp = await fetch('/gestor/clientes/consultar-cnpj?cnpj=' + encodeURIComponent(cnpj) + '&id=' + encodeURIComponent(idAtual));
+            const json = await resp.json();
+            const avisoDup = json.duplicado
+                ? '<br>⚠️ Este CNPJ já está cadastrado: <a href="/gestor/clientes/editar?id=' + json.duplicado.id + '">' + esc(json.duplicado.razao_social) + '</a>.'
+                : '';
+
+            if (!json.ok) {
+                mostrar('erro', esc(json.erro) + avisoDup);
+                return;
+            }
+
+            campo.value = json.dados.cnpj;
+            const preenchidos = [], mantidos = [];
+            for (const nome in rotulos) {
+                const valor = json.dados[nome];
+                const input = form.querySelector('[name="' + nome + '"]');
+                if (!valor || !input) continue;
+                if (input.value.trim() === '') {
+                    input.value = valor;
+                    input.classList.add('cl-preenchido');
+                    setTimeout(() => input.classList.remove('cl-preenchido'), 1500);
+                    preenchidos.push(rotulos[nome]);
+                } else if (input.value.trim() !== valor) {
+                    mantidos.push(rotulos[nome]);
+                }
+            }
+
+            let texto = preenchidos.length
+                ? '✅ Preenchido: ' + preenchidos.join(', ') + '.'
+                : '✅ CNPJ encontrado. Nenhum campo vazio para preencher.';
+            if (mantidos.length) texto += '<br>Mantidos como estavam (diferentes da Receita): ' + mantidos.join(', ') + '.';
+            if (json.situacao && json.situacao !== 'ATIVA') texto += '<br>⚠️ Situação cadastral na Receita: <strong>' + esc(json.situacao) + '</strong>.';
+            texto += avisoDup;
+
+            const temAviso = json.duplicado || (json.situacao && json.situacao !== 'ATIVA');
+            mostrar(temAviso ? 'aviso' : 'ok', texto);
+        } catch (e) {
+            mostrar('erro', 'Não foi possível consultar o CNPJ agora. Tente novamente em instantes.');
+        } finally {
+            botao.disabled = false;
+            botao.textContent = '🔍 Buscar dados';
+        }
+    }
+
+    botao.addEventListener('click', buscar);
+    campo.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); buscar(); }
+    });
+    // Busca sozinho quando o CNPJ fica completo num cadastro novo.
+    campo.addEventListener('input', () => {
+        const cnpj = limpar(campo.value);
+        if (idAtual === '0' && cnpj.length === 14 && cnpj !== ultimaConsulta) buscar();
+    });
+})();
+</script>
 
 </body>
 </html>

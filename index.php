@@ -345,6 +345,11 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/api/salvar_cliente.php';
         break;
 
+    case 'gestor/clientes/consultar-cnpj':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/consultar_cnpj.php';
+        break;
+
     case 'gestor/clientes/status':
         auth_required();
         require __DIR__ . '/app/Views/gestor/api/cliente_status.php';
