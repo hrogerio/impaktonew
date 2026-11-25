@@ -69,6 +69,20 @@ $pontos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (empty($pontos)) { ob_end_clean(); http_response_code(400); die('Nenhum ponto encontrado.'); }
 
+// ── Ordena por região (alfabética, sem acento/caixa; "Sem região" por último) e nº ──
+$chaveRegiao = function ($r) {
+    $r = trim((string)$r);
+    if ($r === '') return "\u{10FFFF}";
+    $r = mb_strtolower($r, 'UTF-8');
+    return strtr($r, ['á'=>'a','à'=>'a','â'=>'a','ã'=>'a','ä'=>'a','é'=>'e','è'=>'e','ê'=>'e','ë'=>'e',
+                      'í'=>'i','ì'=>'i','î'=>'i','ï'=>'i','ó'=>'o','ò'=>'o','ô'=>'o','õ'=>'o','ö'=>'o',
+                      'ú'=>'u','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c','ñ'=>'n']);
+};
+usort($pontos, function ($a, $b) use ($chaveRegiao) {
+    return strcmp($chaveRegiao($a['regiao'] ?? ''), $chaveRegiao($b['regiao'] ?? ''))
+        ?: ((int)$a['numero'] <=> (int)$b['numero']);
+});
+
 // ── Biblioteca PDF ────────────────────────────────────────────────────────────
 $tfpdfPath   = __DIR__ . '/../../../../lib/fpdf/tfpdf.php';
 $ttfontsPath = __DIR__ . '/../../../../lib/fpdf/font/unifont/ttfonts.php';
