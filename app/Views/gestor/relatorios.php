@@ -20,7 +20,7 @@ require_once __DIR__ . '/../../Controllers/RelatorioController.php';
 
 $controller = new RelatorioController();
 
-$ocupacao  = $controller->dadosOcupacao();
+$rx        = $controller->dadosRaioX();
 $contratos = $controller->dadosContratos();
 $clientes  = $controller->dadosClientes();
 $documentosPorGrupo = $controller->documentosPorGrupo();
@@ -173,7 +173,7 @@ function tabelaCampanhas(array $lista) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/assets/css/gestor.css?v=2">
-    <link rel="stylesheet" href="/public/assets/css/relatorios.css">
+    <link rel="stylesheet" href="/public/assets/css/relatorios.css?v=2">
     <style>
         .docs-status { display:inline-block; padding:2px 8px; border-radius:8px; font-size:0.68rem; font-weight:700; white-space:nowrap; }
         .tag-novo-contrato { display:inline-block; margin-left:0.4rem; padding:1px 7px; border-radius:8px; background:#dbeafe; color:#1d4ed8; font-size:0.65rem; font-weight:800; white-space:nowrap; vertical-align:middle; }
@@ -355,7 +355,7 @@ function tabelaCampanhas(array $lista) {
     <div class="welcome" style="margin-bottom:1rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
         <div>
             <h2>📊 Relatórios</h2>
-            <p>Ocupação, contratos, clientes e histórico — visão comercial para apresentação à diretoria.</p>
+            <p>Contratos, clientes, agências e o Raio-X da Rua — visão comercial para apresentação à diretoria.</p>
         </div>
         <a class="btn-export btn-pdf-mensal" href="/gestor/relatorios/pdf" target="_blank">
             📄 Gerar Relatório Mensal (PDF)
@@ -366,132 +366,313 @@ function tabelaCampanhas(array $lista) {
         <button class="tab-btn active" onclick="switchTab('contratos',this)">📅 Contratos</button>
         <button class="tab-btn" onclick="switchTab('clientes',this)">🏢 Clientes</button>
         <button class="tab-btn" onclick="switchTab('agencias',this)">🏛️ Agências</button>
-        <button class="tab-btn" onclick="switchTab('ocupacao',this)">🗺️ Ocupação</button>
+        <button class="tab-btn" onclick="switchTab('raiox',this)">🩻 Raio-X da Rua</button>
     </div>
 
     <!-- ============================================================ -->
-    <!-- ABA 1: OCUPAÇÃO                                               -->
+    <!-- ABA: RAIO-X DA RUA                                            -->
     <!-- ============================================================ -->
-    <div class="tab-content" id="tab-ocupacao">
+    <?php
+    $rxT       = $rx['totais'];
+    $rxPctRua  = pct($rx['na_rua'], $rxT['total']);
+    $rxSai30   = count($rx['saindo']['30']);
+    $rxParados = count(array_filter($rx['livres'], fn($l) => $l['dias_parado'] === null || $l['dias_parado'] >= 90));
+    $rxIniHist = $rx['inicio_historico'] ? fmtData(substr($rx['inicio_historico'], 0, 10)) : null;
+    $rxMaxFaces = $rx['marcas'] ? $rx['marcas'][0]['faces'] : 1;
 
-        <div class="export-bar">
-            <button class="btn-export btn-csv" onclick="exportCSV('tbl-regiao-hidden','ocupacao-regiao')">⬇ CSV</button>
+    /** Barra empilhada Ocupado / Vencido / Reservado / Livre — categorias exclusivas, somam 100% */
+    function rxBarra(array $g) {
+        foreach (['no_ar', 'vencido', 'reservado', 'livre'] as $k) {
+            if ($g[$k] > 0) echo '<div class="rx-seg rx-' . $k . '" style="width:' . pct($g[$k], $g['total']) . '%"></div>';
+        }
+    }
+    function rxTooltip(string $nome, array $g) {
+        return htmlspecialchars("$nome: {$g['no_ar']} ocupados, {$g['vencido']} vencidos, {$g['reservado']} reservados, {$g['livre']} livres");
+    }
+    ?>
+    <div class="tab-content" id="tab-raiox">
+
+        <!-- Manchete -->
+        <div class="rx-hero">
+            <div class="rx-hero-texto">
+                <div class="rx-eyebrow">🩻 Raio-X da Rua · <?= date('d/m/Y \à\s H:i') ?></div>
+                <h3 class="rx-manchete"><strong><?= $rx['na_rua'] ?></strong> de <?= $rxT['total'] ?> pontos estão ocupados agora</h3>
+                <p class="rx-resumo">
+                    <?= $rx['qtd_marcas'] ?> marcas na rua · <?= $rx['qtd_cidades'] ?> cidades · <?= $rx['qtd_regioes'] ?> regiões
+                </p>
+                <div class="rx-legenda">
+                    <span><i class="rx-no_ar"></i>Ocupados <b><?= $rxT['no_ar'] ?></b></span>
+                    <span><i class="rx-vencido"></i>Contrato vencido <b><?= $rxT['vencido'] ?></b></span>
+                    <span><i class="rx-reservado"></i>Reservado <b><?= $rxT['reservado'] ?></b></span>
+                    <span><i class="rx-livre"></i>Livre <b><?= $rxT['livre'] ?></b></span>
+                </div>
+            </div>
+            <div class="rx-anel" style="--p:<?= $rxPctRua ?>">
+                <div class="rx-anel-centro"><span><?= round($rxPctRua) ?>%</span><small>ocupação</small></div>
+            </div>
         </div>
 
-        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
-            <div class="kpi-card kpi-total">
-                <div class="kpi-icon">📍</div>
+        <div class="kpi-grid rx-kpis">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#fff0ef">🏷️</div>
                 <div class="kpi-body">
-                    <div class="kpi-value"><?= number_format($ocupacao['totais']['geral']) ?></div>
-                    <div class="kpi-label">Total de Pontos</div>
+                    <div class="kpi-value" style="color:#e34c3e"><?= $rx['qtd_marcas'] ?></div>
+                    <div class="kpi-label">Marcas na rua</div>
+                    <div class="kpi-sub">Top 5 = <?= $rx['top5_share'] ?>% dos pontos</div>
                 </div>
             </div>
-            <div class="kpi-card kpi-ocup">
-                <div class="kpi-icon">🔴</div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#f0f4ff">⭐</div>
                 <div class="kpi-body">
-                    <div class="kpi-value"><?= number_format($ocupacao['totais']['ocupados']) ?></div>
-                    <div class="kpi-label">Ocupados</div>
-                    <div class="kpi-sub"><?= pct($ocupacao['totais']['ocupados'], $ocupacao['totais']['geral']) ?>% do total</div>
+                    <div class="kpi-value" style="color:#1a237e"><?= $rx['exclusivos'] ?></div>
+                    <div class="kpi-label">Pontos exclusivos</div>
+                    <div class="kpi-sub">reservadas a um cliente</div>
                 </div>
             </div>
-            <div class="kpi-card kpi-disp">
-                <div class="kpi-icon">🟢</div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#fffbf0">⏳</div>
                 <div class="kpi-body">
-                    <div class="kpi-value"><?= number_format($ocupacao['totais']['disponiveis']) ?></div>
-                    <div class="kpi-label">Disponíveis</div>
-                    <div class="kpi-sub"><?= pct($ocupacao['totais']['disponiveis'], $ocupacao['totais']['geral']) ?>% do total</div>
+                    <div class="kpi-value" style="color:#d97706"><?= $rxSai30 ?></div>
+                    <div class="kpi-label">Liberam em 30 dias</div>
+                    <div class="kpi-sub">hora de renovar ou revender</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background:#f0faf4">🧊</div>
+                <div class="kpi-body">
+                    <div class="kpi-value" style="color:#27ae60"><?= $rxParados ?></div>
+                    <div class="kpi-label">Livres há +90 dias</div>
+                    <div class="kpi-sub">de <?= $rxT['livre'] ?> pontos livres</div>
                 </div>
             </div>
         </div>
 
-        <div class="bloco-section">
-            <div class="bloco-label">Por Região</div>
+        <?php if ($rxT['vencido'] > 0 || $rx['sem_marca'] > 0): ?>
+        <div class="rx-alertas">
+            <?php if ($rxT['vencido'] > 0): ?>
+            <div class="rx-alerta">⚠️ <b><?= $rxT['vencido'] ?></b> ponto<?= $rxT['vencido'] > 1 ? 's seguem' : ' segue' ?> na rua com contrato vencido.
+                <a href="#contratos" onclick="switchTab('contratos', document.querySelector('.tab-btn')); return false;">Ver em Contratos →</a></div>
+            <?php endif; ?>
+            <?php if ($rx['sem_marca'] > 0): ?>
+            <div class="rx-alerta">🔗 <b><?= $rx['sem_marca'] ?></b> ponto<?= $rx['sem_marca'] > 1 ? 's ocupados não têm' : ' ocupado não tem' ?> campanha/cliente vinculado no sistema.</div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
 
-            <?php if (empty($ocupacao['ocupacao_regiao'])): ?>
-                <p style="color:var(--color-text-muted);font-size:0.85rem;">Nenhum dado encontrado.</p>
-            <?php else: ?>
-                <div class="bars-clean">
-                    <?php foreach ($ocupacao['ocupacao_regiao'] as $r): ?>
-                    <div class="bar-clean-row" title="<?= htmlspecialchars($r['regiao']) ?>: <?= $r['ocupados'] ?> ocupados, <?= $r['disponiveis'] ?> disponíveis">
-                        <div class="bar-clean-label"><?= htmlspecialchars($r['regiao']) ?></div>
-                        <div class="bar-clean-track">
-                            <div class="bc-ocup" style="width:<?= pct($r['ocupados'],$r['total']) ?>%"></div>
-                            <div class="bc-disp" style="width:<?= pct($r['disponiveis'],$r['total']) ?>%"></div>
-                            <div class="bc-res"  style="width:<?= pct($r['reservados'],$r['total']) ?>%"></div>
-                            <div class="bc-venc" style="width:<?= pct($r['vencidos'],$r['total']) ?>%"></div>
-                        </div>
-                        <div class="bar-clean-meta">
-                            <span class="bar-clean-total"><?= $r['total'] ?></span>
-                            <span class="bar-clean-pct"><?= pct($r['ocupados'],$r['total']) ?>% ocup.</span>
-                        </div>
+        <!-- Onde estamos -->
+        <div class="rx-secao">
+            <div class="rx-secao-head">
+                <div>
+                    <div class="rx-secao-titulo">📍 Onde estamos</div>
+                    <div class="rx-secao-sub">Presença e ocupação por região</div>
+                </div>
+                <button class="btn-export btn-csv" onclick="exportCSV('tbl-rx-regiao','raio-x-regioes')">⬇ CSV</button>
+            </div>
+            <div class="rx-barras">
+                <?php foreach ($rx['por_regiao'] as $nome => $g): ?>
+                <div class="rx-barra-row" title="<?= rxTooltip($nome, $g) ?>">
+                    <div class="rx-barra-label"><?= htmlspecialchars($nome) ?></div>
+                    <div class="rx-barra-track"><?php rxBarra($g); ?></div>
+                    <div class="rx-barra-meta"><span><b><?= $g['total'] ?></b> pontos</span><span><?= round(pct($g['no_ar'] + $g['vencido'], $g['total'])) ?>% ocupados</span></div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+            <details class="rx-detalhes">
+                <summary>Ver as <?= $rx['qtd_cidades'] ?> cidades</summary>
+                <div class="table-container" style="margin-top:0.75rem;">
+                    <table class="rel-table" id="tbl-rx-cidade">
+                        <thead>
+                            <tr>
+                                <th>Cidade</th>
+                                <th style="text-align:right">Pontos</th>
+                                <th style="text-align:right">Ocupados</th>
+                                <th style="text-align:right">Vencido</th>
+                                <th style="text-align:right">Reservado</th>
+                                <th style="text-align:right">Livre</th>
+                                <th style="min-width:140px">Distribuição</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($rx['por_cidade'] as $nome => $g): ?>
+                            <tr title="<?= rxTooltip($nome, $g) ?>">
+                                <td><strong><?= htmlspecialchars($nome) ?></strong></td>
+                                <td style="text-align:right;font-weight:700"><?= $g['total'] ?></td>
+                                <td style="text-align:right;color:#e34c3e;font-weight:600"><?= $g['no_ar'] ?></td>
+                                <td style="text-align:right;color:#8e44ad;font-weight:600"><?= $g['vencido'] ?></td>
+                                <td style="text-align:right;color:#f39c12;font-weight:600"><?= $g['reservado'] ?></td>
+                                <td style="text-align:right;color:#27ae60;font-weight:600"><?= $g['livre'] ?></td>
+                                <td><div class="rx-barra-track rx-barra-mini"><?php rxBarra($g); ?></div></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="text-align:right;margin-top:0.5rem;">
+                    <button class="btn-export btn-csv" onclick="exportCSV('tbl-rx-cidade','raio-x-cidades')">⬇ CSV das cidades</button>
+                </div>
+            </details>
+        </div>
+
+        <!-- O que temos -->
+        <div class="rx-secao">
+            <div class="rx-secao-head">
+                <div>
+                    <div class="rx-secao-titulo">🧱 O que temos</div>
+                    <div class="rx-secao-sub">Inventário por tipo e formato — e quanto de cada um está vendido</div>
+                </div>
+            </div>
+            <div class="rx-duas-colunas">
+                <?php foreach (['Por tipo' => $rx['por_tipo'], 'Por formato' => $rx['por_formato']] as $titulo => $grupo): ?>
+                <div class="rx-inventario">
+                    <div class="bloco-label" style="margin-bottom:0.5rem;"><?= $titulo ?></div>
+                    <?php foreach ($grupo as $nome => $g): $p = round(pct($g['no_ar'] + $g['vencido'], $g['total'])); ?>
+                    <div class="rx-inv-row" title="<?= rxTooltip($nome, $g) ?>">
+                        <div class="rx-inv-nome"><?= htmlspecialchars($nome) ?> <span><?= $g['total'] ?></span></div>
+                        <div class="rx-barra-track rx-barra-mini"><?php rxBarra($g); ?></div>
+                        <div class="rx-inv-pct"><?= $p ?>%</div>
                     </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Quem está na rua -->
+        <div class="rx-secao">
+            <div class="rx-secao-head">
+                <div>
+                    <div class="rx-secao-titulo">🏷️ Quem está na rua</div>
+                    <div class="rx-secao-sub">Marcas com mais pontos ocupados agora<?= $rx['cortesias'] ? ' · ' . $rx['cortesias'] . ' ponto' . ($rx['cortesias'] > 1 ? 's' : '') . ' em cortesia' : '' ?></div>
+                </div>
+            </div>
+            <?php if (empty($rx['marcas'])): ?>
+                <div class="empty-state"><p>Nenhuma marca vinculada aos pontos ocupados.</p></div>
+            <?php else: ?>
+            <div class="rx-ranking">
+                <?php foreach (array_slice($rx['marcas'], 0, 10) as $i => $m): ?>
+                <div class="rx-rank-row">
+                    <div class="rx-rank-pos"><?= $i + 1 ?></div>
+                    <div class="rx-rank-nome">
+                        <?= htmlspecialchars($m['marca']) ?>
+                        <small><?= $m['cidades'] ?> cidade<?= $m['cidades'] > 1 ? 's' : '' ?></small>
+                    </div>
+                    <div class="rx-rank-track"><div style="width:<?= pct($m['faces'], $rxMaxFaces) ?>%"></div></div>
+                    <div class="rx-rank-faces"><?= $m['faces'] ?> <small>ponto<?= $m['faces'] > 1 ? 's' : '' ?></small></div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php if (count($rx['marcas']) > 10): $resto = array_slice($rx['marcas'], 10); ?>
+            <details class="rx-detalhes">
+                <summary>+ <?= count($resto) ?> outras marcas (<?= array_sum(array_column($resto, 'faces')) ?> pontos)</summary>
+                <div class="rx-chips">
+                    <?php foreach ($resto as $m): ?>
+                    <span class="rx-chip"><?= htmlspecialchars($m['marca']) ?> <b><?= $m['faces'] ?></b></span>
+                    <?php endforeach; ?>
+                </div>
+            </details>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
 
-        <div class="bloco-section">
-            <div class="bloco-label">Por Cidades <span class="bloco-count"><?= count($ocupacao['ocupacao_cidade']) ?></span></div>
+        <!-- Próximos 90 dias -->
+        <div class="rx-secao">
+            <div class="rx-secao-head">
+                <div>
+                    <div class="rx-secao-titulo">⏳ Próximos 90 dias</div>
+                    <div class="rx-secao-sub">Pontos ocupados cujo contrato termina em breve — clique numa faixa para ver quais</div>
+                </div>
+            </div>
+            <div class="rx-faixas">
+                <?php foreach (['30' => 'Até 30 dias', '60' => '31 a 60 dias', '90' => '61 a 90 dias'] as $k => $label): ?>
+                <button type="button" class="rx-faixa<?= $k === '30' ? ' ativa' : '' ?>" data-faixa="<?= $k ?>" onclick="rxMostrarFaixa('<?= $k ?>')">
+                    <span class="rx-faixa-num"><?= count($rx['saindo'][$k]) ?></span>
+                    <span class="rx-faixa-label"><?= $label ?></span>
+                </button>
+                <?php endforeach; ?>
+            </div>
+            <?php foreach ($rx['saindo'] as $k => $lista): ?>
+            <div class="rx-faixa-lista" id="rx-faixa-<?= $k ?>"<?= $k === '30' ? '' : ' style="display:none"' ?>>
+                <?php if (empty($lista)): ?>
+                    <div class="empty-state"><p>Nenhum contrato termina nesse intervalo.</p></div>
+                <?php else: ?>
+                <div class="table-container">
+                    <table class="rel-table">
+                        <thead><tr><th>Ponto</th><th>Local</th><th>Marca</th><th>Fim</th><th style="text-align:right">Faltam</th></tr></thead>
+                        <tbody>
+                            <?php foreach ($lista as $p): ?>
+                            <tr>
+                                <td><a class="rx-link-ponto" href="/gestor/pontos/detalhes?id=<?= (int)$p['id'] ?>" target="_blank">#<?= htmlspecialchars($p['numero']) ?></a></td>
+                                <td><?= htmlspecialchars($p['logradouro']) ?><div class="rx-muted"><?= htmlspecialchars($p['cidade']) ?></div></td>
+                                <td><?= htmlspecialchars($p['marca'] ?: '-') ?></td>
+                                <td><?= fmtData($p['fim_contrato']) ?></td>
+                                <td style="text-align:right;font-weight:700"><?= $p['dias'] ?> dia<?= $p['dias'] == 1 ? '' : 's' ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
 
-            <?php if (empty($ocupacao['ocupacao_cidade'])): ?>
-                <p style="color:var(--color-text-muted);font-size:0.85rem;margin-top:0.5rem;">Nenhuma cidade encontrada.</p>
+        <!-- Encalhados -->
+        <div class="rx-secao">
+            <div class="rx-secao-head">
+                <div>
+                    <div class="rx-secao-titulo">🧊 Pontos parados há mais tempo</div>
+                    <div class="rx-secao-sub">Pontos livres ordenados pelo tempo sem mudança de situação — prioridade para a equipe comercial</div>
+                </div>
+            </div>
+            <?php if (empty($rx['livres'])): ?>
+                <div class="empty-state"><p>Nenhum ponto livre. Tudo vendido! 🎉</p></div>
             <?php else: ?>
-            <div class="table-container" style="margin-top:0.75rem;">
+            <div class="table-container">
                 <table class="rel-table">
-                    <thead>
-                        <tr>
-                            <th>Cidade</th>
-                            <th style="text-align:right">Total</th>
-                            <th style="text-align:right">Ocup.</th>
-                            <th style="text-align:right">Disp.</th>
-                            <th style="text-align:right">Res.</th>
-                            <th style="text-align:right">Venc.</th>
-                            <th>% Ocup.</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Ponto</th><th>Local</th><th>Tipo · Formato</th><th style="text-align:right">Parado há</th></tr></thead>
                     <tbody>
-                        <?php foreach ($ocupacao['ocupacao_cidade'] as $c): ?>
+                        <?php foreach (array_slice($rx['livres'], 0, 10) as $p): ?>
                         <tr>
-                            <td><strong><?= htmlspecialchars($c['cidade']) ?></strong></td>
-                            <td style="text-align:right;font-weight:700"><?= $c['total'] ?></td>
-                            <td style="text-align:right;color:#e34c3e;font-weight:600"><?= $c['ocupados'] ?></td>
-                            <td style="text-align:right;color:#27ae60;font-weight:600"><?= $c['disponiveis'] ?></td>
-                            <td style="text-align:right;color:#f39c12;font-weight:600"><?= $c['reservados'] ?></td>
-                            <td style="text-align:right;color:#8e44ad;font-weight:600"><?= $c['vencidos'] ?></td>
-                            <td>
-                                <div style="display:flex;align-items:center;gap:5px;">
-                                    <div style="flex:1;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden;min-width:40px;">
-                                        <div style="width:<?= pct($c['ocupados'],$c['total']) ?>%;height:100%;background:#e34c3e;border-radius:3px;"></div>
-                                    </div>
-                                    <span style="font-size:0.72rem;font-weight:700;width:32px;text-align:right;color:var(--color-text-muted);"><?= pct($c['ocupados'],$c['total']) ?>%</span>
-                                </div>
+                            <td><a class="rx-link-ponto" href="/gestor/pontos/detalhes?id=<?= (int)$p['id'] ?>" target="_blank">#<?= htmlspecialchars($p['numero']) ?></a></td>
+                            <td><?= htmlspecialchars($p['logradouro']) ?><div class="rx-muted"><?= htmlspecialchars($p['cidade']) ?><?= $p['regiao'] ? ' · ' . htmlspecialchars($p['regiao']) : '' ?></div></td>
+                            <td class="rx-muted"><?= htmlspecialchars(trim(($p['tipo'] ?: '-') . ' · ' . ($p['formato'] ?: '-'))) ?></td>
+                            <td style="text-align:right;font-weight:700">
+                                <?php if ($p['dias_parado'] === null): ?>
+                                    <span title="Sem mudança de situação registrada desde o início do histórico">desde antes de <?= $rxIniHist ?: 'o histórico' ?></span>
+                                <?php else: ?>
+                                    <?= $p['dias_parado'] ?> dias
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
+            <?php if (count($rx['livres']) > 10): ?>
+            <div class="rx-muted" style="margin-top:0.5rem;font-size:0.78rem;">Mostrando 10 de <?= count($rx['livres']) ?> pontos livres.</div>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
 
-        <table id="tbl-regiao-hidden" style="display:none">
-            <thead><tr><th>Região</th><th>Total</th><th>Ocupados</th><th>Disponíveis</th><th>Reservados</th><th>Ctr. Vencidos</th><th>% Ocupação</th></tr></thead>
+        <table id="tbl-rx-regiao" style="display:none">
+            <thead><tr><th>Região</th><th>Pontos</th><th>Ocupados</th><th>Contrato vencido</th><th>Reservado</th><th>Livre</th><th>% ocupados</th></tr></thead>
             <tbody>
-                <?php foreach ($ocupacao['ocupacao_regiao'] as $r): ?>
+                <?php foreach ($rx['por_regiao'] as $nome => $g): ?>
                 <tr>
-                    <td><?= htmlspecialchars($r['regiao']) ?></td>
-                    <td><?= $r['total'] ?></td>
-                    <td><?= $r['ocupados'] ?></td>
-                    <td><?= $r['disponiveis'] ?></td>
-                    <td><?= $r['reservados'] ?></td>
-                    <td><?= $r['vencidos'] ?></td>
-                    <td><?= pct($r['ocupados'],$r['total']) ?>%</td>
+                    <td><?= htmlspecialchars($nome) ?></td>
+                    <td><?= $g['total'] ?></td>
+                    <td><?= $g['no_ar'] ?></td>
+                    <td><?= $g['vencido'] ?></td>
+                    <td><?= $g['reservado'] ?></td>
+                    <td><?= $g['livre'] ?></td>
+                    <td><?= pct($g['no_ar'] + $g['vencido'], $g['total']) ?>%</td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
 
-    </div><!-- /tab-ocupacao -->
+    </div><!-- /tab-raiox -->
 
 
     <!-- ============================================================ -->
@@ -905,7 +1086,8 @@ function switchTab(name, btn) {
 
 (function(){
     var hash = location.hash.replace('#','');
-    var tabs = ['contratos','clientes','agencias','ocupacao'];
+    if (hash === 'ocupacao') hash = 'raiox'; // links antigos da aba Ocupação
+    var tabs = ['contratos','clientes','agencias','raiox'];
     var idx = tabs.indexOf(hash);
     if (idx !== -1) {
         document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
@@ -914,6 +1096,12 @@ function switchTab(name, btn) {
         document.querySelectorAll('.tab-btn')[idx].classList.add('active');
     }
 })();
+
+/** Raio-X: alterna a lista de pontos que liberam em cada faixa (30/60/90 dias) */
+function rxMostrarFaixa(faixa) {
+    document.querySelectorAll('.rx-faixa').forEach(function(b){ b.classList.toggle('ativa', b.dataset.faixa === faixa); });
+    document.querySelectorAll('.rx-faixa-lista').forEach(function(l){ l.style.display = l.id === 'rx-faixa-' + faixa ? '' : 'none'; });
+}
 
 function aplicarFiltrosContratosAtivos() {
     var valorDocs = document.getElementById('filtroDocs').value;
