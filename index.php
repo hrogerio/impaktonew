@@ -556,6 +556,17 @@ switch ($uri) {
         require __DIR__ . '/app/Views/gestor/financeiro/pedido_pdf.php';
         break;
 
+    // ── CENTRAL COMERCIAL (documentos Impakto Mídia / Impakto Led) ──
+    case 'gestor/comercial':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/comercial.php';
+        break;
+
+    case 'gestor/comercial/salvar':
+        auth_required();
+        require __DIR__ . '/app/Views/gestor/api/comercial_salvar.php';
+        break;
+
     // ── MÍDIA KIT (tela de administração) ────────────────
     case 'gestor/midia-kit':
         auth_required();

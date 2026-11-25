@@ -62,6 +62,7 @@ $paginaAtual = $paginaAtual ?? '';
             <a href="/gestor/financeiro/pedidos" class="nav-link<?= $paginaAtual === 'financeiro' ? ' active' : '' ?>">Financeiro</a>
             <a href="/gestor/relatorios" class="nav-link<?= in_array($paginaAtual, ['relatorios', 'clientes']) ? ' active' : '' ?>">Relatórios</a>
             <a href="/gestor/mapa"       class="nav-link<?= $paginaAtual === 'mapa'       ? ' active' : '' ?>">Mapa</a>
+            <a href="/gestor/comercial"  class="nav-link<?= $paginaAtual === 'comercial'  ? ' active' : '' ?>">Comercial</a>
         </nav>
 
         <div class="user-info">
