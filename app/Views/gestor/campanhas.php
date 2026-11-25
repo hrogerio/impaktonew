@@ -477,6 +477,11 @@ $listaClientesCadastro = $pdo->query("SELECT razao_social FROM clientes ORDER BY
             </div>
         </div>
 
+        <div class="cp-modal-field">
+            <label class="cp-modal-label">Contato</label>
+            <input type="text" id="cpModalContato" class="cp-modal-input" placeholder="Nome / telefone / e-mail do contato (opcional)">
+        </div>
+
         <div class="cp-modal-divider"></div>
 
         <div class="cp-modal-row">
@@ -733,6 +738,7 @@ function abrirEdicao(card) {
         dados.campIds.length + ' ponto' + (dados.campIds.length > 1 ? 's' : '') + ' nesta campanha';
     document.getElementById('cpModalCliente').value      = dados.cliente || '';
     document.getElementById('cpModalAgencia').value      = dados.agencia || '';
+    document.getElementById('cpModalContato').value      = dados.contato || '';
     document.getElementById('cpModalNomeProjeto').value  = dados.nome_projeto || '';
     document.getElementById('cpModalNome').value         = (dados.nome && dados.nome !== '—') ? dados.nome : '';
     document.getElementById('cpModalInicio').value   = dados.inicio  || '';
@@ -843,6 +849,7 @@ function salvarEdicao() {
     var dados       = JSON.parse(_modalCard.dataset.campanha || '{}');
     var cliente     = document.getElementById('cpModalCliente').value.trim();
     var agencia     = document.getElementById('cpModalAgencia').value.trim();
+    var contato     = document.getElementById('cpModalContato').value.trim();
     var nomeProjeto = document.getElementById('cpModalNomeProjeto').value.trim();
     var nome        = document.getElementById('cpModalNome').value.trim();
     var inicio      = document.getElementById('cpModalInicio').value;
@@ -867,6 +874,7 @@ function salvarEdicao() {
                     campanha_id: dados.campIds[i] || 0,
                     cliente:     cliente,
                     agencia:     agencia,
+                    contato:     contato,
                     campanha:    nome,
                     nome:        nomeProjeto,
                     situacao:    dados.situacao,
