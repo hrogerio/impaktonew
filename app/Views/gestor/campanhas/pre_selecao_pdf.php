@@ -78,8 +78,14 @@ $chave = function ($r) {
                       'í'=>'i','ì'=>'i','î'=>'i','ï'=>'i','ó'=>'o','ò'=>'o','ô'=>'o','õ'=>'o','ö'=>'o',
                       'ú'=>'u','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c','ñ'=>'n']);
 };
-usort($pontos, function ($a, $b) use ($chave) {
-    return strcmp($chave($a['regiao'] ?? ''), $chave($b['regiao'] ?? ''))
+// Regiões fora de PE (Alagoas, Rio Grande do Norte) vão para o fim, antes de "Sem região"
+$chaveRegiao = function ($r) use ($chave) {
+    $k = $chave($r);
+    if ($k === "\u{10FFFF}") return '2';
+    return (in_array($k, ['alagoas', 'rio grande do norte'], true) ? '1' : '0') . $k;
+};
+usort($pontos, function ($a, $b) use ($chave, $chaveRegiao) {
+    return strcmp($chaveRegiao($a['regiao'] ?? ''), $chaveRegiao($b['regiao'] ?? ''))
         ?: strcmp($chave($a['cidade'] ?? ''), $chave($b['cidade'] ?? ''))
         ?: strcmp($chave($a['logradouro'] ?? ''), $chave($b['logradouro'] ?? ''))
         ?: ((int)$a['numero'] <=> (int)$b['numero']);

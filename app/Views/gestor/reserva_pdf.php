@@ -60,7 +60,13 @@ $chave = function ($r) {
         'í'=>'i','ì'=>'i','î'=>'i','ï'=>'i','ó'=>'o','ò'=>'o','ô'=>'o','õ'=>'o','ö'=>'o',
         'ú'=>'u','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c','ñ'=>'n']);
 };
-usort($ordem, fn($a, $b) => strcmp($chave($a), $chave($b)));
+// Regiões fora de PE (Alagoas, Rio Grande do Norte) vão para o fim, antes de "Sem região"
+$chaveRegiao = function ($r) use ($chave) {
+    $k = $chave($r);
+    if ($k === "\u{10FFFF}") return '2';
+    return (in_array($k, ['alagoas', 'rio grande do norte'], true) ? '1' : '0') . $k;
+};
+usort($ordem, fn($a, $b) => strcmp($chaveRegiao($a), $chaveRegiao($b)));
 foreach ($grupos as &$lista) {
     usort($lista, fn($a, $b) =>
         strcmp($chave($a['cidade'] ?? ''), $chave($b['cidade'] ?? ''))

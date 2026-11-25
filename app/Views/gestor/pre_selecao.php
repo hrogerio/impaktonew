@@ -611,6 +611,19 @@ function toggleSemPeriodo() {
     if (cb.checked) { ini.value=''; fim.value=''; }
 }
 
+// ── Helper: comparar regiões — alfabética, Alagoas/Rio Grande do Norte no fim, vazia por último ──
+function grupoRegiao(r) {
+    r = (r || '').trim();
+    if (!r || r === 'Sem região') return 2;
+    var k = r.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    return (k === 'alagoas' || k === 'rio grande do norte') ? 1 : 0;
+}
+function cmpRegiao(a, b) {
+    var ga = grupoRegiao(a), gb = grupoRegiao(b);
+    if (ga !== gb) return ga - gb;
+    return (a || '').trim().localeCompare((b || '').trim(), 'pt-BR', { sensitivity: 'base' });
+}
+
 // ── Helper: ordenar Região → Cidade → Logradouro (alfabética, vazios por último) ──
 function ordenarPreSelecao(lista) {
     function cmp(x, y) {
@@ -621,7 +634,7 @@ function ordenarPreSelecao(lista) {
         return x.localeCompare(y, 'pt-BR', { sensitivity: 'base' });
     }
     return lista.sort(function(a, b) {
-        return cmp(a.regiao, b.regiao)
+        return cmpRegiao(a.regiao, b.regiao)
             || cmp(a.cidade, b.cidade)
             || cmp(a.logradouro, b.logradouro)
             || ((parseInt(a.numero)||0) - (parseInt(b.numero)||0));
@@ -636,11 +649,7 @@ function agruparPorRegiao(lista) {
         if (!grupos[reg]) { grupos[reg] = []; ordem.push(reg); }
         grupos[reg].push(p);
     });
-    ordem.sort(function(a, b) {
-        if (a === 'Sem região') return 1;
-        if (b === 'Sem região') return -1;
-        return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
-    });
+    ordem.sort(cmpRegiao);
     return { grupos: grupos, ordem: ordem };
 }
 
