@@ -611,6 +611,23 @@ function toggleSemPeriodo() {
     if (cb.checked) { ini.value=''; fim.value=''; }
 }
 
+// ── Helper: ordenar Região → Cidade → Logradouro (alfabética, vazios por último) ──
+function ordenarPreSelecao(lista) {
+    function cmp(x, y) {
+        x = (x || '').trim(); y = (y || '').trim();
+        if (!x && !y) return 0;
+        if (!x) return 1;
+        if (!y) return -1;
+        return x.localeCompare(y, 'pt-BR', { sensitivity: 'base' });
+    }
+    return lista.sort(function(a, b) {
+        return cmp(a.regiao, b.regiao)
+            || cmp(a.cidade, b.cidade)
+            || cmp(a.logradouro, b.logradouro)
+            || ((parseInt(a.numero)||0) - (parseInt(b.numero)||0));
+    });
+}
+
 // ── Helper: agrupar por região ────────────────────────────────
 function agruparPorRegiao(lista) {
     var grupos = {}, ordem = [];
@@ -622,7 +639,7 @@ function agruparPorRegiao(lista) {
     ordem.sort(function(a, b) {
         if (a === 'Sem região') return 1;
         if (b === 'Sem região') return -1;
-        return a.localeCompare(b);
+        return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
     });
     return { grupos: grupos, ordem: ordem };
 }
@@ -664,7 +681,7 @@ function gerarPreSelecao() {
 
     // Gera view de impressão agrupada por região
     var lista = selecao.map(function(id){ return pontosData[id]; }).filter(Boolean);
-    lista.sort(function(a,b){ return (parseInt(a.numero)||0)-(parseInt(b.numero)||0); });
+    ordenarPreSelecao(lista);
     var ag = agruparPorRegiao(lista);
 
     document.getElementById('pvTitulo').textContent = 'Pré-Seleção — '+cliente+(agencia?' / '+agencia:'');
@@ -717,7 +734,7 @@ function gerarPDFFotos() {
 function exportarCSV() {
     var cliente = document.getElementById('psCliente').value.trim() || 'proposta';
     var lista = selecao.map(function(id){ return pontosData[id]; }).filter(Boolean);
-    lista.sort(function(a,b){ return (parseInt(a.numero)||0)-(parseInt(b.numero)||0); });
+    ordenarPreSelecao(lista);
     var csv = 'Nº,Logradouro,Descrição,Cidade,Região,Tipo,Formato,Situação\n';
     lista.forEach(function(p) {
         csv += [p.numero,p.logradouro,p.descricao,p.cidade,p.regiao,p.tipo,p.formato,p.situacao]
@@ -735,7 +752,7 @@ function abrirEmail() {
     var agencia = getAgencia();
     var periodo = getPeriodo() || '[Período]';
     var lista = selecao.map(function(id){ return pontosData[id]; }).filter(Boolean);
-    lista.sort(function(a,b){ return (parseInt(a.numero)||0)-(parseInt(b.numero)||0); });
+    ordenarPreSelecao(lista);
     var ag = agruparPorRegiao(lista);
     var dest = cliente+(agencia&&agencia!=='Cliente direto'?' / '+agencia:'');
 

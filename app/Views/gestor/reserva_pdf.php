@@ -52,14 +52,22 @@ foreach ($pontos as $p) {
     if (!isset($grupos[$reg])) { $grupos[$reg] = []; $ordem[] = $reg; }
     $grupos[$reg][] = $p;
 }
-// Ordem alfabética das regiões (sem acento/caixa; "Sem região" por último)
-$chaveRegiao = function ($r) {
-    if ($r === 'Sem região') return "\u{10FFFF}";
+// Ordem alfabética: Região → Cidade → Logradouro (sem acento/caixa; vazios/"Sem região" por último)
+$chave = function ($r) {
+    $r = trim((string)$r);
+    if ($r === '' || $r === 'Sem região') return "\u{10FFFF}";
     return strtr(mb_strtolower($r, 'UTF-8'), ['á'=>'a','à'=>'a','â'=>'a','ã'=>'a','ä'=>'a','é'=>'e','è'=>'e','ê'=>'e','ë'=>'e',
         'í'=>'i','ì'=>'i','î'=>'i','ï'=>'i','ó'=>'o','ò'=>'o','ô'=>'o','õ'=>'o','ö'=>'o',
         'ú'=>'u','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c','ñ'=>'n']);
 };
-usort($ordem, fn($a, $b) => strcmp($chaveRegiao($a), $chaveRegiao($b)));
+usort($ordem, fn($a, $b) => strcmp($chave($a), $chave($b)));
+foreach ($grupos as &$lista) {
+    usort($lista, fn($a, $b) =>
+        strcmp($chave($a['cidade'] ?? ''), $chave($b['cidade'] ?? ''))
+        ?: strcmp($chave($a['logradouro'] ?? ''), $chave($b['logradouro'] ?? ''))
+        ?: ((int)$a['numero'] <=> (int)$b['numero']));
+}
+unset($lista);
 
 $CORES = ['Disponivel'=>'#1a9059','Disponível'=>'#1a9059','Ocupado'=>'#dc3545',
           'Reservado'=>'#fd7e14','Vencido'=>'#6c757d','Permuta'=>'#51086e','Bisemana'=>'#0284c7'];

@@ -69,8 +69,8 @@ $pontos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (empty($pontos)) { ob_end_clean(); http_response_code(400); die('Nenhum ponto encontrado.'); }
 
-// ── Ordena por região (alfabética, sem acento/caixa; "Sem região" por último) e nº ──
-$chaveRegiao = function ($r) {
+// ── Ordena: Região → Cidade → Logradouro (alfabética, sem acento/caixa; vazios por último) ──
+$chave = function ($r) {
     $r = trim((string)$r);
     if ($r === '') return "\u{10FFFF}";
     $r = mb_strtolower($r, 'UTF-8');
@@ -78,8 +78,10 @@ $chaveRegiao = function ($r) {
                       'í'=>'i','ì'=>'i','î'=>'i','ï'=>'i','ó'=>'o','ò'=>'o','ô'=>'o','õ'=>'o','ö'=>'o',
                       'ú'=>'u','ù'=>'u','û'=>'u','ü'=>'u','ç'=>'c','ñ'=>'n']);
 };
-usort($pontos, function ($a, $b) use ($chaveRegiao) {
-    return strcmp($chaveRegiao($a['regiao'] ?? ''), $chaveRegiao($b['regiao'] ?? ''))
+usort($pontos, function ($a, $b) use ($chave) {
+    return strcmp($chave($a['regiao'] ?? ''), $chave($b['regiao'] ?? ''))
+        ?: strcmp($chave($a['cidade'] ?? ''), $chave($b['cidade'] ?? ''))
+        ?: strcmp($chave($a['logradouro'] ?? ''), $chave($b['logradouro'] ?? ''))
         ?: ((int)$a['numero'] <=> (int)$b['numero']);
 });
 
