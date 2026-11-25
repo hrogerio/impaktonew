@@ -3,8 +3,8 @@
 UPDATE campanhas SET contato = TRIM(contato) WHERE contato <> TRIM(contato);
 UPDATE pontos    SET contato = TRIM(contato) WHERE contato <> TRIM(contato);
 
-UPDATE campanhas SET contato = 'Antonio' WHERE LOWER(TRIM(contato)) IN ('antônio', 'antonio');
-UPDATE pontos    SET contato = 'Antonio' WHERE LOWER(TRIM(contato)) IN ('antônio', 'antonio');
+UPDATE campanhas SET contato = 'Antonio' WHERE LOWER(TRIM(contato)) IN ('antônio', 'antonio', 'antonio carlos');
+UPDATE pontos    SET contato = 'Antonio' WHERE LOWER(TRIM(contato)) IN ('antônio', 'antonio', 'antonio carlos');
 
 UPDATE campanhas SET contato = 'Caupani' WHERE LOWER(TRIM(contato)) IN ('cauapani', 'caupani');
 UPDATE pontos    SET contato = 'Caupani' WHERE LOWER(TRIM(contato)) IN ('cauapani', 'caupani');
