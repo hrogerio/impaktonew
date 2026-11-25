@@ -68,9 +68,9 @@ $MUTED  = [130, 130, 145];
 $CINZAC = [240, 240, 243];
 
 if (defined('USE_TFPDF') && USE_TFPDF) {
-    $pdf = new tFPDF('P', 'mm', 'A4');
+    $pdf = new tFPDF('L', 'mm', 'A4');
 } else {
-    $pdf = new FPDF('P', 'mm', 'A4');
+    $pdf = new FPDF('L', 'mm', 'A4');
 }
 $pdf->SetMargins(12, 14, 12);
 $pdf->SetAutoPageBreak(true, 16);
@@ -91,7 +91,7 @@ if (defined('USE_TFPDF') && USE_TFPDF) {
     define('FONT_MAIN', 'Helvetica');
 }
 
-$PW = 210; $MX = 12; $CW = $PW - 2 * $MX; // largura útil de conteúdo
+$PW = 297; $PH = 210; $MX = 12; $CW = $PW - 2 * $MX; // largura útil de conteúdo
 
 // ── Cabeçalho de página (chamado a cada nova página) ───────────────────────
 function cabecalho($pdf, $CW, $MX, $VERM, $MUTED) {
@@ -117,7 +117,7 @@ function cabecalho($pdf, $CW, $MX, $VERM, $MUTED) {
 }
 
 function tituloSecao($pdf, $texto, $CW, $MX, $VERM, $PRETO, $MUTED) {
-    if ($pdf->GetY() > 250) { $pdf->AddPage(); cabecalho($pdf, $CW, $MX, $VERM, $MUTED); }
+    if ($pdf->GetY() > $GLOBALS["PH"] - 47) { $pdf->AddPage(); cabecalho($pdf, $CW, $MX, $VERM, $MUTED); }
     $pdf->Ln(2);
     $pdf->SetFont(FONT_MAIN, 'B', 13);
     $pdf->SetTextColor(...$PRETO);
@@ -130,7 +130,7 @@ function tituloSecao($pdf, $texto, $CW, $MX, $VERM, $PRETO, $MUTED) {
 
 function subtitulo($pdf, $texto, $CW, $MUTED) {
     $MX = 12; $VERM = [192, 57, 43];
-    if ($pdf->GetY() > 260) { $pdf->AddPage(); cabecalho($pdf, $CW, $MX, $VERM, $MUTED); }
+    if ($pdf->GetY() > $GLOBALS["PH"] - 37) { $pdf->AddPage(); cabecalho($pdf, $CW, $MX, $VERM, $MUTED); }
     $pdf->SetFont(FONT_MAIN, 'B', 9.5);
     $pdf->SetTextColor(...$MUTED);
     $pdf->Cell($CW, 6, s($texto), 0, 1, 'L');
@@ -191,13 +191,13 @@ function tabela($pdf, array $headers, array $colWidths, array $rows, $MX, $VERM,
     };
     // Garante espaço pro cabeçalho + pelo menos 1 linha antes de desenhar — senão o cabeçalho
     // fica "órfão" no fim da página, sem nenhuma linha visível abaixo dele.
-    if ($pdf->GetY() + 6.5 + $rowH > 280) {
+    if ($pdf->GetY() + 6.5 + $rowH > $GLOBALS["PH"] - 17) {
         $pdf->AddPage();
         if ($CW !== null && $MUTED !== null) cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
     }
     $drawHeader();
     foreach ($rows as $idx => $row) {
-        if ($pdf->GetY() + $rowH > 280) {
+        if ($pdf->GetY() + $rowH > $GLOBALS["PH"] - 17) {
             $pdf->AddPage();
             if ($CW !== null && $MUTED !== null) cabecalho($pdf, $CW, $MX, $VERM, $MUTED);
             $drawHeader();
@@ -262,7 +262,7 @@ function tabelaCampanhasPdf($pdf, array $lista, $MX, $VERM, $PRETO, $CINZAC, $CW
     $destaque = $destaqueTodas ? true : array_values(array_map(fn($c) => empty($c['cortesia']) && docsLabelPdf($c, $documentosPorGrupo) === 'Sem doc', $lista));
     tabela($pdf,
         ['Cliente', 'Campanha', 'Agência', 'Contato', 'Início', 'Fim', 'Duração', 'Pontos', 'Novo'],
-        [48, 33, 23, 17, 13, 13, 16, 11, 12],
+        [69, 52, 38, 28, 20, 20, 18, 14, 14],
         array_map(fn($c) => [$c['cliente'] ?: '-', $c['campanha'] ?: '-', $c['agencia'] ?: '-', $c['contato'] ?: '-', fmtDataPdf($c['inicio_contrato']), fmtDataPdf($c['fim_contrato']), fmtDuracaoMesesPdf($c['duracao_dias']), $c['qtd_pontos'], ehNovoPdf($c) ? 'NOVO' : '-'], $lista),
         $MX, $VERM, $PRETO, $CINZAC, $CW, $MUTED, $destaque
     );
@@ -273,7 +273,7 @@ function graficoBarras($pdf, array $dados, $CW, $MX, $VERM, $PRETO, $MUTED) {
     $n = count($dados);
     if ($n === 0) return;
 
-    if ($pdf->GetY() > 240) { $pdf->AddPage(); cabecalho($pdf, $CW, $MX, $VERM, $MUTED); }
+    if ($pdf->GetY() > $GLOBALS["PH"] - 57) { $pdf->AddPage(); cabecalho($pdf, $CW, $MX, $VERM, $MUTED); }
 
     $maxVal = max(1, max($dados));
     $gap  = 2;
