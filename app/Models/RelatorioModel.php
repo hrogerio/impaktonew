@@ -55,6 +55,37 @@ class RelatorioModel {
         ")->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Base do Raio-X da Rua: um registro por ponto ativo, com a campanha vigente (a de fim mais distante),
+     * a marca que está no ar e a data da última mudança de situação registrada em pontos_log.
+     */
+    public function raioXPontos(): array {
+        $fim = self::FIM_CONTRATO_SQL;
+        return $this->pdo->query("
+            SELECT
+                p.id, p.numero, p.logradouro, p.cidade, p.regiao, p.tipo, p.formato, p.situacao,
+                p.exclusivo, p.cliente_exclusivo,
+                COALESCE(NULLIF(TRIM(cl.nome_fantasia),''), NULLIF(TRIM(cl.razao_social),''), NULLIF(TRIM(c.cliente),'')) AS marca,
+                c.cortesia,
+                $fim AS fim_contrato,
+                (SELECT MAX(pl.alterado_em) FROM pontos_log pl WHERE pl.ponto_id = p.id AND pl.campo = 'situacao') AS ultima_mudanca
+            FROM pontos p
+            LEFT JOIN campanhas c ON c.id = (
+                SELECT c2.id FROM campanhas c2
+                WHERE c2.ponto_id = p.id AND c2.ativo = 1 AND c2.situacao IN ('Ocupado','Vencido')
+                ORDER BY c2.fim DESC LIMIT 1
+            )
+            LEFT JOIN clientes cl ON cl.id = c.cliente_id
+            WHERE p.ativo = 1 OR p.ativo IS NULL
+        ")->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Data do registro mais antigo de situação em pontos_log — antes disso não há histórico pra medir tempo parado */
+    public function inicioHistoricoSituacao(): ?string {
+        $v = $this->pdo->query("SELECT MIN(alterado_em) FROM pontos_log WHERE campo = 'situacao'")->fetchColumn();
+        return $v ?: null;
+    }
+
     // ============================================================
     // CONTRATOS
     // ============================================================
@@ -182,9 +213,10 @@ class RelatorioModel {
                 AND $fim >= :mesInicio2
         ");
 
+        // Janela fixa pedida pela diretoria: junho/2026 a junho/2027 (13 meses)
         $meses = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $chave = date('Y') . '-' . str_pad($m, 2, '0', STR_PAD_LEFT);
+        for ($d = new DateTime("2026-06-01"); $d <= new DateTime("2027-06-01"); $d->modify("+1 month")) {
+            $chave = $d->format("Y-m");
             $stmt->execute(['mesInicio1' => $chave . '-01', 'mesInicio2' => $chave . '-01']);
             $meses[$chave] = (int)$stmt->fetchColumn();
         }
