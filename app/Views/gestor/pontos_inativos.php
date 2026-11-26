@@ -104,7 +104,23 @@ function fmtData(?string $d): string {
         .pi-table th.chk, .pi-table td.chk { width:34px; text-align:center; }
         .pi-table input[type=checkbox] { width:16px; height:16px; accent-color:var(--color-accent-primary); cursor:pointer; }
         .pi-thumb { width:64px; height:42px; border-radius:6px; overflow:hidden; background:var(--color-bg-primary); display:flex; align-items:center; justify-content:center; color:#9ca3af; font-size:1rem; }
-        .pi-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+        .pi-thumb img { width:100%; height:100%; object-fit:cover; display:block; cursor:zoom-in; transition:transform var(--duration-fast) var(--ease); }
+        .pi-thumb img:hover { transform:scale(1.08); }
+
+        /* ── Lightbox (mesmo padrão da listagem de pontos) ── */
+        .lb-overlay {
+            display:flex; flex-direction:column; gap:0.75rem; position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:2000;
+            align-items:center; justify-content:center; cursor:zoom-out;
+            opacity:0; visibility:hidden; pointer-events:none;
+            transition:opacity 0.2s var(--ease,ease), visibility 0.2s;
+        }
+        .lb-overlay.aberto { opacity:1; visibility:visible; pointer-events:auto; }
+        .lb-img {
+            max-width:90vw; max-height:82vh; border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,0.5);
+            transform:scale(0.92); transition:transform 0.2s var(--ease,ease);
+        }
+        .lb-overlay.aberto .lb-img { transform:scale(1); }
+        .lb-legenda { color:#fff; font-size:0.85rem; font-weight:600; text-align:center; padding:0 1rem; }
         .pi-num { font-weight:800; font-size:0.9rem; color:var(--color-text-dark); }
         .pi-log { font-weight:600; color:var(--color-text-dark); }
         .pi-sub { display:block; color:var(--color-text-muted); font-size:0.72rem; margin-top:0.1rem; }
@@ -206,7 +222,9 @@ function fmtData(?string $d): string {
                         <td class="foto">
                             <div class="pi-thumb">
                                 <?php if (!empty($p['foto'])): ?>
-                                    <img src="/<?= htmlspecialchars(ltrim($p['foto'], '/')) ?>" alt="" loading="lazy" onerror="this.parentElement.textContent='📷'">
+                                    <img src="/<?= htmlspecialchars(ltrim($p['foto'], '/')) ?>" alt="Ponto <?= htmlspecialchars($p['numero']) ?>" loading="lazy"
+                                         class="pi-foto" data-legenda="<?= htmlspecialchars($p['numero'] . ' · ' . $p['logradouro'] . ' — ' . ($p['cidade'] ?? '')) ?>"
+                                         onerror="this.parentElement.textContent='📷'">
                                 <?php else: ?>📷<?php endif; ?>
                             </div>
                         </td>
@@ -246,6 +264,30 @@ function fmtData(?string $d): string {
     <?php endif; ?>
 
 </div>
+
+<!-- Lightbox -->
+<div class="lb-overlay" id="lbOverlay" onclick="fecharLb()">
+    <img class="lb-img" id="lbImg" src="" alt="">
+    <div class="lb-legenda" id="lbLegenda"></div>
+</div>
+
+<script>
+// ── Lightbox ─────────────────────────────────────────────────
+function abrirLb(src, legenda) {
+    document.getElementById('lbImg').src = src;
+    document.getElementById('lbLegenda').textContent = legenda || '';
+    document.getElementById('lbOverlay').classList.add('aberto');
+}
+function fecharLb() {
+    document.getElementById('lbOverlay').classList.remove('aberto');
+    document.getElementById('lbImg').src = '';
+}
+document.addEventListener('click', e => {
+    const img = e.target.closest('.pi-foto');
+    if (img) abrirLb(img.src, img.dataset.legenda);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharLb(); });
+</script>
 
 <script>
 (function () {
