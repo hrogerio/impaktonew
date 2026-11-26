@@ -13,16 +13,38 @@ if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== ($_SESSION['csrf_to
     die("Token de segurança inválido.");
 }
 
-$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
-if ($id <= 0) {
-    header("Location: /gestor/pontos");
+// Aceita um único `id` (tela de edição) ou `ids[]` (reativação em lote na tela de inativos)
+$ids = [];
+if (isset($_POST['ids']) && is_array($_POST['ids'])) {
+    $ids = array_map('intval', $_POST['ids']);
+} elseif (isset($_POST['id'])) {
+    $ids = [(int)$_POST['id']];
+}
+$ids = array_values(array_unique(array_filter($ids, fn($i) => $i > 0)));
+$voltarInativos = ($_POST['voltar'] ?? '') === 'inativos';
+
+if (!$ids) {
+    header("Location: " . ($voltarInativos ? "/gestor/pontos-inativos" : "/gestor/pontos"));
     exit;
 }
 
 require_once __DIR__ . '/../../../config/database.php';
 $pdo = getDatabase();
 
-$pdo->prepare("UPDATE pontos SET ativo = 1 WHERE id = ?")->execute([$id]);
+$upd = $pdo->prepare("UPDATE pontos SET ativo = 1 WHERE id = ? AND ativo = 0");
+require_once __DIR__ . '/../../Services/PontoAtivoLog.php';
+$reativados = 0;
+foreach ($ids as $id) {
+    $upd->execute([$id]);
+    if ($upd->rowCount() > 0) {
+        $reativados++;
+        registrarMudancaAtivo($pdo, $id, 1, $_SESSION['usuario']);
+    }
+}
 
-header("Location: /gestor/pontos/editar?id=" . $id . "&msg=reativado");
+if ($voltarInativos) {
+    header("Location: /gestor/pontos-inativos?msg=reativados&qtd=" . $reativados);
+} else {
+    header("Location: /gestor/pontos/editar?id=" . $ids[0] . "&msg=reativado");
+}
 exit;

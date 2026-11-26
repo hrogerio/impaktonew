@@ -22,8 +22,14 @@ if ($id <= 0) {
 require_once __DIR__ . '/../../../config/database.php';
 $pdo = getDatabase();
 
-$stmt = $pdo->prepare("UPDATE pontos SET ativo = 0 WHERE id = ?");
+$stmt = $pdo->prepare("UPDATE pontos SET ativo = 0 WHERE id = ? AND ativo = 1");
 $stmt->execute([$id]);
+
+// Registra no histórico para a tela de Pontos Inativos mostrar quando/quem desativou
+if ($stmt->rowCount() > 0) {
+    require_once __DIR__ . '/../../Services/PontoAtivoLog.php';
+    registrarMudancaAtivo($pdo, $id, 0, $_SESSION['usuario']);
+}
 
 header("Location: /gestor/pontos");
 exit;
